@@ -32,7 +32,7 @@ pub(super) fn credentials_section(
                     ui,
                     Id::new("mcp-client-name"),
                     &mut state.new_client_name,
-                    "Client name, e.g. Claude Desktop",
+                    crate::ui::tr("Client name, e.g. Claude Desktop", "Имя клиента, например Claude Desktop"),
                     width,
                 );
                 if state.new_client_name.chars().count() > MAX_CLIENT_NAME_LEN {

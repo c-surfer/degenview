@@ -18,13 +18,17 @@ pub(super) fn win_panel(ui: &mut Ui, stats: &PortfolioStatistics, content_height
                 ui,
                 area,
                 empty::Scene::Allocation,
-                "No Win Rate Yet",
-                "Priced holdings appear here.",
+                crate::ui::tr("No Win Rate Yet", "Нет данных Win Rate"),
+                crate::ui::tr("Priced holdings appear here.", "Здесь появятся активы с рыночной ценой."),
             );
             return;
         }
         header.label(kit::text(
-            format!("{priced} priced"),
+            if crate::ui::is_ru() {
+                format!("{priced} с ценой")
+            } else {
+                format!("{priced} priced")
+            },
             kit::size::SUBHEADLINE,
             REGULAR,
             caption_color(),
@@ -68,7 +72,7 @@ fn paint_win_rate(ui: &Ui, area: Rect, stats: &PortfolioStatistics) {
         SEMIBOLD,
         theme::text_primary(),
     );
-    let caption = line(ui, "win rate", kit::size::CAPTION, REGULAR, secondary);
+    let caption = line(ui, "Win Rate", kit::size::CAPTION, REGULAR, secondary);
     let stack = rate.size().y + caption.size().y;
     let top = centre.y - stack / 2.0;
     draw(ui, pos2(centre.x - rate.size().x / 2.0, top), &rate);
@@ -79,12 +83,12 @@ fn paint_win_rate(ui: &Ui, area: Rect, stats: &PortfolioStatistics) {
     );
 
     let mut rows = vec![
-        (theme::UP, "In profit", stats.winners),
-        (theme::DOWN, "At a loss", stats.losers),
-        (theme::text_tertiary(), "Break-even", level),
+        (theme::UP, crate::ui::tr("In profit", "В прибыли"), stats.winners),
+        (theme::DOWN, crate::ui::tr("At a loss", "В убытке"), stats.losers),
+        (theme::text_tertiary(), crate::ui::tr("Break-even", "Безубыток"), level),
     ];
     if unpriced > 0 {
-        rows.push((theme::ink(80), "No price", unpriced));
+        rows.push((theme::ink(80), crate::ui::tr("No price", "Без цены"), unpriced));
     }
     let row_height = 34.0;
     let x0 = left + diameter + 28.0;

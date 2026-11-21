@@ -193,7 +193,7 @@ fn sharing_badge(ui: &mut egui::Ui, input: &SnapshotsInput) {
                 Tone::Warning,
             );
         } else {
-            kit::status_badge(ui, "Sharing is off", Tone::Neutral);
+            kit::status_badge(ui, tr("Sharing is off", "Публикация выключена"), Tone::Neutral);
         }
         return;
     };

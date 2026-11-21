@@ -58,8 +58,11 @@ pub fn page(
     let mut action = None;
     card::section_title(
         ui,
-        "Compare",
-        Some("Draw other markets on this chart, on the same time axis."),
+        crate::ui::tr("Compare", "Сравнение"),
+        Some(crate::ui::tr(
+            "Draw other markets on this chart, on the same time axis.",
+            "Отображайте другие рынки на этом графике на единой шкале времени.",
+        )),
     );
     let overlays: Vec<ChartOverlay> = input.card.overlay_list().iter().cloned().collect();
     if overlays.is_empty() {

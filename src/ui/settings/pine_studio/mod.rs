@@ -117,7 +117,7 @@ struct Tile<'a> {
 fn tiles(view: &View) -> Vec<Tile<'_>> {
     let mut tiles = vec![Tile {
         selection: ThemeSelection::Auto,
-        name: tr(crate::model::editor_theme::AUTOMATIC_NAME, "Автоматическая").to_owned(),
+        name: tr(crate::model::editor_theme::AUTOMATIC_NAME, "По умолчанию").to_owned(),
         caption: tr("Follows the app", "Как в приложении").to_owned(),
         palettes: vec![BuiltInTheme::Dark.palette(), BuiltInTheme::Light.palette()],
         custom: None,
@@ -127,7 +127,7 @@ fn tiles(view: &View) -> Vec<Tile<'_>> {
         name: match built_in {
             BuiltInTheme::Dark => tr("Dark", "Тёмная").to_owned(),
             BuiltInTheme::Light => tr("Light", "Светлая").to_owned(),
-            BuiltInTheme::Dracula => "Dracula".to_owned(),
+            BuiltInTheme::Dracula => tr("Dracula", "Дракула").to_owned(),
         },
         caption: tr("Built-in", "Встроенная").to_owned(),
         palettes: vec![built_in.palette()],

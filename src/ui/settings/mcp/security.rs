@@ -47,8 +47,11 @@ pub(super) fn maximum_row(
     limit_row(
         ui,
         state,
-        "Maximum permissions",
-        "The most any credential can do. Each one can only narrow this.",
+        crate::ui::tr("Maximum permissions", "Максимальные права"),
+        crate::ui::tr(
+            "The most any credential can do. Each one can only narrow this.",
+            "Максимальный набор прав для любого клиента. Учётные данные могут только сужать этот список.",
+        ),
         input.global,
         Editing::Maximum,
     )
@@ -70,7 +73,7 @@ fn limit_row(
             vec2(ui.available_width(), CONTROL_HEIGHT),
             Layout::right_to_left(Align::Center),
             |ui| {
-                let button = kit::sheet_button(ui, "Edit…", false, true).on_hover_text(hover);
+                let button = kit::sheet_button(ui, crate::ui::tr("Edit…", "Изменить…"), false, true).on_hover_text(hover);
                 edit = button.rect;
                 if button.clicked() {
                     state.sheet = Some(editing);
@@ -79,7 +82,7 @@ fn limit_row(
                 ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
                     title = ui
                         .label(kit::text(
-                            title_text,
+                            crate::ui::t(title_text),
                             kit::size::SUBHEADLINE + 1.0,
                             kit::REGULAR,
                             theme::text_primary(),
@@ -137,7 +140,7 @@ fn remote_rows(
     let locked = input.load_error.is_some();
     let bind = input.settings.bind;
     let on = !bind.is_loopback() || state.remote_editing;
-    row(ui, "Remote connections", |ui| {
+    row(ui, crate::ui::tr("Remote connections", "Удалённые подключения"), |ui| {
         let mut value = on;
         if card::switch_enabled(ui, &mut value, !locked) {
             state.bind_error = None;

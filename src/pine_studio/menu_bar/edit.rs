@@ -11,7 +11,7 @@ use crate::ui::icons::Icon;
 use crate::ui::shortcut;
 
 fn edit(label: &str, icon: Icon, action: EditAction, shortcut: &shortcut::Shortcut) -> Item {
-    Item::new(label, Cmd::Edit(action))
+    Item::new(crate::ui::t(label), Cmd::Edit(action))
         .icon(icon)
         .shortcut(shortcut)
 }
@@ -141,7 +141,7 @@ fn names(state: &EditorMenuState) -> Vec<Entry> {
         )
         .enabled(state.definition)
         .into(),
-        Item::new("Find Usages", Cmd::Edit(EditAction::FindUsages))
+        Item::new(crate::ui::t("Find Usages"), Cmd::Edit(EditAction::FindUsages))
             .icon(Icon::Magnifier)
             .enabled(state.usages)
             .into(),
@@ -161,7 +161,7 @@ fn breakpoint(state: &EditorMenuState) -> Submenu {
     let mut entries: Vec<Entry> = breakpoint_rows(state.line, state.breakpoint.as_ref())
         .into_iter()
         .map(|row| {
-            let item = Item::new(row.label, Cmd::Gutter(row.event))
+            let item = Item::new(crate::ui::t(row.label), Cmd::Gutter(row.event))
                 .icon(row.icon)
                 .destructive(row.destructive);
             match row.event {
@@ -175,7 +175,7 @@ fn breakpoint(state: &EditorMenuState) -> Submenu {
         entries.push(Entry::Separator);
         entries.push(
             Item::new(
-                "Remove All Breakpoints",
+                crate::ui::tr("Remove All Breakpoints", "Удалить все брейкпоинты"),
                 Cmd::DebugPanel(PanelAction::RemoveAllBreakpoints),
             )
             .icon(Icon::Trash)
@@ -183,7 +183,7 @@ fn breakpoint(state: &EditorMenuState) -> Submenu {
             .into(),
         );
     }
-    Submenu::new("Breakpoint", entries).icon(Icon::Circle)
+    Submenu::new(crate::ui::tr("Breakpoint", "Брейкпоинты"), entries).icon(Icon::Circle)
 }
 
 /// The change the caret's line is in: the rows of the change column's menu. Greyed when the line
@@ -195,14 +195,14 @@ fn change(state: &EditorMenuState) -> Submenu {
             change_rows(kind)
                 .into_iter()
                 .map(|row| {
-                    Item::new(row.label, Cmd::Edit(EditAction::Change(row.command)))
+                    Item::new(crate::ui::t(row.label), Cmd::Edit(EditAction::Change(row.command)))
                         .icon(row.icon)
                         .into()
                 })
                 .collect()
         })
         .unwrap_or_default();
-    Submenu::new("Change", entries)
+    Submenu::new(crate::ui::tr("Change", "Изменение"), entries)
         .icon(Icon::Compare)
         .enabled(state.change.is_some())
 }

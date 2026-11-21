@@ -73,7 +73,7 @@ pub fn file_manager() -> &'static str {
     } else if cfg!(windows) {
         "Explorer"
     } else {
-        crate::ui::tr("File Manager", "файловом менеджере")
+        "File Manager"
     }
 }
 

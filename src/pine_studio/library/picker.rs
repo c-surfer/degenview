@@ -321,7 +321,8 @@ fn list(
     open_id: Option<&str>,
     pass: &mut Pass,
 ) {
-    let show_in = format!("Show in {}", crate::platform::file_manager());
+    let en_show_in = format!("Show in {}", crate::platform::file_manager());
+    let show_in = crate::ui::tr(&en_show_in, "Показать в менеджере файлов");
     for (index, (group, rows)) in groups.iter().enumerate() {
         // Sections breathe: the gap above a header separates it from the rows it closes.
         if index > 0 {
@@ -524,7 +525,7 @@ fn row_menu(
     let rows: Vec<(&str, Option<&str>)> = groups
         .iter()
         .flatten()
-        .map(|row| (row.label, None))
+        .map(|row| (crate::ui::t(row.label), None))
         .collect();
     let shown = kit::fitted_context_menu(ui, response, &rows, |ui| {
         for (index, group) in groups.iter().enumerate() {
@@ -532,7 +533,7 @@ fn row_menu(
                 kit::menu_separator(ui);
             }
             for row in group {
-                if kit::menu_item(ui, row.icon, row.label, true, row.destructive) {
+                if kit::menu_item(ui, row.icon, crate::ui::t(row.label), true, row.destructive) {
                     let command = row.action.command(&script.id);
                     if row.action.stays_in_list() {
                         pass.keep_open(command);

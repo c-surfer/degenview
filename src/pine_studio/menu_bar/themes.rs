@@ -10,7 +10,14 @@ use crate::ui::icons::Icon;
 
 pub(super) fn entries(choices: &Choices) -> Vec<Entry> {
     let pick = |selection: ThemeSelection, name: &str| -> Entry {
-        Item::new(name, Cmd::SetEditorTheme(selection))
+        let label = match selection {
+            ThemeSelection::Auto => crate::ui::tr("Automatic", "По умолчанию"),
+            ThemeSelection::BuiltIn(BuiltInTheme::Dark) => crate::ui::tr("Dark", "Тёмная"),
+            ThemeSelection::BuiltIn(BuiltInTheme::Light) => crate::ui::tr("Light", "Светлая"),
+            ThemeSelection::BuiltIn(BuiltInTheme::Dracula) => crate::ui::tr("Dracula", "Дракула"),
+            _ => crate::ui::t(name),
+        };
+        Item::new(label, Cmd::SetEditorTheme(selection))
             .checked(selection == choices.selected)
             .into()
     };
@@ -30,7 +37,7 @@ pub(super) fn entries(choices: &Choices) -> Vec<Entry> {
     vec![
         Entry::Scroll(grouped(vec![built_in, custom])),
         Entry::Separator,
-        Item::new("Configure Themes…", Cmd::OpenThemeSettings)
+        Item::new(crate::ui::tr("Configure Themes…", "Настройка тем…"), Cmd::OpenThemeSettings)
             .icon(Icon::Sliders)
             .into(),
     ]

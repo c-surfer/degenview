@@ -92,19 +92,36 @@ fn sentence_lines(range: &std::ops::Range<usize>) -> String {
 
 /// The hover text: the count and what a click does, in words (the colour is not the message).
 fn change_tooltip(hunk: &DiffHunk) -> String {
-    match hunk.kind {
-        ChangeKind::Added => format!(
-            "{} added — Click to inspect",
-            plural(hunk.added_lines(), "line")
-        ),
-        ChangeKind::Deleted => format!(
-            "{} deleted — Click to restore",
-            plural(hunk.removed_lines(), "line")
-        ),
-        ChangeKind::Modified => format!(
-            "{} modified — Click to compare",
-            sentence_lines(&hunk.new_lines)
-        ),
+    if crate::ui::is_ru() {
+        match hunk.kind {
+            ChangeKind::Added => format!(
+                "Добавлено строк: {} — Нажмите для просмотра",
+                hunk.added_lines()
+            ),
+            ChangeKind::Deleted => format!(
+                "Удалено строк: {} — Нажмите для восстановления",
+                hunk.removed_lines()
+            ),
+            ChangeKind::Modified => format!(
+                "{} изменено — Нажмите для сравнения",
+                sentence_lines(&hunk.new_lines)
+            ),
+        }
+    } else {
+        match hunk.kind {
+            ChangeKind::Added => format!(
+                "{} added — Click to inspect",
+                plural(hunk.added_lines(), "line")
+            ),
+            ChangeKind::Deleted => format!(
+                "{} deleted — Click to restore",
+                plural(hunk.removed_lines(), "line")
+            ),
+            ChangeKind::Modified => format!(
+                "{} modified — Click to compare",
+                sentence_lines(&hunk.new_lines)
+            ),
+        }
     }
 }
 
@@ -246,11 +263,11 @@ pub(in crate::pine_studio::editor) fn change_gutter(
             .frame(kit::menu_frame())
             .show(|ui| {
                 let rows = change_rows(hunk.kind);
-                let labels: Vec<&str> = rows.iter().map(|row| row.label).collect();
+                let labels: Vec<&str> = rows.iter().map(|row| crate::ui::t(row.label)).collect();
                 kit::menu_fit(ui, &labels);
                 ui.spacing_mut().item_spacing.y = 0.0;
                 for row in rows {
-                    if kit::menu_item(ui, row.icon, row.label, true, false) {
+                    if kit::menu_item(ui, row.icon, crate::ui::t(row.label), true, false) {
                         command = Some((hunk.clone(), row.command));
                         ui.close();
                     }

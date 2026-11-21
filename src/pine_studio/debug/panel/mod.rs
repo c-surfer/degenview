@@ -269,7 +269,7 @@ fn headline(panel: &DebugPanel) -> (eframe::egui::Color32, String) {
             resting,
             crate::ui::tr(
                 "Not debugging — press ▶ to run to a breakpoint, or step to start at the first line",
-                "Отладка не запущена — нажмите ▶ для перехода к точке останова…",
+                "Отладка не запущена — нажмите ▶ для перехода к брейкпоинту…",
             )
             .to_owned(),
         ),
@@ -306,7 +306,7 @@ fn headline(panel: &DebugPanel) -> (eframe::egui::Color32, String) {
                     StopReason::Breakpoint(_) => (
                         theme::editor_debug_line(),
                         if crate::ui::is_ru() {
-                            format!("Остановка на точке останова{line}")
+                            format!("Остановка на брейкпоинте{line}")
                         } else {
                             format!("Paused on a breakpoint{line}")
                         },
@@ -531,7 +531,7 @@ fn variables_pane(ui: &mut Ui, context: &mut Context<'_>, with_header: bool) {
             crate::ui::tr("Nothing to inspect", "Нечего инспектировать"),
             crate::ui::tr(
                 "Variables appear here when the script is stopped at a breakpoint or a step.",
-                "Переменные появятся здесь при остановке скрипта...",
+                "Переменные появятся здесь при остановке на брейкпоинте или шаге.",
             ),
         );
         return;
@@ -683,13 +683,13 @@ fn section(ui: &mut Ui, context: &mut Context<'_>, which: Section) {
     let (title, count) = match which {
         Section::Watches => (crate::ui::tr("Watches", "Выражения (Watches)"), Some(panel.state.watches.len())),
         Section::Stack => (crate::ui::tr("Call Stack", "Стек вызовов"), Some(panel.stack().len())),
-        Section::Breakpoints => (crate::ui::tr("Breakpoints", "Точки останова"), Some(panel.state.breakpoints.len())),
+        Section::Breakpoints => (crate::ui::tr("Breakpoints", "Брейкпоинты"), Some(panel.state.breakpoints.len())),
         Section::Console => (crate::ui::tr("Console", "Консоль"), None),
     };
     let mut trailing_actions = Vec::new();
     let toggled = section_header(ui, title, count, open, |ui| match which {
         Section::Breakpoints if !panel.state.breakpoints.is_empty() => {
-            if icon_button(ui, Icon::Trash, true, "Remove all breakpoints") {
+            if icon_button(ui, Icon::Trash, true, crate::ui::tr("Remove all breakpoints", "Удалить все брейкпоинты")) {
                 trailing_actions.push(PanelAction::RemoveAllBreakpoints);
             }
             let all_on = panel.state.breakpoints.iter().all(|b| b.spec.enabled);

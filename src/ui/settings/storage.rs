@@ -156,11 +156,8 @@ pub fn body(ui: &mut egui::Ui, state: &mut StorageState, actions: &mut Vec<Stora
                 if let Some(location) = &location {
                     kit::divider(ui);
                     row(ui, tr("Location", "Расположение"), |ui| {
-                        let label = if crate::ui::i18n::is_ru() {
-                            format!("Показать в {}", platform::file_manager())
-                        } else {
-                            format!("Show in {}", platform::file_manager())
-                        };
+                        let en_label = format!("Show in {}", platform::file_manager());
+                        let label = crate::ui::tr(&en_label, "Показать в менеджере файлов");
                         if kit::push_button(ui, None, &label, true).clicked() {
                             // Nothing may be cached yet; reveal an empty folder rather than fail.
                             let _ = std::fs::create_dir_all(location);

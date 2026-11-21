@@ -603,11 +603,11 @@ fn header(
     let summary_text = if enabled && !checking && matches!(readiness, Readiness::Ready) {
         provider.status_line(settings)
     } else {
-        descriptor.summary.to_owned()
+        crate::ui::t(descriptor.summary).to_owned()
     };
     let name = fitted(
         ui,
-        descriptor.name,
+        crate::ui::t(descriptor.name),
         kit::size::HEADLINE,
         kit::SEMIBOLD,
         theme::text_primary(),

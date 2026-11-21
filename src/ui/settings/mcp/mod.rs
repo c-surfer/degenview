@@ -148,12 +148,16 @@ fn named(areas: &[&str]) -> String {
     let shown = areas
         .iter()
         .take(NAMED_AREAS)
-        .copied()
+        .map(|a| crate::ui::t(a))
         .collect::<Vec<_>>()
         .join(", ");
     match areas.len().saturating_sub(NAMED_AREAS) {
         0 => shown,
-        more => format!("{shown} +{more} more"),
+        more => if crate::ui::is_ru() {
+            format!("{shown} +ещё {more}")
+        } else {
+            format!("{shown} +{more} more")
+        },
     }
 }
 
@@ -177,7 +181,11 @@ fn access_overview(set: &PermissionSet) -> AccessOverview {
     }
     if writes.is_empty() {
         let detail = if reads.len() == total {
-            format!("All {total} areas")
+            if crate::ui::is_ru() {
+                format!("Все {total} разделов")
+            } else {
+                format!("All {total} areas")
+            }
         } else {
             named(&reads)
         };
@@ -187,13 +195,21 @@ fn access_overview(set: &PermissionSet) -> AccessOverview {
             writes: false,
         };
     }
-    let mut detail = format!("Changes {}", named(&writes));
+    let mut detail = if crate::ui::is_ru() {
+        format!("Изменяет {}", named(&writes))
+    } else {
+        format!("Changes {}", named(&writes))
+    };
     if !reads.is_empty() {
-        detail.push_str(&format!(
-            " · reads {} more area{}",
-            reads.len(),
-            if reads.len() == 1 { "" } else { "s" }
-        ));
+        if crate::ui::is_ru() {
+            detail.push_str(&format!(" · читает ещё {}", reads.len()));
+        } else {
+            detail.push_str(&format!(
+                " · reads {} more area{}",
+                reads.len(),
+                if reads.len() == 1 { "" } else { "s" }
+            ));
+        }
     }
     AccessOverview {
         headline: "Read & write",

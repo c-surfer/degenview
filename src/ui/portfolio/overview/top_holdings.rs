@@ -26,13 +26,13 @@ pub(super) fn top_holdings_panel(
         ui,
         PANEL_CONTENT_HEIGHT,
         Icon::Layers,
-        "Top Holdings",
+        crate::ui::tr("Top Holdings", "Крупнейшие активы"),
         |header, ui| {
             if show_all {
                 let link = header
                     .add(
                         egui::Label::new(kit::text(
-                            "View All",
+                            crate::ui::tr("View All", "Смотреть все"),
                             kit::size::SUBHEADLINE,
                             MEDIUM,
                             theme::SYSTEM_ACCENT,
@@ -49,8 +49,8 @@ pub(super) fn top_holdings_panel(
                     ui,
                     ui.max_rect(),
                     empty::Scene::Holdings,
-                    "No Open Positions",
-                    "Assets you hold appear here.",
+                    crate::ui::tr("No Open Positions", "Нет открытых позиций"),
+                    crate::ui::tr("Assets you hold appear here.", "Здесь появятся ваши активы."),
                 );
                 return;
             }
@@ -82,7 +82,7 @@ fn top_holding_row(
             egui::Id::new(("portfolio-top-holding", &holding.asset.key)),
             Sense::click(),
         )
-        .on_hover_text("Shows this asset's transactions")
+        .on_hover_text(crate::ui::tr("Shows this asset's transactions", "Показать сделки по активу"))
         .on_hover_cursor(CursorIcon::PointingHand);
     if response.hovered() {
         ui.painter().rect_filled(row, 8.0, theme::ink(18));

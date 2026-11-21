@@ -37,10 +37,11 @@ pub(super) fn server_section(
         card::card(
             ui,
             Icon::CheckCircle,
-            "Ask before high-impact requests",
-            Some(
+            crate::ui::tr("Ask before high-impact requests", "Спрашивать перед важными действиями"),
+            Some(crate::ui::tr(
                 "Deleting alerts, charts, drawings or watchlists, saving over a script, and every paper order wait for your approval in DegenView. On unless you turn it off. A credential with remote access is asked about every change, whatever this says.",
-            ),
+                "Удаление оповещений, графиков, рисунков или списков наблюдения, перезапись скрипта и каждый демо-ордер требуют вашего подтверждения в DegenView. Включено по умолчанию. При удалённом доступе подтверждение запрашивается для каждого изменения.",
+            )),
             |ui| {
                 let mut required = input.settings.require_confirmation;
                 if card::switch_enabled(ui, &mut required, !locked) {
@@ -56,8 +57,8 @@ pub(super) fn server_section(
         ui.add_space(10.0);
         card(ui, |ui| {
             ui.spacing_mut().item_spacing.y = 10.0;
-            row(ui, "Status", |ui| {
-                kit::status_badge(ui, input.status.label(), status_tone(input.status));
+            row(ui, crate::ui::tr("Status", "Статус"), |ui| {
+                kit::status_badge(ui, crate::ui::t(input.status.label()), status_tone(input.status));
             });
             if let McpStatus::Failed(reason) = input.status {
                 ui.add(
@@ -71,21 +72,21 @@ pub(super) fn server_section(
                 );
             }
             kit::divider(ui);
-            row(ui, "Address", |ui| {
+            row(ui, crate::ui::tr("Address", "Адрес"), |ui| {
                 secondary(ui, input.settings.bind.address().to_string())
             });
             kit::divider(ui);
-            row(ui, "Port", |ui| {
+            row(ui, crate::ui::tr("Port", "Порт"), |ui| {
                 port_control(ui, state, input.settings.port, actions)
             });
             kit::divider(ui);
-            row(ui, "Endpoint", |ui| {
+            row(ui, crate::ui::tr("Endpoint", "Точка входа"), |ui| {
                 let endpoint = input.settings.endpoint();
                 copy_button(
                     ui,
                     &mut state.copied,
                     Copied::Endpoint,
-                    "Copy",
+                    crate::ui::tr("Copy", "Копировать"),
                     &endpoint,
                     false,
                 );
@@ -123,7 +124,7 @@ fn port_control(
     let parsed = state.port_text.trim().parse::<u16>().ok();
     let changed = parsed.is_some_and(|value| value != port);
     // Right to left: the button, then the field to its left.
-    if kit::sheet_button(ui, "Apply", changed, changed).clicked()
+    if kit::sheet_button(ui, crate::ui::tr("Apply", "Применить"), changed, changed).clicked()
         && let Some(value) = parsed
     {
         actions.push(McpAction::SetPort(value));

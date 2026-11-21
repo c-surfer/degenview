@@ -131,12 +131,15 @@ pub fn toolbar_button<A, M>(status: &Status, on_click: A) -> bar::Button<A, M> {
     let tip = if on {
         format!(
             "{}\n{}",
-            shortcut::PROFILER_TOGGLE.hint("Turn the profiler off"),
+            shortcut::PROFILER_TOGGLE.hint(crate::ui::tr("Turn the profiler off", "Выключить профилировщик")),
             description.label
         )
     } else {
         shortcut::PROFILER_TOGGLE
-            .hint("Turn the profiler on: see which lines of the script take the time")
+            .hint(crate::ui::tr(
+                "Turn the profiler on: see which lines of the script take the time",
+                "Включить профилировщик: узнать, какие строки скрипта занимают больше всего времени",
+            ))
     };
     let mut button = bar::Button::new("profiler", tip)
         .icon(Icon::Gauge)

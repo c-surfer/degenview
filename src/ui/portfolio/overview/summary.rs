@@ -20,15 +20,15 @@ pub(super) fn summary_cards(
     grid(
         ui,
         &[
-            StatCard::new("Cost Basis", f.money(stats.cost_basis)).icon(Icon::Banknote),
-            StatCard::new("All-time P&L", f.signed_money(stats.total_pnl()))
+            StatCard::new(crate::ui::tr("Cost Basis", "Базовая стоимость"), f.money(stats.cost_basis)).icon(Icon::Banknote),
+            StatCard::new(crate::ui::tr("All-time P&L", "P&L за всё время"), f.signed_money(stats.total_pnl()))
                 .tone(f.tone(Some(stats.total_pnl())))
                 .icon(Icon::ChartUptrend),
-            StatCard::new("Unrealized P&L", f.signed_money(stats.unrealized_pnl))
+            StatCard::new(crate::ui::tr("Unrealized P&L", "Нереализованный P&L"), f.signed_money(stats.unrealized_pnl))
                 .tone(f.tone(Some(stats.unrealized_pnl)))
                 .caption(stats.unrealized_percent.map(|p| f.signed_percent(p, 2)))
                 .icon(Icon::Clock),
-            StatCard::new("Realized P&L", f.signed_money(stats.realized_pnl))
+            StatCard::new(crate::ui::tr("Realized P&L", "Реализованный P&L"), f.signed_money(stats.realized_pnl))
                 .tone(f.tone(Some(stats.realized_pnl)))
                 .icon(Icon::CheckmarkSeal),
         ],
@@ -145,7 +145,7 @@ fn performer_tile(
     height: f32,
 ) {
     let f = input.formatter;
-    let best = title.starts_with("Best");
+    let best = title.starts_with("Best") || title.starts_with("Лучш");
     let tone = result.and_then(|result| f.tone(Some(result.total_pnl)));
     let rect = card_frame(ui, height, tone.map(tone_color));
     let (left, right) = (rect.left() + 18.0, rect.right() - 18.0);

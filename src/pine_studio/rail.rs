@@ -93,9 +93,9 @@ fn position_icon(position: ChartPosition) -> Icon {
 
 fn items(state: &RailState) -> Vec<RailItem> {
     let preview_toggle = shortcut::TOGGLE_PREVIEW_CHART.hint(if state.chart_visible {
-        "Hide the preview chart"
+        crate::ui::tr("Hide the preview chart", "Скрыть график предпросмотра")
     } else {
-        "Show the preview chart"
+        crate::ui::tr("Show the preview chart", "Показать график предпросмотра")
     });
     vec![
         Item::Button(ai::panel::panel_button(
@@ -114,7 +114,10 @@ fn items(state: &RailState) -> Vec<RailItem> {
         Item::Button(
             RailButton::new(
                 "chart-position",
-                "Where the preview chart sits next to the code",
+                crate::ui::tr(
+                    "Where the preview chart sits next to the code",
+                    "Расположение графика предпросмотра рядом с кодом",
+                ),
             )
             .icon(position_icon(state.chart_position))
             .with_menu(RailMenu::ChartPosition),

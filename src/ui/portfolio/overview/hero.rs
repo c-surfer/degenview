@@ -49,7 +49,7 @@ pub(super) fn hero(
         ui,
         pos2(chip.right() + 9.0, chip.center().y),
         Align2::LEFT_CENTER,
-        input.portfolio_name.unwrap_or("All Portfolios"),
+        input.portfolio_name.unwrap_or_else(|| crate::ui::tr("All Portfolios", "Все портфели")),
         15.0,
         SEMIBOLD,
         theme::text_primary(),
@@ -124,7 +124,19 @@ pub(super) fn hero(
         return;
     }
     let middle = rect.center().y;
-    let pnl_label = format!("P&L \u{00B7} {}", state.range.period_name());
+    let pnl_label = if crate::ui::is_ru() {
+        use crate::model::portfolio::statistics::PortfolioHistoryRange;
+        let period_ru = match state.range {
+            PortfolioHistoryRange::OneDay => "24 ч",
+            PortfolioHistoryRange::OneWeek => "7 дней",
+            PortfolioHistoryRange::OneMonth => "30 дней",
+            PortfolioHistoryRange::OneYear => "1 год",
+            PortfolioHistoryRange::All => "всё время",
+        };
+        format!("P&L за {period_ru}")
+    } else {
+        format!("P&L \u{00B7} {}", state.range.period_name())
+    };
     let edge = change_block(
         ui,
         f,

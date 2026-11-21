@@ -135,7 +135,10 @@ pub fn mode_hint(mode: ProxyMode) -> &'static str {
         ProxyMode::System if cfg!(target_os = "macos") => {
             "Follows the HTTP_PROXY and HTTPS_PROXY variables, then the proxy in System Settings ▸ Network."
         }
-        ProxyMode::System => "Follows the HTTP_PROXY, HTTPS_PROXY and ALL_PROXY variables.",
+        ProxyMode::System => tr(
+            "Follows the HTTP_PROXY, HTTPS_PROXY and ALL_PROXY variables.",
+            "Используются переменные HTTP_PROXY, HTTPS_PROXY и ALL_PROXY.",
+        ),
         ProxyMode::Manual => "Uses the server below for prices, news, updates and live feeds.",
         ProxyMode::Off => "Connects directly, whatever the system or the environment says.",
     }
@@ -150,7 +153,7 @@ pub fn badge(status: &Status) -> (String, Tone) {
         ),
         (None, ProxyMode::Off) => ("Proxy off".to_owned(), Tone::Neutral),
         (None, ProxyMode::Manual) => ("No proxy server set".to_owned(), Tone::Neutral),
-        (None, ProxyMode::System) => ("Connecting directly".to_owned(), Tone::Neutral),
+        (None, ProxyMode::System) => (tr("Connecting directly", "Прямое подключение").to_owned(), Tone::Neutral),
     }
 }
 
@@ -255,10 +258,11 @@ pub fn body(
         ui,
         Icon::InfoCircle,
         theme::text_secondary(),
-        "What goes through the proxy",
-        Some(
+        tr("What goes through the proxy", "Что идёт через прокси"),
+        Some(tr(
             "Market data, live price feeds, updates, link previews, webhooks, AI requests, chart sharing and live trading.",
-        ),
+            "Рыночные данные, котировки в реальном времени, обновления, предпросмотр ссылок, вебхуки, запросы AI, снимки графиков и торговля.",
+        )),
         None,
     );
 }

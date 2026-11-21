@@ -939,9 +939,12 @@ fn remap_picker(ticker: &str) -> AssetPickerState {
 
 fn add_transaction_picker() -> AssetPickerState {
     AssetPickerState::new(
-        "Add Asset",
-        "Choose the asset this transaction is for.",
-        "Continue",
+        crate::ui::tr("Add Asset", "Добавить актив"),
+        crate::ui::tr(
+            "Choose the asset this transaction is for.",
+            "Выберите актив для этой сделки.",
+        ),
+        crate::ui::tr("Continue", "Продолжить"),
     )
 }
 
@@ -950,27 +953,39 @@ fn market_value_caption(
     holdings: &[crate::model::portfolio::PortfolioHolding],
 ) -> String {
     if let Some(error) = &state.error {
-        return format!("Market value unavailable · {error}");
+        return format!("{} · {error}", crate::ui::tr("Market value unavailable", "Рыночная стоимость недоступна"));
     }
     let Some(projection) = &state.projection else {
-        return "Loading market value…".to_owned();
+        return crate::ui::tr("Loading market value…", "Загрузка рыночной стоимости…").to_owned();
     };
     let exchange_suffix = if projection.uses_cached_exchange_rates {
-        " · Cached exchange rates"
+        crate::ui::tr(" · Cached exchange rates", " · Курсы валют из кэша")
     } else {
         ""
     };
     if projection.unpriced_asset_count > 0 {
         let count = projection.unpriced_asset_count;
+        if crate::ui::is_ru() {
+            let rem10 = count % 10;
+            let rem100 = count % 100;
+            let word = if rem10 == 1 && rem100 != 11 {
+                "актив без цены"
+            } else if (2..=4).contains(&rem10) && !(12..=14).contains(&rem100) {
+                "актива без цены"
+            } else {
+                "активов без цены"
+            };
+            return format!("+ {count} {word}{exchange_suffix}");
+        }
         return format!(
             "+ {count} unpriced asset{}{exchange_suffix}",
             if count == 1 { "" } else { "s" }
         );
     }
     let label = if holdings.iter().any(|holding| holding.is_price_stale) {
-        "Cached market value"
+        crate::ui::tr("Cached market value", "Рыночная стоимость из кэша")
     } else {
-        "Live market value"
+        crate::ui::tr("Live market value", "Текущая рыночная стоимость")
     };
     format!("{label}{exchange_suffix}")
 }

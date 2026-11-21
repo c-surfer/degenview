@@ -17,17 +17,18 @@ pub(in crate::pine_studio) struct FileState {
 }
 
 pub(super) fn entries(state: &FileState) -> Vec<Entry> {
-    let show_in = format!("Show in {}", crate::platform::file_manager());
+    let en_show_in = format!("Show in {}", crate::platform::file_manager());
+    let show_in = crate::ui::tr(&en_show_in, "Показать в менеджере файлов");
     let mut groups = vec![vec![
-        Item::new("New Script…", Cmd::NewScript)
+        Item::new(crate::ui::tr("New Script…", "Новый скрипт…"), Cmd::NewScript)
             .icon(Icon::Plus)
             .shortcut(&shortcut::NEW_SCRIPT)
             .into(),
-        Item::new("Open Script…", Cmd::OpenScriptPicker)
+        Item::new(crate::ui::tr("Open Script…", "Открыть скрипт…"), Cmd::OpenScriptPicker)
             .icon(Icon::DocText)
             .shortcut(&shortcut::OPEN_SCRIPT_PICKER)
             .into(),
-        Item::new("Save", Cmd::Save)
+        Item::new(crate::ui::tr("Save", "Сохранить"), Cmd::Save)
             .icon(Icon::Download)
             .shortcut(&shortcut::SAVE)
             .enabled(state.dirty)
@@ -40,7 +41,7 @@ pub(super) fn entries(state: &FileState) -> Vec<Entry> {
                 group
                     .into_iter()
                     .map(|row| {
-                        Item::new(row.label, row.action.command(&state.id))
+                        Item::new(crate::ui::t(row.label), row.action.command(&state.id))
                             .icon(row.icon)
                             .destructive(row.destructive)
                             .into()
@@ -52,7 +53,7 @@ pub(super) fn entries(state: &FileState) -> Vec<Entry> {
     let delete = per_script.pop();
     groups.extend(per_script);
     groups.push(vec![
-        Item::new("Add Example Scripts", Cmd::AddExamples)
+        Item::new(crate::ui::tr("Add Example Scripts", "Добавить примеры скриптов"), Cmd::AddExamples)
             .icon(Icon::Layers)
             .into(),
     ]);

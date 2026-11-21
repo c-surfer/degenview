@@ -257,7 +257,23 @@ pub fn show(
 
     ui.add_space(4.0);
     ui.horizontal(|ui| {
-        let label = format!("Reset {} settings", current.label());
+        let en_label = format!("Reset {} settings", current.label());
+        let ru_label = match current {
+            ChartType::Candles => "Сбросить настройки свечей".to_string(),
+            ChartType::Bars => "Сбросить настройки баров".to_string(),
+            ChartType::HollowCandles => "Сбросить настройки пустых свечей".to_string(),
+            ChartType::HeikinAshi => "Сбросить настройки Heikin Ashi".to_string(),
+            ChartType::Line => "Сбросить настройки линии".to_string(),
+            ChartType::Area => "Сбросить настройки области".to_string(),
+            ChartType::Baseline => "Сбросить настройки базовой линии".to_string(),
+            ChartType::HlcArea => "Сбросить настройки области HLC".to_string(),
+            ChartType::HighLowBars => "Сбросить настройки баров High-Low".to_string(),
+            ChartType::VolumeCandles => "Сбросить настройки свечей объёма".to_string(),
+            ChartType::LineWithMarkers => "Сбросить настройки линии с маркерами".to_string(),
+            ChartType::StepLine => "Сбросить настройки ступенчатой линии".to_string(),
+            _ => format!("Сбросить настройки {}", current.label()),
+        };
+        let label = tr(&en_label, &ru_label);
         if kit::push_button(ui, None, &label, true).clicked() {
             card.chart_style_mut().reset_selected();
         }

@@ -19,7 +19,7 @@ pub(super) fn range_strip(ui: &mut Ui, input: &StatisticsInput, stats: &Portfoli
         ui,
         pos2(left, rect.top() + 13.0),
         Align2::LEFT_TOP,
-        "Value Range",
+        crate::ui::tr("Value Range", "Диапазон стоимости"),
         kit::size::CAPTION,
         REGULAR,
         secondary,
@@ -33,11 +33,16 @@ pub(super) fn range_strip(ui: &mut Ui, input: &StatisticsInput, stats: &Portfoli
         ((stats.total_value - low.value) / (high.value - low.value)).clamp(0.0, 1.0) as f32
     });
     if let Some(position) = position {
+        let position_label = if crate::ui::is_ru() {
+            format!("{:.0}% от минимума", position * 100.0)
+        } else {
+            format!("{:.0}% of the way up", position * 100.0)
+        };
         text_at(
             ui,
             pos2(right, rect.top() + 13.0),
             Align2::RIGHT_TOP,
-            &format!("{:.0}% of the way up", position * 100.0),
+            &position_label,
             kit::size::CAPTION,
             REGULAR,
             secondary,
@@ -64,8 +69,8 @@ pub(super) fn range_strip(ui: &mut Ui, input: &StatisticsInput, stats: &Portfoli
 
     let with_date = rect.width() >= 480.0;
     for (extreme, label, anchor, align) in [
-        (stats.low, "Low", left, Align2::LEFT_TOP),
-        (stats.high, "High", right, Align2::RIGHT_TOP),
+        (stats.low, crate::ui::tr("Low", "Мин"), left, Align2::LEFT_TOP),
+        (stats.high, crate::ui::tr("High", "Макс"), right, Align2::RIGHT_TOP),
     ] {
         let money = extreme.map_or("—".to_owned(), |e| f.money(e.value));
         let note = match extreme {

@@ -161,14 +161,22 @@ pub(super) fn status_bar(ui: &mut Ui, bar: Rect, state: &EditorState, changes: &
                     .size(10.0)
                     .color(theme::editor_diff_added()),
             )
-            .on_hover_text(format!("{added} lines added since the last save"));
+            .on_hover_text(if crate::ui::is_ru() {
+                format!("{added} строк добавлено с момента сохранения")
+            } else {
+                format!("{added} lines added since the last save")
+            });
         inner
             .label(
                 RichText::new(format!("−{removed}"))
                     .size(10.0)
                     .color(theme::editor_diff_deleted()),
             )
-            .on_hover_text(format!("{removed} lines removed since the last save"));
+            .on_hover_text(if crate::ui::is_ru() {
+                format!("{removed} строк удалено с момента сохранения")
+            } else {
+                format!("{removed} lines removed since the last save")
+            });
     }
     if let Some((text, at)) = state.notice.as_ref()
         && let Some(left) =

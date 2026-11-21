@@ -406,10 +406,10 @@ pub fn breakpoints(
     if panel.state.breakpoints.is_empty() {
         placeholder(
             ui,
-            crate::ui::tr("No breakpoints", "Нет точек останова"),
+            crate::ui::tr("No breakpoints", "Нет брейкпоинтов"),
             crate::ui::tr(
                 "Click a line number to stop there, or press the breakpoint key on the caret's line.",
-                "Нажмите на номер строки для остановки или используйте горячую клавишу.",
+                "Нажмите на номер строки для брейкпоинта или используйте горячую клавишу.",
             ),
         );
         return;
@@ -626,11 +626,11 @@ fn breakpoint_row(
     egui::Popup::context_menu(&response)
         .frame(kit::menu_frame())
         .show(|ui| {
-            let edit_bp = crate::ui::tr("Edit Breakpoint…", "Редактировать точку останова…");
-            let disable_bp = crate::ui::tr("Disable Breakpoint", "Отключить точку останова");
-            let enable_bp = crate::ui::tr("Enable Breakpoint", "Включить точку останова");
-            let remove_bp = crate::ui::tr("Remove Breakpoint", "Удалить точку останова");
-            let remove_all = crate::ui::tr("Remove All Breakpoints", "Удалить все точки останова");
+            let edit_bp = crate::ui::tr("Edit Breakpoint…", "Редактировать брейкпоинт…");
+            let disable_bp = crate::ui::tr("Disable Breakpoint", "Отключить брейкпоинт");
+            let enable_bp = crate::ui::tr("Enable Breakpoint", "Включить брейкпоинт");
+            let remove_bp = crate::ui::tr("Remove Breakpoint", "Удалить брейкпоинт");
+            let remove_all = crate::ui::tr("Remove All Breakpoints", "Удалить все брейкпоинты");
             let toggle_label = if spec.enabled { disable_bp } else { enable_bp };
             kit::menu_fit(
                 ui,

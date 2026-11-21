@@ -54,10 +54,10 @@ impl Menu {
 
     fn title(self) -> &'static str {
         match self {
-            Self::File => "File",
-            Self::Edit => "Edit",
-            Self::View => "View",
-            Self::Theme => "Theme",
+            Self::File => crate::ui::tr("File", "Файл"),
+            Self::Edit => crate::ui::tr("Edit", "Правка"),
+            Self::View => crate::ui::tr("View", "Вид"),
+            Self::Theme => crate::ui::tr("Theme", "Тема"),
         }
     }
 }
