@@ -28,8 +28,11 @@ pub(super) fn show(ui: &mut Ui, state: &BookViewState, snapshot: &DepthSnapshot,
             &tape,
             area,
             crate::ui::icons::Icon::List,
-            "Waiting for trades",
-            "They are listed here as they happen.",
+            crate::ui::tr("Waiting for trades", "Ожидание сделок"),
+            crate::ui::tr(
+                "They are listed here as they happen.",
+                "Они будут отображаться здесь по мере появления.",
+            ),
         );
         return;
     }
@@ -65,18 +68,18 @@ fn header(ui: &mut Ui) {
             color,
         );
     };
-    put("Time", rect.left() + MARGIN, Align2::LEFT_CENTER);
+    put(crate::ui::tr("Time", "Время"), rect.left() + MARGIN, Align2::LEFT_CENTER);
     put(
-        "Side",
+        crate::ui::tr("Side", "Сторона"),
         rect.left() + MARGIN + TIME_WIDTH,
         Align2::LEFT_CENTER,
     );
     put(
-        "Price",
+        crate::ui::tr("Price", "Цена"),
         rect.right() - MARGIN - SIZE_WIDTH - 8.0,
         Align2::RIGHT_CENTER,
     );
-    put("Size", rect.right() - MARGIN, Align2::RIGHT_CENTER);
+    put(crate::ui::tr("Size", "Размер"), rect.right() - MARGIN, Align2::RIGHT_CENTER);
     painter.hline(
         rect.x_range(),
         rect.bottom() - 0.5,
@@ -115,8 +118,8 @@ fn row(ui: &mut Ui, tick: Price, trade: &Trade, state: &BookViewState) {
     };
     let time = kit::time_text::clock_time_seconds(Some(trade.time_ms));
     let side = match trade.taker {
-        Taker::Buy => "Buy",
-        Taker::Sell => "Sell",
+        Taker::Buy => crate::ui::tr("Buy", "Покупка"),
+        Taker::Sell => crate::ui::tr("Sell", "Продажа"),
     };
     let price = trade.price.format(tick.decimals());
     put(

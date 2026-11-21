@@ -41,6 +41,7 @@ pub enum UiLanguage {
     Russian,
 }
 
+#[allow(dead_code)]
 impl UiLanguage {
     pub const ALL: [Self; 2] = [Self::English, Self::Russian];
 
