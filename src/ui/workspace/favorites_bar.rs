@@ -132,10 +132,16 @@ fn icon(item: Favorite) -> icons::Icon {
 fn tooltip(item: Favorite) -> String {
     match item {
         Favorite::Tool(tool) => match shortcut::tool(tool) {
-            Some(shortcut) => format!("{} ({})", tool.label(), shortcut.label()),
-            None => tool.label().to_owned(),
+            Some(shortcut) => format!("{} ({})", crate::ui::t(tool.label()), shortcut.label()),
+            None => crate::ui::t(tool.label()).to_owned(),
         },
-        Favorite::Cursor(mode) => format!("{} cursor", mode.label()),
+        Favorite::Cursor(mode) => {
+            if crate::ui::is_ru() {
+                format!("Курсор «{}»", crate::ui::t(mode.label()))
+            } else {
+                format!("{} cursor", mode.label())
+            }
+        }
     }
 }
 
@@ -241,7 +247,7 @@ fn bar_body(
         } else {
             CursorIcon::Grab
         });
-    let grip = crate::ui::accessibility::label(grip, "Move favorites toolbar");
+    let grip = crate::ui::accessibility::label(grip, crate::ui::t("Move favorites toolbar"));
     if grip.drag_started_by(PointerButton::Primary) {
         // The drag starts once the pointer has moved a little: take that distance with it.
         let (pressed_at, now) = ui
@@ -317,10 +323,10 @@ fn bar_body(
     }
 
     // A right-click lands on a button or the grip, whichever is under the pointer.
-    let rows = [(HIDE_LABEL, None)];
+    let rows = [(crate::ui::t(HIDE_LABEL), None)];
     for response in &responses {
         kit::fitted_context_menu(ui, response, &rows, |ui| {
-            if kit::menu_item(ui, icons::Icon::EyeSlash, HIDE_LABEL, true, false) {
+            if kit::menu_item(ui, icons::Icon::EyeSlash, crate::ui::t(HIDE_LABEL), true, false) {
                 actions.push(FavoritesBarAction::Hide);
                 ui.close();
             }

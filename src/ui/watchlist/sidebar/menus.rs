@@ -31,9 +31,9 @@ pub(super) fn section_menu(
 ) {
     kit::menu_scope(ui, SUBMENU_WIDTH - MENU_FRAME);
     let (icon, label) = if collapsed {
-        (Icon::ChevronDown, "Expand Section")
+        (Icon::ChevronDown, crate::ui::tr("Expand Section", "Развернуть секцию"))
     } else {
-        (Icon::ChevronUp, "Collapse Section")
+        (Icon::ChevronUp, crate::ui::tr("Collapse Section", "Свернуть секцию"))
     };
     if kit::menu_item(ui, icon, label, true, false) {
         actions.push(WatchlistAction::SetSectionCollapsed {
@@ -43,7 +43,7 @@ pub(super) fn section_menu(
         });
         ui.close();
     }
-    if kit::menu_item(ui, Icon::Pencil, "Rename Section…", true, false) {
+    if kit::menu_item(ui, Icon::Pencil, crate::ui::tr("Rename Section…", "Переименовать секцию…"), true, false) {
         state.open_prompt(
             PromptKind::RenameSection {
                 list: list.id,
@@ -53,12 +53,12 @@ pub(super) fn section_menu(
         );
         ui.close();
     }
-    if kit::menu_item(ui, Icon::Plus, "Add Section…", true, false) {
+    if kit::menu_item(ui, Icon::Plus, crate::ui::tr("Add Section…", "Добавить секцию…"), true, false) {
         state.open_prompt(PromptKind::NewSection(list.id), String::new());
         ui.close();
     }
     kit::menu_separator(ui);
-    if kit::menu_item(ui, Icon::Trash, "Delete Section", true, true) {
+    if kit::menu_item(ui, Icon::Trash, crate::ui::tr("Delete Section", "Удалить секцию"), true, true) {
         actions.push(WatchlistAction::DeleteSection {
             list: list.id,
             section,
@@ -77,15 +77,15 @@ pub(super) fn instrument_menu(
     actions: &mut Vec<WatchlistAction>,
 ) {
     kit::menu_scope(ui, MENU_WIDTH - MENU_FRAME);
-    if kit::menu_item(ui, Icon::ChartLine, "Open in Focused Chart", true, false) {
+    if kit::menu_item(ui, Icon::ChartLine, crate::ui::tr("Open in Focused Chart", "Открыть на активном графике"), true, false) {
         actions.push(WatchlistAction::Open(item.clone()));
         ui.close();
     }
-    if kit::menu_item(ui, Icon::Plus, "Add as New Chart", true, false) {
+    if kit::menu_item(ui, Icon::Plus, crate::ui::tr("Add as New Chart", "Добавить как новый график"), true, false) {
         actions.push(WatchlistAction::AddChart(item.clone()));
         ui.close();
     }
-    if kit::menu_item(ui, Icon::ArrowUpRightSquare, "Open in New Tab", true, false) {
+    if kit::menu_item(ui, Icon::ArrowUpRightSquare, crate::ui::tr("Open in New Tab", "Открыть в новой вкладке"), true, false) {
         actions.push(WatchlistAction::OpenInNewTab(item.clone()));
         ui.close();
     }
@@ -99,14 +99,14 @@ pub(super) fn instrument_menu(
         let owner = list.owning_section(item.id).map(|section| section.id);
         let row = kit::MenuRow {
             icon: Some(Icon::Layers),
-            ..kit::MenuRow::new("Move to Section")
+            ..kit::MenuRow::new(crate::ui::tr("Move to Section", "Переместить в секцию"))
         };
         kit::menu_submenu(ui, row, SUBMENU_WIDTH, |ui| {
             let none = kit::menu_row(
                 ui,
                 kit::MenuRow {
                     checked: owner.is_none(),
-                    ..kit::MenuRow::new("No Section")
+                    ..kit::MenuRow::new(crate::ui::tr("No Section", "Без секции"))
                 },
             );
             if none.clicked() {
@@ -140,7 +140,7 @@ pub(super) fn instrument_menu(
     let current = input.flags.get(&item.instrument.key()).copied();
     let row = kit::MenuRow {
         icon: Some(Icon::Tag),
-        ..kit::MenuRow::new("Set Flag")
+        ..kit::MenuRow::new(crate::ui::tr("Set Flag", "Установить флаг"))
     };
     kit::menu_submenu(ui, row, SUBMENU_WIDTH, |ui| {
         for flag in WatchlistFlag::ALL {
@@ -153,7 +153,7 @@ pub(super) fn instrument_menu(
             }
         }
         kit::menu_separator(ui);
-        if kit::menu_item(ui, Icon::Xmark, "Clear Flag", current.is_some(), false) {
+        if kit::menu_item(ui, Icon::Xmark, crate::ui::tr("Clear Flag", "Снять флаг"), current.is_some(), false) {
             actions.push(WatchlistAction::SetFlag {
                 instrument: item.instrument.clone(),
                 flag: None,
@@ -164,18 +164,18 @@ pub(super) fn instrument_menu(
 
     if !item.instrument.source.is_prediction_market()
         && item.instrument.source != crate::model::DataSource::CoinMarketCap
-        && kit::menu_item(ui, Icon::Bell, "Create Price Alert…", true, false)
+        && kit::menu_item(ui, Icon::Bell, crate::ui::tr("Create Price Alert…", "Создать оповещение…"), true, false)
     {
         actions.push(WatchlistAction::CreateAlert(item.clone()));
         ui.close();
     }
 
     kit::menu_separator(ui);
-    if kit::menu_item(ui, Icon::CopyDoc, "Copy Symbol", true, false) {
+    if kit::menu_item(ui, Icon::CopyDoc, crate::ui::tr("Copy Symbol", "Скопировать символ"), true, false) {
         actions.push(WatchlistAction::CopyText(item.instrument.symbol.clone()));
         ui.close();
     }
-    if kit::menu_item(ui, Icon::Clipboard, "Copy Qualified Symbol", true, false) {
+    if kit::menu_item(ui, Icon::Clipboard, crate::ui::tr("Copy Qualified Symbol", "Скопировать полный символ"), true, false) {
         actions.push(WatchlistAction::CopyText(format!(
             "{}:{}",
             item.instrument.source.watchlist_slug(),
@@ -184,7 +184,7 @@ pub(super) fn instrument_menu(
         ui.close();
     }
     kit::menu_separator(ui);
-    if kit::menu_item(ui, Icon::Trash, "Remove from Watchlist", true, true) {
+    if kit::menu_item(ui, Icon::Trash, crate::ui::tr("Remove from Watchlist", "Удалить из списка"), true, true) {
         actions.push(WatchlistAction::RemoveEntry {
             list: list.id,
             entry: item.id,
@@ -209,7 +209,7 @@ pub fn membership_menu(
     let row = kit::MenuRow {
         icon: Some(Icon::Star),
         enabled: !disabled,
-        ..kit::MenuRow::new("Add to Watchlist")
+        ..kit::MenuRow::new(crate::ui::tr("Add to Watchlist", "Добавить в список"))
     };
     let response = kit::menu_submenu(ui, row, SUBMENU_WIDTH, |ui| {
         for list in lists {
@@ -218,7 +218,7 @@ pub fn membership_menu(
                 ui,
                 kit::MenuRow {
                     checked: member,
-                    ..kit::MenuRow::new(&list.name)
+                    ..kit::MenuRow::new(crate::ui::t(&list.name))
                 },
             );
             if toggle.clicked() {
@@ -236,12 +236,12 @@ pub fn membership_menu(
             }
         }
         kit::menu_separator(ui);
-        if kit::menu_item(ui, Icon::Plus, "New Watchlist…", true, false) {
+        if kit::menu_item(ui, Icon::Plus, crate::ui::tr("New Watchlist…", "Новый список…"), true, false) {
             on_new_list(item.clone());
             ui.close();
         }
     });
     if disabled {
-        response.on_hover_text("Watchlists are unavailable");
+        response.on_hover_text(crate::ui::tr("Watchlists are unavailable", "Списки наблюдения недоступны"));
     }
 }

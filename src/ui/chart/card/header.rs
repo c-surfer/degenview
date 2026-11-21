@@ -122,7 +122,7 @@ impl ChartCard {
                             // The size and fill of an indicator pill (chart_indicator_strip).
                             let label = crate::ui::kit::galley(
                                 ui,
-                                "Replay",
+                                crate::ui::t("Replay"),
                                 10.0,
                                 crate::ui::kit::MEDIUM,
                                 crate::ui::kit::primary(0.7),

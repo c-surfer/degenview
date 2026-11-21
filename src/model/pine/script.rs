@@ -19,6 +19,7 @@ pub enum ScriptType {
 }
 
 impl ScriptType {
+    #[allow(dead_code)]
     pub fn display_name(self) -> &'static str {
         match self {
             Self::Indicator => "Indicator",

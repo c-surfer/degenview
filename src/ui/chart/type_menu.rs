@@ -49,7 +49,7 @@ pub fn menu(
                 Icon::Magnifier,
                 &mut query,
                 false,
-                "Search chart types",
+                crate::ui::t("Search chart types"),
                 query_id.with("field"),
                 !seen,
             );
@@ -71,7 +71,7 @@ pub fn menu(
                     continue;
                 }
                 shown_any = true;
-                kit::menu_heading(ui, group.label());
+                kit::menu_heading(ui, crate::ui::t(group.label()));
                 for kind in rows {
                     let reason = kind.unsupported_reason(source);
                     let (clicked, response) = row(ui, kind, kind == current, reason.is_none());
@@ -91,7 +91,7 @@ pub fn menu(
             }
             if !shown_any {
                 ui.label(
-                    egui::RichText::new("No matching chart type")
+                    egui::RichText::new(crate::ui::t("No matching chart type"))
                         .size(11.0)
                         .color(theme::text_tertiary()),
                 );
@@ -107,7 +107,11 @@ pub fn matching_types(query: &str) -> Vec<ChartType> {
     ChartGroup::ALL
         .into_iter()
         .flat_map(ChartType::in_group)
-        .filter(|kind| needle.is_empty() || kind.label().to_lowercase().contains(&needle))
+        .filter(|kind| {
+            needle.is_empty()
+                || kind.label().to_lowercase().contains(&needle)
+                || crate::ui::t(kind.label()).to_lowercase().contains(&needle)
+        })
         .collect()
 }
 
@@ -147,7 +151,7 @@ fn row(
     ui.painter().text(
         pos2(rect.left() + 36.0, rect.center().y),
         Align2::LEFT_CENTER,
-        kind.label(),
+        crate::ui::t(kind.label()),
         egui::FontId::proportional(12.5),
         ink,
     );

@@ -28,6 +28,7 @@ use crate::model::paper::prefs::PaperPrefs;
 use crate::ui::icons::Icon;
 use crate::ui::kit::Tone;
 use crate::ui::kit::{destructive_button, field};
+use crate::ui::tr;
 use crate::ui::settings::card::StatusMessage;
 use crate::ui::settings::window::status_message;
 use crate::ui::{kit, theme};
@@ -125,20 +126,20 @@ pub fn permission_advice(permissions: &Permissions) -> Option<&'static str> {
 /// The badge for a broker's connection.
 pub fn connection_badge(connection: &Connection) -> (String, Tone) {
     match connection {
-        Connection::NotConfigured => ("Not connected".to_owned(), Tone::Neutral),
-        Connection::Saved => ("Connecting…".to_owned(), Tone::Neutral),
+        Connection::NotConfigured => (tr("Not connected", "Не подключено").to_owned(), Tone::Neutral),
+        Connection::Saved => (tr("Connecting…", "Подключение…").to_owned(), Tone::Neutral),
         Connection::Running(snapshot) => status_badge_for(&snapshot.status),
     }
 }
 
 pub fn status_badge_for(status: &Status) -> (String, Tone) {
     match status {
-        Status::Connecting => ("Connecting…".to_owned(), Tone::Neutral),
-        Status::Syncing => ("Reading your account…".to_owned(), Tone::Neutral),
-        Status::Live => ("Connected".to_owned(), Tone::Good),
-        Status::Reconnecting { .. } => ("Reconnecting…".to_owned(), Tone::Warning),
-        Status::Failed(_) => ("Needs attention".to_owned(), Tone::Bad),
-        Status::Stopped => ("Disconnected".to_owned(), Tone::Neutral),
+        Status::Connecting => (tr("Connecting…", "Подключение…").to_owned(), Tone::Neutral),
+        Status::Syncing => (tr("Reading your account…", "Синхронизация счёта…").to_owned(), Tone::Neutral),
+        Status::Live => (tr("Connected", "Подключено").to_owned(), Tone::Good),
+        Status::Reconnecting { .. } => (tr("Reconnecting…", "Переподключение…").to_owned(), Tone::Warning),
+        Status::Failed(_) => (tr("Needs attention", "Требуется внимание").to_owned(), Tone::Bad),
+        Status::Stopped => (tr("Disconnected", "Отключено").to_owned(), Tone::Neutral),
     }
 }
 
@@ -170,10 +171,10 @@ const COMPACT_ROOM: f32 = 240.0;
 pub fn card_summary(descriptor: &Descriptor, connection: &Connection) -> String {
     match connection {
         Connection::NotConfigured if !descriptor.real_money => {
-            "Test environment, no real money".to_owned()
+            tr("Test environment, no real money", "Тестовая среда, без реальных денег").to_owned()
         }
-        Connection::NotConfigured => "Add an API key to trade".to_owned(),
-        Connection::Saved => "Connecting with the saved key…".to_owned(),
+        Connection::NotConfigured => tr("Add an API key to trade", "Добавьте API-ключ для торговли").to_owned(),
+        Connection::Saved => tr("Connecting with the saved key…", "Подключение с сохранённым ключом…").to_owned(),
         Connection::Running(snapshot) => match &snapshot.status {
             Status::Live => {
                 let mut parts = Vec::new();
@@ -227,7 +228,10 @@ pub fn body(
         crate::ui::icons::inline(ui, Icon::LockFill, 12.0, theme::text_tertiary());
         ui.add(
             egui::Label::new(kit::text(
-                "Credentials are stored in your system's secure storage and never leave this Mac. They are not synced, and no script, alert or other program can use them to trade.",
+                tr(
+                    "Credentials are stored in your system's secure storage and never leave this computer. They are not synced, and no script, alert or other program can use them to trade.",
+                    "Ключи хранятся в защищённом хранилище вашей системы и никогда не покидают этот компьютер. Они не синхронизируются, и ни один скрипт или программа не могут торговать без вашего ведома.",
+                ),
                 kit::size::CAPTION + 0.5,
                 kit::REGULAR,
                 theme::text_secondary(),
@@ -242,10 +246,10 @@ pub fn body(
 fn paper_choices(ui: &mut egui::Ui, hub: &std::sync::Arc<TradingHub>) -> Option<PaperPrefs> {
     let before = hub.paper_prefs();
     let mut prefs = before;
-    titled_group(ui, "Paper trading", |ui| {
+    titled_group(ui, tr("Paper trading", "Демо-торговля"), |ui| {
         switch_row(
             ui,
-            "Play a sound when a paper order is filled",
+            tr("Play a sound when a paper order is filled", "Звуковой сигнал при исполнении демо-ордера"),
             &mut prefs.fill_sound,
         );
     });

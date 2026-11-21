@@ -44,13 +44,13 @@ struct BarState {
 }
 
 fn items(state: &BarState) -> (Vec<BarItem>, Vec<BarItem>) {
-    let mut portfolio = BarButton::new("portfolio", "Choose portfolio")
+    let mut portfolio = BarButton::new("portfolio", crate::ui::tr("Choose portfolio", "Выбрать портфель"))
         .icon(Icon::Briefcase)
         .label(state.portfolio.as_str())
         .with_menu(BarMenu::Portfolio)
         .chevron();
     portfolio.keep_label = true;
-    let mut currency = BarButton::new("currency", "Reporting currency")
+    let mut currency = BarButton::new("currency", crate::ui::tr("Reporting currency", "Валюта отчёта"))
         .icon(Icon::Banknote)
         .label(state.currency)
         .enabled(!state.converting)
@@ -63,14 +63,14 @@ fn items(state: &BarState) -> (Vec<BarItem>, Vec<BarItem>) {
     let mut right = Vec::new();
     if state.has_scope {
         right.push(Item::Button(
-            BarButton::new("import-export", "Import or Export")
+            BarButton::new("import-export", crate::ui::tr("Import or Export", "Импорт или экспорт"))
                 .icon(Icon::Exchange)
                 .with_menu(BarMenu::ImportExport),
         ));
         right.push(Item::Button(
-            BarButton::new("add-transaction", "Add a transaction")
+            BarButton::new("add-transaction", crate::ui::tr("Add a transaction", "Добавить сделку"))
                 .icon(Icon::Plus)
-                .label("Add Transaction")
+                .label(crate::ui::tr("Add Transaction", "Добавить сделку"))
                 .on_click(BarAction::AddTransaction),
         ));
         right.push(Item::Separator);
@@ -79,9 +79,9 @@ fn items(state: &BarState) -> (Vec<BarItem>, Vec<BarItem>) {
         BarButton::new(
             "privacy",
             if state.privacy {
-                "Reveal portfolio values"
+                crate::ui::tr("Reveal portfolio values", "Показать баланс")
             } else {
-                "Hide portfolio values"
+                crate::ui::tr("Hide portfolio values", "Скрыть баланс")
             },
         )
         .icon(if state.privacy {

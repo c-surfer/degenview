@@ -171,11 +171,11 @@ enum PromptKind {
 impl PromptKind {
     fn title(&self) -> &'static str {
         match self {
-            Self::NewList | Self::NewListWith(_) => "New Watchlist",
-            Self::RenameList(_) => "Rename Watchlist",
-            Self::CopyList(_) => "Make a Copy",
-            Self::NewSection(_) => "New Section",
-            Self::RenameSection { .. } => "Rename Section",
+            Self::NewList | Self::NewListWith(_) => crate::ui::tr("New Watchlist", "Новый список"),
+            Self::RenameList(_) => crate::ui::tr("Rename Watchlist", "Переименовать список"),
+            Self::CopyList(_) => crate::ui::tr("Make a Copy", "Создать копию"),
+            Self::NewSection(_) => crate::ui::tr("New Section", "Новая секция"),
+            Self::RenameSection { .. } => crate::ui::tr("Rename Section", "Переименовать секцию"),
         }
     }
 
@@ -194,10 +194,10 @@ impl PromptKind {
 
     fn confirm(&self) -> &'static str {
         match self {
-            Self::NewList | Self::NewListWith(_) => "Create",
-            Self::RenameList(_) | Self::RenameSection { .. } => "Rename",
-            Self::CopyList(_) => "Copy",
-            Self::NewSection(_) => "Create",
+            Self::NewList | Self::NewListWith(_) => crate::ui::tr("Create", "Создать"),
+            Self::RenameList(_) | Self::RenameSection { .. } => crate::ui::tr("Rename", "Переименовать"),
+            Self::CopyList(_) => crate::ui::tr("Copy", "Копировать"),
+            Self::NewSection(_) => crate::ui::tr("Create", "Создать"),
         }
     }
 }

@@ -47,14 +47,14 @@ impl HoldingsColumn {
 
     pub fn title(self) -> &'static str {
         match self {
-            Self::Asset => "Asset",
-            Self::Price => "Price",
-            Self::DayChange => "24h %",
-            Self::Quantity => "Quantity",
-            Self::AverageCost => "Avg Cost",
-            Self::Value => "Value",
-            Self::Allocation => "Allocation",
-            Self::ProfitLoss => "P&L",
+            Self::Asset => crate::ui::tr("Asset", "Актив"),
+            Self::Price => crate::ui::tr("Price", "Цена"),
+            Self::DayChange => crate::ui::tr("24h %", "24ч %"),
+            Self::Quantity => crate::ui::tr("Quantity", "Количество"),
+            Self::AverageCost => crate::ui::tr("Avg Cost", "Ср. цена покупки"),
+            Self::Value => crate::ui::tr("Value", "Стоимость"),
+            Self::Allocation => crate::ui::tr("Allocation", "Доля"),
+            Self::ProfitLoss => crate::ui::tr("P&L", "Прибыль/Убыток (P&L)"),
         }
     }
 
@@ -267,7 +267,7 @@ pub fn show(
             ui,
             search_id,
             &mut state.search,
-            "Search asset or name",
+            crate::ui::tr("Search asset or name", "Поиск актива или названия…"),
             246.0,
         );
     });
@@ -372,7 +372,7 @@ fn summary_band(ui: &mut egui::Ui, input: &HoldingsInput) {
         ui,
         inner.left_top(),
         Align2::LEFT_TOP,
-        "Total Value",
+        crate::ui::tr("Total Value", "Общая стоимость"),
         kit::size::CAPTION,
         REGULAR,
         secondary,
@@ -446,7 +446,7 @@ fn summary_band(ui: &mut egui::Ui, input: &HoldingsInput) {
         ui,
         area.left_top(),
         Align2::LEFT_TOP,
-        "Allocation",
+        crate::ui::tr("Allocation", "Распределение"),
         kit::size::CAPTION,
         REGULAR,
         secondary,
@@ -456,7 +456,7 @@ fn summary_band(ui: &mut egui::Ui, input: &HoldingsInput) {
             ui,
             area.right_top(),
             Align2::RIGHT_TOP,
-            &format!("Largest \u{00B7} {} {}", top.label, f.percent(top.share, 1)),
+            &format!("{} \u{00B7} {} {}", crate::ui::tr("Largest", "Крупнейший"), top.label, f.percent(top.share, 1)),
             kit::size::CAPTION,
             REGULAR,
             secondary,
@@ -805,13 +805,15 @@ fn holding_row(
 }
 
 fn row_menu(ui: &mut egui::Ui, key: &str, actions: &mut Vec<HoldingsAction>) {
-    grid::fit_menu(ui, &["View Transactions", "Remap Asset\u{2026}"]);
+    let view_tx = crate::ui::tr("View Transactions", "Посмотреть сделки");
+    let remap = crate::ui::tr("Remap Asset…", "Перепривязать актив…");
+    grid::fit_menu(ui, &[view_tx.as_ref(), remap.as_ref()]);
     ui.spacing_mut().item_spacing.y = 0.0;
-    if kit::menu_item(ui, Icon::List, "View Transactions", true, false) {
+    if kit::menu_item(ui, Icon::List, view_tx, true, false) {
         actions.push(HoldingsAction::Open(key.to_owned()));
         ui.close();
     }
-    if kit::menu_item(ui, Icon::ArrowLeftRight, "Remap Asset\u{2026}", true, false) {
+    if kit::menu_item(ui, Icon::ArrowLeftRight, remap, true, false) {
         actions.push(HoldingsAction::Remap(key.to_owned()));
         ui.close();
     }

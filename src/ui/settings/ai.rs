@@ -18,7 +18,7 @@ use crate::ui::kit::{
 };
 use crate::ui::settings::card::StatusMessage;
 use crate::ui::settings::window::{card, section, status_message};
-use crate::ui::{kit, theme};
+use crate::ui::{kit, theme, tr};
 use eframe::egui;
 
 /// What the page asks the host to do.
@@ -261,7 +261,7 @@ pub fn body(
     ui.add_space(18.0);
     failure_card(ui, state);
 
-    section(ui, "Provider", None, |ui| {
+    section(ui, tr("Provider", "Провайдер"), None, |ui| {
         card(ui, |ui| {
             let options: Vec<(ProviderKind, &str)> = ProviderKind::ALL
                 .into_iter()
@@ -277,9 +277,9 @@ pub fn body(
             let mut model = state.draft.model(kind);
             let suggestion = kind.default_model();
             let hint = (!suggestion.is_empty())
-                .then(|| format!("Model names change often. Suggested: {suggestion}."));
+                .then(|| if crate::ui::i18n::is_ru() { format!("Имена моделей часто меняются. Рекомендуется: {suggestion}.") } else { format!("Model names change often. Suggested: {suggestion}.") });
             let edit = ui
-                .vertical(|ui| field(ui, "Model", hint.as_deref(), suggestion, &mut model, false))
+                .vertical(|ui| field(ui, tr("Model", "Модель"), hint.as_deref(), suggestion, &mut model, false))
                 .inner;
             state.autosave.watch(&edit, false);
             state.draft.set_model(kind, &model);
@@ -288,10 +288,11 @@ pub fn body(
                     .vertical(|ui| {
                         field(
                             ui,
-                            "Server Base URL",
-                            Some(
-                                "OpenRouter, Ollama, LM Studio and similar. Use https://, or http:// for a server on this Mac.",
-                            ),
+                            tr("Server Base URL", "Базовый URL сервера"),
+                            Some(tr(
+                                "OpenRouter, Ollama, LM Studio and similar. Use https://, or http:// for a server on this computer.",
+                                "OpenRouter, Ollama, LM Studio и аналоги. Используйте https:// или http:// для локального сервера.",
+                            )),
                             "http://localhost:11434/v1",
                             &mut state.draft.compatible_base_url,
                             false,
@@ -311,7 +312,7 @@ pub fn body(
     ui.add_space(18.0);
 
     let (title, hint) = (state.field_title(store), state.field_hint(store));
-    section(ui, "API access", None, |ui| {
+    section(ui, tr("API access", "Доступ к API"), None, |ui| {
         card(ui, |ui| {
             let key = ui
                 .vertical(|ui| field(ui, title, Some(hint), "", &mut state.key_input, true))
@@ -321,7 +322,7 @@ pub fn body(
                 ui.spacing_mut().item_spacing.x = 10.0;
                 if state.is_testing() {
                     ui.add(LoadingIndicator::new().size(14.0));
-                } else if kit::sheet_button(ui, "Test Connection", false, state.can_save())
+                } else if kit::sheet_button(ui, tr("Test Connection", "Проверить подключение"), false, state.can_save())
                     .clicked()
                 {
                     let request = state.test_request();
@@ -333,7 +334,7 @@ pub fn body(
                     open_button(ui, label, url);
                 }
                 if store.is_configured(state.kind())
-                    && destructive_button(ui, "Remove Key").clicked()
+                    && destructive_button(ui, tr("Remove Key", "Удалить ключ")).clicked()
                 {
                     state.remove_key(store);
                 }
@@ -355,29 +356,35 @@ pub fn body(
         }
     }
     let provider = state.kind().title();
+    let sent_hint = if crate::ui::i18n::is_ru() {
+        format!("Когда вы просите ассистента о помощи, открытый скрипт и ваше сообщение отправляются в {provider} с вашим API-ключом. DegenView не использует промежуточных серверов, и вы оплачиваете использование напрямую провайдеру {provider}.")
+    } else {
+        format!("When you ask the assistant for a change, the open script and your message are sent to {provider} with your key. DegenView has no server in between, and you pay {provider} for the usage.")
+    };
     kit::notice_card(
         ui,
         Icon::InfoCircle,
         theme::text_secondary(),
-        "Your script is sent to the provider",
-        Some(&format!(
-            "When you ask the assistant for a change, the open script and your message are sent to {provider} with your key. DegenView has no server in between, and you pay {provider} for the usage."
-        )),
+        tr("Your script is sent to the provider", "Скрипт отправляется провайдеру"),
+        Some(&sent_hint),
         None,
     );
     ui.add_space(18.0);
-    section(ui, "Conversations", None, |ui| {
+    section(ui, tr("Conversations", "История диалогов"), None, |ui| {
         card(ui, |ui| {
             ui.add(
                 egui::Label::new(kit::text(
-                    "Each script's conversation with the assistant is kept on this Mac so it is there after a restart. It is never synced.",
+                    tr(
+                        "Each script's conversation with the assistant is kept on this computer so it is there after a restart. It is never synced.",
+                        "История общения ассистента по каждому скрипту сохраняется локально на этом компьютере. Данные не синхронизируются.",
+                    ),
                     kit::size::SUBHEADLINE + 1.0,
                     kit::REGULAR,
                     theme::text_secondary(),
                 ))
                 .wrap(),
             );
-            if destructive_button(ui, "Clear saved conversations").clicked() {
+            if destructive_button(ui, tr("Clear saved conversations", "Очистить сохранённые диалоги")).clicked() {
                 actions.push(AiAction::ClearHistory);
             }
         });

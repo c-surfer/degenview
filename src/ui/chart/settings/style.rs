@@ -13,6 +13,7 @@ use crate::ui::chart::series::{HLC_FILL_ALPHA, color as paint_color, line_defaul
 use crate::ui::icons::Icon;
 use crate::ui::kit;
 use crate::ui::settings::card;
+use crate::ui::tr;
 use eframe::egui::{self, Id, Ui, color_picker::Alpha, vec2};
 
 type Pair = (Rgba, Rgba);
@@ -31,8 +32,11 @@ pub fn show(
     let current = card.effective_chart_type(source);
     card::section_title(
         ui,
-        "Chart type",
-        Some("How the price is drawn. Each type remembers its own settings."),
+        tr("Chart type", "Тип графика"),
+        Some(tr(
+            "How the price is drawn. Each type remembers its own settings.",
+            "Способ отображения цены. Каждый тип запоминает свои настройки.",
+        )),
     );
     ui.spacing_mut().item_spacing.y = 8.0;
     let types: Vec<ChartType> = ChartGroup::ALL
@@ -40,18 +44,37 @@ pub fn show(
         .flat_map(ChartType::in_group)
         .filter(|kind| kind.supported_by(source))
         .collect();
-    let labels: Vec<String> = types.iter().map(|kind| kind.label().to_owned()).collect();
+    let labels: Vec<String> = types.iter().map(|kind| match kind {
+        ChartType::Candles => tr("Candles", "Свечи").to_owned(),
+        ChartType::Bars => tr("Bars", "Бары").to_owned(),
+        ChartType::HollowCandles => tr("Hollow Candles", "Пустые свечи").to_owned(),
+        ChartType::HeikinAshi => "Heikin Ashi".to_owned(),
+        ChartType::Line => tr("Line", "Линия").to_owned(),
+        ChartType::Area => tr("Area", "Область").to_owned(),
+        ChartType::Baseline => tr("Baseline", "Базовая линия").to_owned(),
+        ChartType::HlcArea => tr("HLC Area", "Область HLC").to_owned(),
+        ChartType::HighLowBars => tr("High-Low Bars", "Бары High-Low").to_owned(),
+        ChartType::VolumeCandles => tr("Volume Candles", "Свечи объёма").to_owned(),
+        ChartType::LineWithMarkers => tr("Line with Markers", "Линия с маркерами").to_owned(),
+        ChartType::StepLine => tr("Step Line", "Ступенчатая линия").to_owned(),
+        _ => kind.label().to_owned(),
+    }).collect();
     let selected = types.iter().position(|kind| *kind == current).unwrap_or(0);
     let hint = match current.group() {
-        ChartGroup::Standard => "Draws the market's own open, high, low and close.",
-        ChartGroup::LinesAndAreas => {
-            "Draws one value of each bar. Scripts and indicators still read the real OHLC."
-        }
-        ChartGroup::PriceBased => {
-            "Builds its own bars from the market's. Scripts and indicators run over those bars."
-        }
+        ChartGroup::Standard => tr(
+            "Draws the market's own open, high, low and close.",
+            "Отображает рыночные цены открытия, максимума, минимума и закрытия (OHLC).",
+        ),
+        ChartGroup::LinesAndAreas => tr(
+            "Draws one value of each bar. Scripts and indicators still read the real OHLC.",
+            "Отображает одно значение бара. Скрипты и индикаторы по-прежнему считывают реальный OHLC.",
+        ),
+        ChartGroup::PriceBased => tr(
+            "Builds its own bars from the market's. Scripts and indicators run over those bars.",
+            "Строит собственные бары на основе рыночных данных.",
+        ),
     };
-    if let Some(index) = card::card(ui, Icon::BarChart, "Style", Some(hint), |ui| {
+    if let Some(index) = card::card(ui, Icon::BarChart, tr("Style", "Стиль"), Some(hint), |ui| {
         kit::menu_picker(ui, 170.0, &labels, selected, true)
     }) {
         card.set_chart_type(types[index]);
@@ -524,22 +547,22 @@ fn candle_rows(ui: &mut Ui, settings: &mut CandleSettings, palette: Pair, hollow
     switch_row(
         ui,
         Icon::Eye,
-        "Body",
-        "Show candle bodies.",
+        tr("Body", "Тело"),
+        tr("Show candle bodies.", "Отображать тела свечей."),
         &mut settings.body,
     );
     switch_row(
         ui,
         Icon::Eye,
-        "Border",
-        "Outline the bodies.",
+        tr("Border", "Границы"),
+        tr("Outline the bodies.", "Отображать границы свечей."),
         &mut settings.border,
     );
     switch_row(
         ui,
         Icon::Eye,
-        "Wick",
-        "Show the high and low as wicks.",
+        tr("Wick", "Фитили"),
+        tr("Show the high and low as wicks.", "Отображать тени свечей (максимумы и минимумы)."),
         &mut settings.wick,
     );
     let up = settings.up_body.unwrap_or(palette.0);
@@ -547,23 +570,23 @@ fn candle_rows(ui: &mut Ui, settings: &mut CandleSettings, palette: Pair, hollow
     color_row(
         ui,
         Icon::ArrowUpRight,
-        "Up body",
-        Some("Follows the bullish colour until set."),
+        tr("Up body", "Растущее тело"),
+        Some(tr("Follows the bullish colour until set.", "По умолчанию цвет растущей свечи.")),
         &mut settings.up_body,
         palette.0,
     );
     color_row(
         ui,
         Icon::ArrowDownRight,
-        "Down body",
-        Some("Follows the bearish colour until set."),
+        tr("Down body", "Падающее тело"),
+        Some(tr("Follows the bearish colour until set.", "По умолчанию цвет падающей свечи.")),
         &mut settings.down_body,
         palette.1,
     );
     color_row(
         ui,
         Icon::ArrowUpRight,
-        "Up border",
+        tr("Up border", "Растущая граница"),
         None,
         &mut settings.up_border,
         up,
@@ -571,7 +594,7 @@ fn candle_rows(ui: &mut Ui, settings: &mut CandleSettings, palette: Pair, hollow
     color_row(
         ui,
         Icon::ArrowDownRight,
-        "Down border",
+        tr("Down border", "Падающая граница"),
         None,
         &mut settings.down_border,
         down,
@@ -579,7 +602,7 @@ fn candle_rows(ui: &mut Ui, settings: &mut CandleSettings, palette: Pair, hollow
     color_row(
         ui,
         Icon::ArrowUpRight,
-        "Up wick",
+        tr("Up wick", "Растущий фитиль"),
         None,
         &mut settings.up_wick,
         up,
@@ -587,7 +610,7 @@ fn candle_rows(ui: &mut Ui, settings: &mut CandleSettings, palette: Pair, hollow
     color_row(
         ui,
         Icon::ArrowDownRight,
-        "Down wick",
+        tr("Down wick", "Падающий фитиль"),
         None,
         &mut settings.down_wick,
         down,
@@ -596,8 +619,8 @@ fn candle_rows(ui: &mut Ui, settings: &mut CandleSettings, palette: Pair, hollow
         switch_row(
             ui,
             Icon::Cycle,
-            "Color based on previous close",
-            "Colour by the close against the previous close instead of the open.",
+            tr("Color based on previous close", "Цвет от предыдущего закрытия"),
+            tr("Colour by the close against the previous close instead of the open.", "Окрашивание по сравнению с закрытием предыдущей свечи вместо открытия."),
             &mut settings.color_by_previous_close,
         );
     }

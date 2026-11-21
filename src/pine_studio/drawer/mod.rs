@@ -88,7 +88,7 @@ pub fn bar(
     let font = FontId::proportional(10.0);
     for candidate in DrawerTab::ALL {
         let selected = open && candidate == tab;
-        let label = candidate.title();
+        let label = crate::ui::t(candidate.title());
         let galley =
             ui.painter()
                 .layout_no_wrap(label.to_owned(), font.clone(), Color32::PLACEHOLDER);
@@ -103,7 +103,7 @@ pub fn bar(
             .map_or(0.0, |(text, _)| text.len() as f32 * 6.0 + 15.0);
         let width = 8.0 + 12.0 + 5.0 + galley.size().x + badge_width + 8.0;
         let tab_rect = Rect::from_min_size(pos2(x, rect.center().y - 11.0), vec2(width, 22.0));
-        let response = ui.interact(tab_rect, Id::new(("drawer-tab", label)), Sense::click());
+        let response = ui.interact(tab_rect, Id::new(("drawer-tab", candidate.title())), Sense::click());
         if response.hovered() {
             ui.ctx().set_cursor_icon(CursorIcon::PointingHand);
         }
@@ -345,16 +345,18 @@ pub fn problems(
 
 /// The right-click menu of a problem row: copy it whole, or only its message.
 fn problem_menu(ui: &Ui, response: &egui::Response, diagnostic: &Diagnostic) {
+    let copy_problem = crate::ui::tr("Copy problem", "Скопировать ошибку");
+    let copy_msg = crate::ui::tr("Copy message", "Скопировать сообщение");
     kit::fitted_context_menu(
         ui,
         response,
-        &[("Copy problem", None), ("Copy message", None)],
+        &[(copy_problem.as_ref(), None), (copy_msg.as_ref(), None)],
         |ui| {
-            if kit::menu_item(ui, Icon::CopyDoc, "Copy problem", true, false) {
+            if kit::menu_item(ui, Icon::CopyDoc, copy_problem, true, false) {
                 ui.ctx().copy_text(problem_line(diagnostic));
                 ui.close();
             }
-            if kit::menu_item(ui, Icon::CopyDoc, "Copy message", true, false) {
+            if kit::menu_item(ui, Icon::CopyDoc, copy_msg, true, false) {
                 ui.ctx().copy_text(diagnostic.message.clone());
                 ui.close();
             }

@@ -36,11 +36,25 @@ pub struct StatisticsInput<'a> {
 
 /// "3 buys · 1 sell".
 pub fn activity_caption(buys: usize, sells: usize) -> String {
-    format!(
-        "{buys} {} · {sells} {}",
-        if buys == 1 { "buy" } else { "buys" },
-        if sells == 1 { "sell" } else { "sells" }
-    )
+    if crate::ui::is_ru() {
+        let buy_word = match buys % 10 {
+            1 if buys % 100 != 11 => "покупка",
+            2..=4 if !(12..=14).contains(&(buys % 100)) => "покупки",
+            _ => "покупок",
+        };
+        let sell_word = match sells % 10 {
+            1 if sells % 100 != 11 => "продажа",
+            2..=4 if !(12..=14).contains(&(sells % 100)) => "продажи",
+            _ => "продаж",
+        };
+        format!("{buys} {buy_word} · {sells} {sell_word}")
+    } else {
+        format!(
+            "{buys} {} · {sells} {}",
+            if buys == 1 { "buy" } else { "buys" },
+            if sells == 1 { "sell" } else { "sells" }
+        )
+    }
 }
 
 /// "Tracking since Jan 15, 2024" caption: how long ago, in words.

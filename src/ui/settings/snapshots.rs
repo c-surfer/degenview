@@ -15,7 +15,7 @@ use crate::ui::kit::Tone;
 use crate::ui::settings::card::StatusMessage;
 use crate::ui::settings::provider_card::{CardInput, ProviderForm, provider_card};
 use crate::ui::settings::window::{section, status_message};
-use crate::ui::{kit, settings::card, theme};
+use crate::ui::{kit, settings::card, theme, tr};
 use eframe::egui;
 use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
@@ -91,11 +91,11 @@ pub fn body(
 
     section(
         ui,
-        "Hosting",
-        Some(
-            "Where Copy link, Open in new tab and Tweet image upload a snapshot. Turn one on to \
-             share; only one is used at a time.",
-        ),
+        tr("Hosting", "Хостинг"),
+        Some(tr(
+            "Where Copy link, Open in new tab and Tweet image upload a snapshot. Turn one on to share; only one is used at a time.",
+            "Куда загружаются снимки графиков при копировании ссылки или публикации. Для отправки включите один из хостингов.",
+        )),
         |ui| {
             let card_input = CardInput {
                 prefs: input.prefs,
@@ -117,26 +117,25 @@ pub fn body(
         ui,
         Icon::InfoCircle,
         theme::text_secondary(),
-        "Nothing is uploaded until you turn a host on",
-        Some(
-            "Saving or copying an image never uploads anything. Sharing uploads the image to the \
-             host that is on, and DegenView asks once before the first upload to each. A host's \
-             Test button sends a one-pixel image to check the settings.",
-        ),
+        tr("Nothing is uploaded until you turn a host on", "Ничего не загружается, пока хостинг выключен"),
+        Some(tr(
+            "Saving or copying an image never uploads anything. Sharing uploads the image to the host that is on, and DegenView asks once before the first upload to each. A host's Test button sends a one-pixel image to check the settings.",
+            "Сохранение или копирование картинки никогда ничего не загружает во внешнюю сеть. Загрузка происходит только при включенном хостинге с вашего согласия.",
+        )),
         None,
     );
     ui.add_space(18.0);
 
-    section(ui, "Images", None, |ui| {
+    section(ui, tr("Images", "Изображения"), None, |ui| {
         let mut include = input.prefs.include_trading;
         card::card(
             ui,
             Icon::Briefcase,
-            "Include orders, executions and positions in snapshots",
-            Some(
-                "Draws your paper-trading orders and positions on the picture, with their sizes, \
-                 entry prices and open profit. Off, a shared chart shows nothing of your account.",
-            ),
+            tr("Include orders, executions and positions in snapshots", "Включать ордера, сделки и позиции в снимки"),
+            Some(tr(
+                "Draws your paper-trading orders and positions on the picture, with their sizes, entry prices and open profit. Off, a shared chart shows nothing of your account.",
+                "Отображает ваши демо-ордера и позиции на снимке (объём, цены входа, прибыль). В выключенном состоянии график остаётся чистым.",
+            )),
             |ui| {
                 if card::switch(ui, &mut include) {
                     actions.push(SnapshotsAction::IncludeTrading(include));
@@ -147,8 +146,8 @@ pub fn body(
         card::card_reserving(
             ui,
             Icon::Camera,
-            "Resolution",
-            Some("Images are drawn again at the scale, not enlarged, so text stays sharp."),
+            tr("Resolution", "Разрешение"),
+            Some(tr("Images are drawn again at the scale, not enlarged, so text stays sharp.", "Снимки отрисовываются заново в выбранном масштабе, текст остаётся чётким.")),
             260.0,
             |ui| {
                 ui.spacing_mut().item_spacing.x = 6.0;
@@ -162,15 +161,15 @@ pub fn body(
         );
     });
 
-    section(ui, "Privacy", None, |ui| {
+    section(ui, tr("Privacy", "Конфиденциальность"), None, |ui| {
         let count = input.prefs.consented.len();
         card::card(
             ui,
             Icon::LockFill,
-            "Approved destinations",
+            tr("Approved destinations", "Разрешённые направления"),
             Some(&approved_hint(&input.prefs.consented)),
             |ui| {
-                if kit::sheet_button(ui, "Forget", false, count > 0).clicked() {
+                if kit::sheet_button(ui, tr("Forget", "Сбросить"), false, count > 0).clicked() {
                     actions.push(SnapshotsAction::ForgetConsent);
                 }
             },

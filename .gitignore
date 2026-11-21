@@ -5,3 +5,8 @@
 *.profraw
 /.pine-corpus
 /.idea
+
+# Security
+Credentials.env
+*.env
+

@@ -11,17 +11,21 @@ use eframe::egui::{Id, Ui};
 pub(super) fn clients_section(ui: &mut Ui, state: &mut McpSettingsState, input: &McpSettingsInput) {
     section(
         ui,
-        "Clients",
-        Some(
+        crate::ui::tr("Clients", "Клиенты"),
+        Some(crate::ui::tr(
             "Open a client to choose what it may do, whether it can be used from other machines, or to revoke it. Revoking cuts it off at once.",
-        ),
+            "Настройка прав клиента, разрешения подключений с других машин или отзыв доступа.",
+        )),
         |ui| {
             if input.clients.is_empty() {
                 card(ui, |ui| {
                     ui.add_space(2.0);
                     secondary(
                         ui,
-                        "No clients yet. Generate a credential above to connect one.",
+                        crate::ui::tr(
+                            "No clients yet. Generate a credential above to connect one.",
+                            "Клиентов пока нет. Создайте токен выше для подключения.",
+                        ),
                     );
                     ui.add_space(2.0);
                 });

@@ -17,10 +17,10 @@ pub(super) fn security_section(
     input: &McpSettingsInput,
     actions: &mut Vec<McpAction>,
 ) {
-    section(ui, "Security", None, |ui| {
+    section(ui, crate::ui::tr("Security", "Безопасность"), None, |ui| {
         card(ui, |ui| {
             ui.spacing_mut().item_spacing.y = 10.0;
-            row(ui, "Authentication", |ui| secondary(ui, "Always required"));
+            row(ui, crate::ui::tr("Authentication", "Аутентификация"), |ui| secondary(ui, crate::ui::tr("Always required", "Всегда требуется")));
             kit::divider(ui);
             remote_rows(ui, state, input, actions);
             kit::divider(ui);

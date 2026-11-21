@@ -18,9 +18,9 @@ impl AppTheme {
 
     pub fn title(self) -> &'static str {
         match self {
-            Self::System => "System",
-            Self::Light => "Light",
-            Self::Dark => "Dark",
+            Self::System => crate::ui::tr("System", "Системная"),
+            Self::Light => crate::ui::tr("Light", "Светлая"),
+            Self::Dark => crate::ui::tr("Dark", "Тёмная"),
         }
     }
 

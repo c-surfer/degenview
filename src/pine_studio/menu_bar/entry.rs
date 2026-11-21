@@ -126,8 +126,11 @@ pub(super) fn measured(entries: &[Entry]) -> Vec<(String, Option<String>)> {
     entries
         .iter()
         .flat_map(|entry| match entry {
-            Entry::Item(item) => vec![(item.label.clone(), item.shortcut.clone())],
-            Entry::Submenu(submenu) => vec![(submenu.label.clone(), None)],
+            Entry::Item(item) => vec![(
+                crate::ui::t(&item.label).to_owned(),
+                item.shortcut.clone(),
+            )],
+            Entry::Submenu(submenu) => vec![(crate::ui::t(&submenu.label).to_owned(), None)],
             Entry::Scroll(rows) => measured(rows),
             Entry::Separator => Vec::new(),
         })
@@ -154,6 +157,7 @@ pub(super) fn show(ui: &mut Ui, entries: Vec<Entry>, chosen: &mut Vec<Cmd>) {
                     .show(ui, |ui| show(ui, rows, chosen));
             }
             Entry::Item(item) => {
+                let label = crate::ui::t(&item.label);
                 let row = kit::menu_row(
                     ui,
                     MenuRow {
@@ -162,7 +166,7 @@ pub(super) fn show(ui: &mut Ui, entries: Vec<Entry>, chosen: &mut Vec<Cmd>) {
                         enabled: item.enabled,
                         checked: item.checked,
                         destructive: item.destructive,
-                        ..MenuRow::new(&item.label)
+                        ..MenuRow::new(&label)
                     },
                 );
                 if row.clicked() {
@@ -171,10 +175,11 @@ pub(super) fn show(ui: &mut Ui, entries: Vec<Entry>, chosen: &mut Vec<Cmd>) {
                 }
             }
             Entry::Submenu(submenu) => {
+                let label = crate::ui::t(&submenu.label);
                 let row = MenuRow {
                     icon: submenu.icon,
                     enabled: submenu.enabled,
-                    ..MenuRow::new(&submenu.label)
+                    ..MenuRow::new(&label)
                 };
                 kit::menu_submenu(ui, row, 0.0, |ui| {
                     let rows = measured(&submenu.entries);

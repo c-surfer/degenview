@@ -10,7 +10,7 @@ use crate::platform;
 use crate::service::cache::disk::{CacheStats, ClearOutcome, Usage};
 use crate::ui::icons::Icon;
 use crate::ui::settings::window::{card, row, section, status_message};
-use crate::ui::{kit, settings::card, theme};
+use crate::ui::{kit, settings::card, theme, tr};
 use eframe::egui;
 
 const CLEAR_HINT: &str = "Deletes downloaded logos and saved lookups. Your charts, watchlists, portfolios, alerts and scripts are not affected. Logos and lookups download again as needed.";
@@ -130,8 +130,11 @@ pub fn body(ui: &mut egui::Ui, state: &mut StorageState, actions: &mut Vec<Stora
 
     section(
         ui,
-        "Saved on this computer",
-        Some("Logos and lookups kept so they appear instantly and need fewer requests."),
+        tr("Saved on this computer", "Сохранено на этом компьютере"),
+        Some(tr(
+            "Logos and lookups kept so they appear instantly and need fewer requests.",
+            "Кэшированные логотипы и данные для мгновенного отображения и экономии трафика.",
+        )),
         |ui| {
             card(ui, |ui| {
                 let (images, lookups, total) = match &state.stats {
@@ -141,19 +144,23 @@ pub fn body(ui: &mut egui::Ui, state: &mut StorageState, actions: &mut Vec<Stora
                         format_bytes(stats.total_bytes()),
                     ),
                     None => {
-                        let waiting = "Calculating…".to_owned();
+                        let waiting = tr("Calculating…", "Вычисление…").to_owned();
                         (waiting.clone(), waiting.clone(), waiting)
                     }
                 };
-                value_row(ui, "Logos", &images);
+                value_row(ui, tr("Logos", "Логотипы"), &images);
                 kit::divider(ui);
-                value_row(ui, "Lookups", &lookups);
+                value_row(ui, tr("Lookups", "Поисковые данные"), &lookups);
                 kit::divider(ui);
-                value_row(ui, "Total", &total);
+                value_row(ui, tr("Total", "Всего"), &total);
                 if let Some(location) = &location {
                     kit::divider(ui);
-                    row(ui, "Location", |ui| {
-                        let label = format!("Show in {}", platform::file_manager());
+                    row(ui, tr("Location", "Расположение"), |ui| {
+                        let label = if crate::ui::i18n::is_ru() {
+                            format!("Показать в {}", platform::file_manager())
+                        } else {
+                            format!("Show in {}", platform::file_manager())
+                        };
                         if kit::push_button(ui, None, &label, true).clicked() {
                             // Nothing may be cached yet; reveal an empty folder rather than fail.
                             let _ = std::fs::create_dir_all(location);
@@ -175,12 +182,16 @@ pub fn body(ui: &mut egui::Ui, state: &mut StorageState, actions: &mut Vec<Stora
         },
     );
 
-    section(ui, "Clear cache", None, |ui| {
-        card::card(ui, Icon::Trash, "Clear Cache", Some(CLEAR_HINT), |ui| {
+    let clear_hint = tr(
+        CLEAR_HINT,
+        "Удаляет загруженные логотипы и сохранённые данные поиска. Ваши графики, списки наблюдения, портфели, алерты и скрипты не затрагиваются. При необходимости логотипы загрузятся повторно.",
+    );
+    section(ui, tr("Clear cache", "Очистка кэша"), None, |ui| {
+        card::card(ui, Icon::Trash, tr("Clear Cache", "Очистить кэш"), Some(clear_hint), |ui| {
             let (label, enabled) = if state.clearing {
-                ("Clearing…", false)
+                (tr("Clearing…", "Очистка…"), false)
             } else {
-                ("Clear Cache…", available)
+                (tr("Clear Cache…", "Очистить кэш…"), available)
             };
             if kit::push_button(ui, None, label, enabled).clicked() {
                 state.confirming = true;

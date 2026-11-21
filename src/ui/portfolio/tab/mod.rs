@@ -225,8 +225,12 @@ impl PortfolioTab {
                 capped(ui, |ui| {
                     if scope.is_empty() {
                         empty::page(ui, empty::Scene::Portfolios, |ui| {
-                            if header_controls::prominent_button(ui, Icon::Plus, "Create Portfolio")
-                                .clicked()
+                            if header_controls::prominent_button(
+                                ui,
+                                Icon::Plus,
+                                crate::ui::tr("Create Portfolio", "+ Создать портфель"),
+                            )
+                            .clicked()
                             {
                                 self.create = Some(CreateState::default());
                             }
@@ -235,8 +239,12 @@ impl PortfolioTab {
                     }
                     if !has_transactions {
                         empty::page(ui, self.section.empty_scene(), |ui| {
-                            if header_controls::prominent_button(ui, Icon::Plus, "Add Transaction")
-                                .clicked()
+                            if header_controls::prominent_button(
+                                ui,
+                                Icon::Plus,
+                                crate::ui::tr("Add Transaction", "Добавить сделку"),
+                            )
+                            .clicked()
                             {
                                 self.picker = Some(add_transaction_picker());
                             }
@@ -246,7 +254,7 @@ impl PortfolioTab {
                                 ui,
                                 egui::Id::new(("portfolio-empty-import", self.id)),
                                 Icon::Download,
-                                "Import Transactions",
+                                crate::ui::tr("Import Transactions", "Импорт сделок"),
                                 &IMPORT_SOURCES,
                                 false,
                                 |ui| {
@@ -836,14 +844,20 @@ impl PortfolioTab {
             |ui| {
                 ui.add_space(20.0);
                 sheet::inset(ui, |ui| {
-                    sheet::header(ui, Icon::Triangle, "Portfolio", &message, theme::ORANGE);
+                    sheet::header(
+                        ui,
+                        Icon::Triangle,
+                        crate::ui::tr("Portfolio", "Портфолио"),
+                        &message,
+                        theme::ORANGE,
+                    );
                     ui.add_space(20.0);
                 });
                 ui.separator();
                 sheet::inset(ui, |ui| {
                     ui.add_space(12.0);
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if ui.button("OK").clicked() {
+                        if ui.button(crate::ui::tr("OK", "ОК")).clicked() {
                             host.clear_error();
                             self.notice = None;
                         }
@@ -1017,7 +1031,7 @@ fn price_status(
 fn portfolio_sections(ui: &mut egui::Ui, selected: &mut PortfolioSection, id: u64) {
     let items = PortfolioSection::ALL.map(|section| kit::TabItem {
         value: section,
-        title: section.label(),
+        title: crate::ui::t(section.label()),
         icon: section.icon(),
         count: 0,
     });

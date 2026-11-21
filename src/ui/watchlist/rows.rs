@@ -175,7 +175,7 @@ pub fn column_header(
     if let Some(key) = paint_title(
         ui,
         "symbol",
-        "Symbol",
+        crate::ui::tr("Symbol", "Инструмент"),
         Some(WatchlistSortKey::Symbol),
         Align2::LEFT_CENTER,
         rect.left() + LEADING_INSET,
@@ -187,7 +187,7 @@ pub fn column_header(
         if let Some(key) = paint_title(
             ui,
             column.title(),
-            column.title(),
+            crate::ui::t(column.title()),
             column.sort_key(),
             Align2::RIGHT_CENTER,
             right,
@@ -601,9 +601,9 @@ pub fn section_row(
         format!("{} section, {} symbols", section.title, count),
     )
     .on_hover_text(if section.is_collapsed {
-        "Expand section"
+        crate::ui::tr("Expand section", "Развернуть секцию")
     } else {
-        "Collapse section"
+        crate::ui::tr("Collapse section", "Свернуть секцию")
     })
 }
 
@@ -634,7 +634,7 @@ pub fn empty_section_row(ui: &mut egui::Ui) -> Response {
     painter.text(
         inner.center(),
         Align2::CENTER_CENTER,
-        "Drag symbols here",
+        crate::ui::tr("Drag symbols here", "Перетащите символы сюда"),
         FontId::proportional(11.0),
         ui.visuals().weak_text_color().gamma_multiply(0.7),
     );

@@ -43,7 +43,7 @@ pub(super) fn header(
         add_rect,
         Id::new("watchlist-add"),
         Icon::Plus,
-        "Add Symbol",
+        crate::ui::tr("Add Symbol", "Добавить символ"),
         true,
         enabled,
     );
@@ -58,8 +58,11 @@ pub(super) fn header(
         Id::new("watchlist-filter-toggle"),
         Sense::click(),
     );
-    let filter = crate::ui::accessibility::label(filter, "Filter this watchlist")
-        .on_hover_text("Filter this watchlist");
+    let filter = crate::ui::accessibility::label(
+        filter,
+        crate::ui::tr("Filter this watchlist", "Фильтр этого списка"),
+    )
+    .on_hover_text(crate::ui::tr("Filter this watchlist", "Фильтр этого списка"));
     if filtering {
         ui.painter()
             .rect_filled(filter_rect, 6.0, theme::selected_tint(filter.hovered()));
@@ -95,7 +98,10 @@ pub(super) fn list_selector(
 ) {
     const PAD: f32 = 6.0;
     const CHEVRON: f32 = 10.0;
-    let title = list.map_or("Watchlists", |list| list.name.as_str());
+    let title = list.map_or(
+        crate::ui::tr("Watchlists", "Списки наблюдения"),
+        |list| crate::ui::t(list.name.as_str()),
+    );
     let color = if input.load_failed {
         theme::text_tertiary()
     } else {
@@ -176,7 +182,7 @@ pub(super) fn list_selector(
         .show(|ui| {
             kit::menu_scope(ui, list_menu_width - MENU_FRAME);
             if !input.lists.is_empty() {
-                kit::menu_heading(ui, "Watchlists");
+                kit::menu_heading(ui, crate::ui::tr("Watchlists", "Списки наблюдения"));
                 egui::ScrollArea::vertical()
                     .max_height(kit::MENU_MAX_HEIGHT)
                     .auto_shrink([false, true])
@@ -193,7 +199,7 @@ pub(super) fn list_selector(
                                     }),
                                     shortcut: Some(&count),
                                     current: list.is_some_and(|list| list.id == candidate.id),
-                                    ..kit::MenuRow::new(&candidate.name)
+                                    ..kit::MenuRow::new(crate::ui::t(&candidate.name))
                                 },
                             );
                             if row.clicked() {
@@ -206,18 +212,18 @@ pub(super) fn list_selector(
                     });
                 kit::menu_separator(ui);
             }
-            if kit::menu_item(ui, Icon::Plus, "Create New Watchlist…", true, false) {
+            if kit::menu_item(ui, Icon::Plus, crate::ui::tr("Create New Watchlist…", "Создать список…"), true, false) {
                 state.open_prompt(PromptKind::NewList, String::new());
                 ui.close();
             }
             let Some(list) = list else {
                 return;
             };
-            if kit::menu_item(ui, Icon::Pencil, "Rename Watchlist…", true, false) {
+            if kit::menu_item(ui, Icon::Pencil, crate::ui::tr("Rename Watchlist…", "Переименовать список…"), true, false) {
                 state.open_prompt(PromptKind::RenameList(list.id), list.name.clone());
                 ui.close();
             }
-            if kit::menu_item(ui, Icon::CopyDoc, "Make a Copy…", true, false) {
+            if kit::menu_item(ui, Icon::CopyDoc, crate::ui::tr("Make a Copy…", "Создать копию…"), true, false) {
                 state.open_prompt(PromptKind::CopyList(list.id), format!("{} copy", list.name));
                 ui.close();
             }
@@ -229,11 +235,11 @@ pub(super) fn list_selector(
                     icon: Some(Icon::Trash),
                     enabled: deletable,
                     destructive: true,
-                    ..kit::MenuRow::new("Delete Watchlist…")
+                    ..kit::MenuRow::new(crate::ui::tr("Delete Watchlist…", "Удалить список…"))
                 },
             );
             if !deletable {
-                delete.on_hover_text("Favorites can be renamed but not deleted");
+                delete.on_hover_text(crate::ui::tr("Favorites can be renamed but not deleted", "Избранное можно переименовать, но нельзя удалить"));
             } else if delete.clicked() {
                 state.confirm_delete = true;
                 ui.close();
@@ -250,7 +256,7 @@ pub(super) fn flag_row(ui: &mut egui::Ui, flag: WatchlistFlag, current: bool) ->
                 style::paint_swatch(painter, rect, flag);
             }),
             current,
-            ..kit::MenuRow::new(flag.title())
+            ..kit::MenuRow::new(crate::ui::t(flag.title()))
         },
     )
 }
@@ -268,7 +274,7 @@ fn options_menu(
         rect,
         Id::new("watchlist-options"),
         Icon::Ellipsis,
-        "Watchlist options",
+        crate::ui::tr("Watchlist options", "Параметры списка"),
         true,
         enabled,
     );
@@ -277,7 +283,7 @@ fn options_menu(
         let Some(list) = list else {
             return;
         };
-        if kit::menu_item(ui, Icon::Plus, "Add Section…", true, false) {
+        if kit::menu_item(ui, Icon::Plus, crate::ui::tr("Add Section…", "Добавить секцию…"), true, false) {
             state.open_prompt(PromptKind::NewSection(list.id), String::new());
             ui.close();
         }
@@ -289,7 +295,7 @@ fn options_menu(
         };
         kit::menu_submenu(
             ui,
-            row(Icon::ChevronUpDown, "Sort By"),
+            row(Icon::ChevronUpDown, crate::ui::tr("Sort By", "Сортировка")),
             SUBMENU_WIDTH,
             |ui| {
                 let sort = list.display.sort;
@@ -298,7 +304,7 @@ fn options_menu(
                         ui,
                         kit::MenuRow {
                             checked: sort.key == key,
-                            ..kit::MenuRow::new(key.title())
+                            ..kit::MenuRow::new(crate::ui::t(key.title()))
                         },
                     );
                     if chosen.clicked() {
@@ -324,7 +330,7 @@ fn options_menu(
                     kit::MenuRow {
                         checked: !sort.ascending && !manual,
                         enabled: !manual,
-                        ..kit::MenuRow::new("Descending")
+                        ..kit::MenuRow::new(crate::ui::tr("Descending", "По убыванию"))
                     },
                 );
                 if descending.clicked() {
@@ -341,7 +347,7 @@ fn options_menu(
 
         kit::menu_submenu(
             ui,
-            row(Icon::SplitColumns, "Columns"),
+            row(Icon::SplitColumns, crate::ui::tr("Columns", "Столбцы")),
             SUBMENU_WIDTH,
             |ui| {
                 for column in WatchlistColumn::ALL {
@@ -350,7 +356,7 @@ fn options_menu(
                         ui,
                         kit::MenuRow {
                             checked: visible,
-                            ..kit::MenuRow::new(column.accessibility_title())
+                            ..kit::MenuRow::new(crate::ui::t(column.accessibility_title()))
                         },
                     );
                     if toggle.clicked() {
@@ -367,7 +373,7 @@ fn options_menu(
                     ui,
                     kit::MenuRow {
                         checked: shows,
-                        ..kit::MenuRow::new("Show Symbol Subtitle")
+                        ..kit::MenuRow::new(crate::ui::tr("Show Symbol Subtitle", "Показывать описание"))
                     },
                 );
                 if subtitle.clicked() {
@@ -381,7 +387,7 @@ fn options_menu(
                     ui,
                     kit::MenuRow {
                         checked: shows,
-                        ..kit::MenuRow::new("Show 1M Chart")
+                        ..kit::MenuRow::new(crate::ui::tr("Show 1M Chart", "Показывать мини-график"))
                     },
                 );
                 if chart.clicked() {
@@ -393,7 +399,7 @@ fn options_menu(
             },
         );
 
-        kit::menu_submenu(ui, row(Icon::Tag, "Filter by Flag"), SUBMENU_WIDTH, |ui| {
+        kit::menu_submenu(ui, row(Icon::Tag, crate::ui::tr("Filter by Flag", "Фильтр по флагу")), SUBMENU_WIDTH, |ui| {
             for flag in WatchlistFlag::ALL {
                 if flag_row(ui, flag, state.filter.flag == Some(flag)).clicked() {
                     state.filter.flag = Some(flag);
@@ -404,7 +410,7 @@ fn options_menu(
             if kit::menu_item(
                 ui,
                 Icon::Xmark,
-                "Show All",
+                crate::ui::tr("Show All", "Показать все"),
                 state.filter.flag.is_some(),
                 false,
             ) {
@@ -418,7 +424,7 @@ fn options_menu(
             kit::MenuRow {
                 icon: Some(Icon::Eye),
                 current: state.shows_detail,
-                ..kit::MenuRow::new("Show Details")
+                ..kit::MenuRow::new(crate::ui::tr("Show Details", "Показать подробности"))
             },
         );
         if details.clicked() {
@@ -426,17 +432,17 @@ fn options_menu(
         }
 
         kit::menu_separator(ui);
-        if kit::menu_item(ui, Icon::Download, "Import Symbols…", true, false) {
+        if kit::menu_item(ui, Icon::Download, crate::ui::tr("Import Symbols…", "Импорт символов…"), true, false) {
             state.import_text = Some(String::new());
             state.import_error = None;
             actions.push(WatchlistAction::BeginImport);
             ui.close();
         }
-        if kit::menu_item(ui, Icon::ShareUp, "Export to File…", true, false) {
+        if kit::menu_item(ui, Icon::ShareUp, crate::ui::tr("Export to File…", "Экспорт в файл…"), true, false) {
             actions.push(WatchlistAction::Export { list: list.id });
             ui.close();
         }
-        if kit::menu_item(ui, Icon::CopyDoc, "Copy as Text", true, false) {
+        if kit::menu_item(ui, Icon::CopyDoc, crate::ui::tr("Copy as Text", "Скопировать как текст"), true, false) {
             actions.push(WatchlistAction::CopyText(
                 crate::model::watchlist::text::export(list),
             ));
@@ -472,7 +478,7 @@ pub(super) fn filter_field(ui: &mut egui::Ui, state: &mut WatchlistSidebarState)
     let response = ui.put(
         text_rect,
         egui::TextEdit::singleline(&mut state.filter.text)
-            .hint_text("Filter symbols")
+            .hint_text(crate::ui::tr("Filter symbols", "Поиск…"))
             .frame(egui::Frame::NONE),
     );
     if response.lost_focus() {
@@ -503,7 +509,7 @@ pub(super) fn filter_field(ui: &mut egui::Ui, state: &mut WatchlistSidebarState)
             clear_rect,
             Id::new("watchlist-filter-clear"),
             Icon::XmarkCircleFill,
-            "Clear filter",
+            crate::ui::tr("Clear filter", "Очистить фильтр"),
             true,
             true,
         )

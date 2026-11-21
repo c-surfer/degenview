@@ -11,7 +11,7 @@ use crate::ui::icons::Icon;
 use crate::ui::kit::{Autosave, Tone, destructive_button, field};
 use crate::ui::settings::card::StatusMessage;
 use crate::ui::settings::window::{card, section, status_message};
-use crate::ui::{kit, theme};
+use crate::ui::{kit, theme, tr};
 use eframe::egui;
 
 /// What the page asks the host to do.
@@ -185,12 +185,12 @@ pub fn body(
     kit::status_badge(ui, &text, tone);
     ui.add_space(18.0);
 
-    section(ui, "Proxy", None, |ui| {
+    section(ui, tr("Proxy", "Прокси"), None, |ui| {
         card(ui, |ui| {
             let options = [
-                (ProxyMode::System, "System"),
-                (ProxyMode::Manual, "Manual"),
-                (ProxyMode::Off, "Off"),
+                (ProxyMode::System, tr("System", "Системный")),
+                (ProxyMode::Manual, tr("Manual", "Вручную")),
+                (ProxyMode::Off, tr("Off", "Откл")),
             ];
             let mut mode = state.draft.mode;
             kit::segmented(ui, egui::Id::new("network-mode"), &options, &mut mode);
@@ -211,16 +211,17 @@ pub fn body(
     }
 
     if state.draft.mode != ProxyMode::Off {
-        section(ui, "Skip the proxy", None, |ui| {
+        section(ui, tr("Skip the proxy", "Исключения прокси"), None, |ui| {
             card(ui, |ui| {
                 let edit = ui
                     .vertical(|ui| {
                         field(
                             ui,
-                            "Hosts that connect directly",
-                            Some(
+                            tr("Hosts that connect directly", "Узлы для прямого подключения"),
+                            Some(tr(
                                 "Separated by commas. A name also covers its subdomains; use 192.168.1.* for a block of addresses, or <local> for every name without a dot. Local addresses (localhost, 10.*, 192.168.*, 172.16-31.*, .local) never use the proxy.",
-                            ),
+                                "Разделяются запятыми. Имя также охватывает поддомены. Локальные адреса никогда не используют прокси.",
+                            )),
                             "example.com, *.corp.test",
                             &mut state.draft.no_proxy,
                             false,
@@ -263,7 +264,7 @@ pub fn body(
 }
 
 fn manual_server(ui: &mut egui::Ui, state: &mut NetworkState) {
-    section(ui, "Server", None, |ui| {
+    section(ui, tr("Server", "Сервер"), None, |ui| {
         card(ui, |ui| {
             let options = [(Protocol::Http, "HTTP"), (Protocol::Socks5, "SOCKS5")];
             let mut protocol = state.draft.protocol;
@@ -278,20 +279,20 @@ fn manual_server(ui: &mut egui::Ui, state: &mut NetworkState) {
                 state.autosave.touch();
             }
             let hint = match protocol {
-                Protocol::Http => "An HTTP proxy that allows CONNECT, as most do.",
-                Protocol::Socks5 => "A SOCKS5 proxy; it looks up host names itself.",
+                Protocol::Http => tr("An HTTP proxy that allows CONNECT, as most do.", "HTTP-прокси с поддержкой метода CONNECT."),
+                Protocol::Socks5 => tr("A SOCKS5 proxy; it looks up host names itself.", "SOCKS5-прокси (самостоятельно разрешает доменные имена)."),
             };
             caption(ui, hint);
             let host = ui
-                .vertical(|ui| field(ui, "Host", None, "127.0.0.1", &mut state.draft.host, false))
+                .vertical(|ui| field(ui, tr("Host", "Хост"), None, "127.0.0.1", &mut state.draft.host, false))
                 .inner;
             state.autosave.watch(&host, false);
             let port = ui
-                .vertical(|ui| field(ui, "Port", None, "7890", &mut state.port_text, false))
+                .vertical(|ui| field(ui, tr("Port", "Порт"), None, "7890", &mut state.port_text, false))
                 .inner;
             state.autosave.watch(&port, false);
             if state.awaiting_server() {
-                caption(ui, "Enter the server's host and port to start using it.");
+                caption(ui, tr("Enter the server's host and port to start using it.", "Введите хост и порт сервера для начала работы."));
             }
         });
     });
@@ -302,8 +303,8 @@ fn sign_in(ui: &mut egui::Ui, state: &mut NetworkState) {
     let saved = store.is_saved() && !state.removing_password;
     section(
         ui,
-        "Sign in",
-        Some("Only if the proxy asks for a user name and password."),
+        tr("Sign in", "Авторизация"),
+        Some(tr("Only if the proxy asks for a user name and password.", "Только если прокси требует имя пользователя и пароль.")),
         |ui| {
             card(ui, |ui| {
                 let user = ui

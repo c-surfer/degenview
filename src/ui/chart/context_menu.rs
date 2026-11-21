@@ -239,7 +239,7 @@ fn rows(ui: &mut egui::Ui, entries: &[Entry], focus: Option<usize>) -> Rows {
                         chevron: !item.children.is_empty(),
                         destructive: item.destructive,
                         focused: focus == Some(index),
-                        ..kit::MenuRow::new(&item.label)
+                        ..kit::MenuRow::new(crate::ui::t(&item.label))
                     },
                 );
                 if let Some(reason) = item.disabled {
@@ -280,7 +280,7 @@ fn measure(ui: &egui::Ui, entries: &[Entry]) -> f32 {
         .map(|item| {
             let label = kit::galley(
                 ui,
-                &item.label,
+                crate::ui::t(&item.label),
                 kit::size::BODY,
                 kit::REGULAR,
                 egui::Color32::WHITE,

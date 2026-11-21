@@ -11,7 +11,7 @@ use crate::ui::settings::window::{card, section};
 use crate::ui::webhook::editor::{
     self, WebhookEditorOutcome, WebhookEditorResult, WebhookEditorState,
 };
-use crate::ui::{kit, theme};
+use crate::ui::{kit, theme, tr};
 use eframe::egui::{self, Rect, Sense, Vec2};
 use std::collections::HashMap;
 
@@ -254,15 +254,19 @@ pub fn body(
 
     section(
         ui,
-        "Endpoints",
-        Some(
+        tr("Endpoints", "Эндпоинты"),
+        Some(tr(
             "Each alert chooses which of these it posts to. Turning one off pauses it everywhere.",
-        ),
+            "Каждое оповещение выбирает адресатов. Отключение приостанавливает отправку везде.",
+        )),
         |ui| {
             if input.endpoints.is_empty() {
                 card(ui, |ui| {
                     ui.label(kit::text(
-                        "No webhooks yet. Add one to start sending alerts to your own server.",
+                        tr(
+                            "No webhooks yet. Add one to start sending alerts to your own server.",
+                            "Вебхуков пока нет. Добавьте вебхук для отправки алертов на свой сервер.",
+                        ),
                         kit::size::SUBHEADLINE + 1.0,
                         kit::REGULAR,
                         theme::text_secondary(),
@@ -279,7 +283,7 @@ pub fn body(
             ui.add_space(10.0);
             ui.horizontal(|ui| {
                 ui.spacing_mut().item_spacing.x = 12.0;
-                if kit::push_button(ui, Some(Icon::Plus), "Add Webhook", !input.load_failed)
+                if kit::push_button(ui, Some(Icon::Plus), tr("Add Webhook", "Добавить вебхук"), !input.load_failed)
                     .clicked()
                 {
                     state.editor = Some(WebhookEditorState::new_blank());
@@ -293,10 +297,11 @@ pub fn body(
 
     section(
         ui,
-        "Test message",
-        Some(
+        tr("Test message", "Тестовое сообщение"),
+        Some(tr(
             "Sent by each Test button. Valid JSON goes out as application/json, anything else as text/plain.",
-        ),
+            "Отправляется при нажатии кнопки «Тест». Корректный JSON передаётся как application/json, остальное как text/plain.",
+        )),
         |ui| {
             card(ui, |ui| {
                 ui.add(
@@ -311,18 +316,23 @@ pub fn body(
         },
     );
 
-    kit::notice_card(
-        ui,
-        Icon::InfoCircle,
-        theme::text_secondary(),
-        "How it works",
-        Some(&format!(
+    let works_hint = if crate::ui::i18n::is_ru() {
+        "Оповещения отправляют своё итоговое сообщение в теле запроса. Секретный ключ хранится в защищённом хранилище и подставляется в URL или заголовок. Для каждого вебхука выполняется одна попытка с таймаутом 3 секунды без повторов.".to_string()
+    } else {
+        format!(
             "Alerts send their final message as the request body. A secret is kept {} and added \
              to the URL or a header where you place it. Each alert triggers one attempt per webhook, \
              with a 3 second limit and no retries, so a slow or failing server can never send the \
              same message twice.",
             crate::platform::in_secret_store()
-        )),
+        )
+    };
+    kit::notice_card(
+        ui,
+        Icon::InfoCircle,
+        theme::text_secondary(),
+        tr("How it works", "Как это работает"),
+        Some(&works_hint),
         None,
     );
 

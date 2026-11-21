@@ -36,6 +36,7 @@ pub enum LineHeight {
 impl LineHeight {
     pub const ALL: [Self; 4] = [Self::Compact, Self::Default, Self::Relaxed, Self::Loose];
 
+    #[allow(dead_code)]
     pub const fn label(self) -> &'static str {
         match self {
             Self::Compact => "Compact",

@@ -16,15 +16,16 @@ pub(super) fn server_section(
     input: &McpSettingsInput,
     actions: &mut Vec<McpAction>,
 ) {
-    section(ui, "MCP Server", None, |ui| {
+    section(ui, crate::ui::tr("MCP Server", "Сервер MCP"), None, |ui| {
         let locked = input.load_error.is_some();
         card::card(
             ui,
             Icon::LockFill,
-            "Enable MCP Server",
-            Some(
-                "Lets AI assistants and automation on this Mac inspect DegenView, within the permissions below. Off until you turn it on.",
-            ),
+            crate::ui::tr("Enable MCP Server", "Включить MCP Server"),
+            Some(crate::ui::tr(
+                "Lets AI assistants and automation on this computer inspect DegenView, within the permissions below. Off until you turn it on.",
+                "Позволяет ИИ-ассистентам и скриптам автоматизации взаимодействовать с DegenView в рамках настроенных прав.",
+            )),
             |ui| {
                 let mut enabled = input.settings.enabled;
                 if card::switch_enabled(ui, &mut enabled, !locked) {

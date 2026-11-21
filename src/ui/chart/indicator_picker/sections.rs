@@ -26,13 +26,19 @@ pub const LIBRARY: [Section; 2] = [Section::Discover, Section::All];
 impl Section {
     pub fn title(self) -> &'static str {
         match self {
-            Self::Favorites => "Favorites",
-            Self::MyScripts => "My scripts",
-            Self::Overlays => "Overlays",
-            Self::Panes => "Separate pane",
-            Self::Discover => "Discover",
-            Self::All => "All indicators",
-            Self::Family(family) => family.title(),
+            Self::Favorites => crate::ui::t("Favorites"),
+            Self::MyScripts => crate::ui::t("My scripts"),
+            Self::Overlays => crate::ui::tr("Overlays", "На графике"),
+            Self::Panes => crate::ui::tr("Separate pane", "В подвале"),
+            Self::Discover => crate::ui::tr("Discover", "Обзор"),
+            Self::All => crate::ui::t("All indicators"),
+            Self::Family(family) => match family {
+                Family::Trend => crate::ui::t("Trend"),
+                Family::Momentum => crate::ui::t("Momentum"),
+                Family::Volatility => crate::ui::t("Volatility"),
+                Family::VolumeFlow => crate::ui::tr("Volume and flow", "Объём и поток"),
+                Family::Structure => crate::ui::t("Structure"),
+            },
         }
     }
 
@@ -55,9 +61,9 @@ impl Section {
     /// What the grid says when this section has nothing in it.
     pub fn empty_message(self) -> &'static str {
         match self {
-            Self::Favorites => "No favorites yet. Star an indicator to keep it here.",
-            Self::MyScripts => "No saved scripts yet. Open Pine Studio to write one.",
-            _ => "Nothing here.",
+            Self::Favorites => crate::ui::t("No favorites yet. Star an indicator to keep it here."),
+            Self::MyScripts => crate::ui::t("No saved scripts yet. Open Pine Studio to write one."),
+            _ => crate::ui::t("Nothing here."),
         }
     }
 

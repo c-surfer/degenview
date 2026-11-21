@@ -15,7 +15,7 @@ use crate::model::overlay::feed::OverlayStatus;
 use crate::model::overlay::{ChartOverlay, Move, OverlayCommand, OverlayId, OverlayScale};
 use crate::ui::chart::card::ChartCard;
 use crate::ui::icons::{self, Icon};
-use crate::ui::{kit, settings::card, theme};
+use crate::ui::{kit, settings::card, theme, tr};
 use eframe::egui::{self, Align, Color32, Id, Layout, Rect, Sense, Stroke, Ui, Vec2, pos2, vec2};
 use std::collections::HashMap;
 
@@ -141,19 +141,28 @@ fn empty_state(ui: &mut Ui, input: &CompareInput) -> Option<ChartSettingsAction>
             kit::paint_card_badge(ui, badge, Icon::Compare);
             ui.add_space(10.0);
             ui.label(kit::text(
-                "Compare markets",
+                tr("Compare markets", "Сравнение рынков"),
                 14.0,
                 kit::SEMIBOLD,
                 theme::text_primary(),
             ));
             ui.add_space(2.0);
+            let compare_hint = if crate::ui::i18n::is_ru() {
+                format!(
+                    "Сравнивайте динамику других рынков с {} на едином графике и шкале времени. \
+                     Можно добавить любое количество символов, каждый со своим цветом и шкалой.",
+                    input.chart_name
+                )
+            } else {
+                format!(
+                    "See how other markets move against {} on the same chart and time axis. \
+                     Any number can be added, each with its own colour and scale.",
+                    input.chart_name
+                )
+            };
             ui.add(
                 egui::Label::new(kit::text(
-                    format!(
-                        "See how other markets move against {} on the same chart and time axis. \
-                         Any number can be added, each with its own colour and scale.",
-                        input.chart_name
-                    ),
+                    compare_hint,
                     11.5,
                     kit::REGULAR,
                     theme::text_secondary(),
@@ -161,12 +170,15 @@ fn empty_state(ui: &mut Ui, input: &CompareInput) -> Option<ChartSettingsAction>
                 .wrap(),
             );
             ui.add_space(14.0);
-            if kit::sheet_button(ui, "Add symbol…", true, true).clicked() {
+            if kit::sheet_button(ui, tr("Add symbol…", "Добавить символ…"), true, true).clicked() {
                 action = Some(ChartSettingsAction::AddOverlay);
             }
             ui.add_space(12.0);
             ui.label(kit::text(
-                "In the symbol search (⌘K), ⌥↵ adds the highlighted market to this chart.",
+                tr(
+                    "In the symbol search (⌘K), ⌥↵ adds the highlighted market to this chart.",
+                    "В поиске символов (Ctrl+K) нажмите Alt+Enter, чтобы добавить рынок на график.",
+                ),
                 10.5,
                 kit::REGULAR,
                 theme::text_tertiary(),
@@ -198,7 +210,7 @@ fn toolbar(
     let hidden = overlays.iter().filter(|overlay| !overlay.visible).count();
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = 10.0;
-        if kit::sheet_button(ui, "Add symbol…", true, true).clicked() {
+        if kit::sheet_button(ui, tr("Add symbol…", "Добавить символ…"), true, true).clicked() {
             action = Some(ChartSettingsAction::AddOverlay);
         }
         ui.label(kit::text(

@@ -68,12 +68,12 @@ impl Scope {
 
     pub fn title(self) -> &'static str {
         match self {
-            Self::All => "All",
-            Self::Stocks => "Stocks",
-            Self::Crypto => "Crypto",
-            Self::Predictions => "Predictions",
-            Self::Dashboards => "Dashboards",
-            Self::Watchlists => "Watchlists",
+            Self::All => crate::ui::t("All"),
+            Self::Stocks => crate::ui::t("Stocks"),
+            Self::Crypto => crate::ui::t("Crypto"),
+            Self::Predictions => crate::ui::t("Predictions"),
+            Self::Dashboards => crate::ui::t("Dashboards"),
+            Self::Watchlists => crate::ui::t("Watchlists"),
         }
     }
 
@@ -125,10 +125,10 @@ impl Scope {
     /// The text the search box asks for.
     pub fn placeholder(self) -> &'static str {
         match self {
-            Self::Predictions => "Search markets (e.g. Bitcoin, Fed, election)",
-            Self::Dashboards => "Filter indices and portfolio views",
-            Self::Watchlists => "Filter your watchlists",
-            Self::All | Self::Stocks | Self::Crypto => "Search symbol…",
+            Self::Predictions => crate::ui::t("Search markets (e.g. Bitcoin, Fed, election)"),
+            Self::Dashboards => crate::ui::t("Filter indices and portfolio views"),
+            Self::Watchlists => crate::ui::t("Filter your watchlists"),
+            Self::All | Self::Stocks | Self::Crypto => crate::ui::t("Search symbol…"),
         }
     }
 }

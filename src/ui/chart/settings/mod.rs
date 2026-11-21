@@ -72,11 +72,11 @@ impl Tab {
 
     fn title(self) -> &'static str {
         match self {
-            Self::Indicators => "Indicators",
-            Self::Scripts => "Scripts",
-            Self::Appearance => "Appearance",
-            Self::Canvas => "Canvas",
-            Self::Overlays => "Compare",
+            Self::Indicators => crate::ui::tr("Indicators", "Индикаторы"),
+            Self::Scripts => crate::ui::tr("Scripts", "Скрипты"),
+            Self::Appearance => crate::ui::tr("Appearance", "Вид"),
+            Self::Canvas => crate::ui::tr("Canvas", "Холст"),
+            Self::Overlays => crate::ui::tr("Compare", "Сравнение"),
         }
     }
 
@@ -250,8 +250,9 @@ fn rule(ui: &mut Ui) {
 
 fn header(ui: &mut Ui, c: &ChartSettingsContext) {
     let subtitle = format!(
-        "{} · Changes apply as you make them",
-        c.source.display_name()
+        "{} · {}",
+        c.source.display_name(),
+        crate::ui::tr("Changes apply as you make them", "Изменения применяются автоматически")
     );
     sheet::header_with(ui, c.title, &subtitle, |ui| {
         let (rect, _) = ui.allocate_exact_size(Vec2::splat(46.0), Sense::hover());
@@ -282,11 +283,11 @@ fn footer(ui: &mut Ui, state: &mut ChartSettingsState) -> Option<ChartSettingsAc
     let mut action = None;
     ui.add_space(14.0);
     ui.horizontal(|ui| {
-        if kit::destructive_sheet_button(ui, Icon::Trash, "Remove Chart").clicked() {
+        if kit::destructive_sheet_button(ui, Icon::Trash, crate::ui::tr("Remove Chart", "Удалить график")).clicked() {
             action = Some(ChartSettingsAction::RemoveChart);
         }
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-            if kit::sheet_button(ui, "Done", true, true).clicked() {
+            if kit::sheet_button(ui, crate::ui::tr("Done", "Готово"), true, true).clicked() {
                 action = Some(ChartSettingsAction::Done);
             }
             // What the last template action did, between the buttons.

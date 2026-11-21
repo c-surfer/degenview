@@ -11,6 +11,7 @@ use crate::ui::kit;
 use crate::ui::pine::script_catalog;
 use crate::ui::settings::card;
 use crate::ui::theme;
+use crate::ui::tr;
 use eframe::egui::{
     self, Align, Color32, FontId, Id, Layout, Margin, Rect, Sense, Stroke, Ui, Vec2, pos2, vec2,
 };
@@ -71,13 +72,13 @@ pub(super) fn scripts_page(
         ui.vertical(|ui| {
             card::section_title(
                 ui,
-                "Scripts",
-                Some("Switch a script on to run it on this chart."),
+                tr("Scripts", "Скрипты"),
+                Some(tr("Switch a script on to run it on this chart.", "Включите скрипт для запуска на этом графике.")),
             );
         });
         ui.with_layout(Layout::right_to_left(Align::Min), |ui| {
             if kit::push_button(ui, Some(Icon::AngleBrackets), "Pine Studio", true)
-                .on_hover_text("Write, edit and organise scripts")
+                .on_hover_text(tr("Write, edit and organise scripts", "Создание, редактирование и управление скриптами"))
                 .clicked()
             {
                 action = Some(ChartSettingsAction::OpenPineStudio);
@@ -99,7 +100,7 @@ pub(super) fn scripts_page(
             ui,
             Id::new("chart-settings-script-search"),
             &mut state.script_query,
-            "Search scripts",
+            tr("Search scripts", "Поиск скриптов"),
             ui.available_width(),
         );
         ui.add_space(4.0);
@@ -151,7 +152,7 @@ pub(super) fn scripts_page(
         ui.add_space(12.0);
         ui.horizontal(|ui| {
             ui.label(kit::text(
-                "On this chart",
+                tr("On this chart", "На этом графике"),
                 kit::size::SUBHEADLINE + 1.0,
                 kit::SEMIBOLD,
                 theme::text_primary(),
@@ -159,7 +160,12 @@ pub(super) fn scripts_page(
             count_chip(ui, &rows.len().to_string());
             if let Some(bars) = bars {
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                    status_badge(ui, &format!("{bars} bars"), theme::text_secondary());
+                    let label = if crate::ui::i18n::is_ru() {
+                        format!("{bars} свечей")
+                    } else {
+                        format!("{bars} bars")
+                    };
+                    status_badge(ui, &label, theme::text_secondary());
                 });
             }
         });
@@ -173,9 +179,9 @@ pub(super) fn scripts_page(
         ui.horizontal(|ui| {
             ui.label(kit::text(
                 if rows.is_empty() {
-                    "Your scripts"
+                    tr("Your scripts", "Ваши скрипты")
                 } else {
-                    "Available"
+                    tr("Available", "Доступные")
                 },
                 kit::size::SUBHEADLINE + 1.0,
                 kit::SEMIBOLD,

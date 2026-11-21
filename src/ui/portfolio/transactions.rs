@@ -52,14 +52,14 @@ impl TransactionColumn {
     /// Money columns name the reporting currency.
     pub fn title(self, currency_code: &str) -> String {
         match self {
-            Self::Date => "Date".to_owned(),
-            Self::Asset => "Asset".to_owned(),
-            Self::Type => "Type".to_owned(),
-            Self::Quantity => "Quantity".to_owned(),
-            Self::Price => format!("Price ({currency_code})"),
-            Self::Total => format!("Total ({currency_code})"),
-            Self::Fee => "Fee".to_owned(),
-            Self::Notes => "Notes".to_owned(),
+            Self::Date => crate::ui::tr("Date", "Дата").to_owned(),
+            Self::Asset => crate::ui::tr("Asset", "Актив").to_owned(),
+            Self::Type => crate::ui::tr("Type", "Тип").to_owned(),
+            Self::Quantity => crate::ui::tr("Quantity", "Количество").to_owned(),
+            Self::Price => format!("{} ({currency_code})", crate::ui::tr("Price", "Цена")),
+            Self::Total => format!("{} ({currency_code})", crate::ui::tr("Total", "Всего")),
+            Self::Fee => crate::ui::tr("Fee", "Комиссия").to_owned(),
+            Self::Notes => crate::ui::tr("Notes", "Заметки").to_owned(),
         }
     }
 
@@ -398,8 +398,11 @@ pub fn show(
                 ui,
                 grid::body_rect(outer),
                 Icon::Magnifier,
-                "No Matching Transactions",
-                "Nothing matches the current search and filters.",
+                crate::ui::tr("No Matching Transactions", "Нет подходящих сделок"),
+                crate::ui::tr(
+                    "Nothing matches the current search and filters.",
+                    "Ничего не найдено по текущим фильтрам.",
+                ),
             );
             let button = Rect::from_center_size(
                 pos2(outer.center().x, grid::body_rect(outer).center().y + 62.0),
@@ -407,7 +410,12 @@ pub fn show(
             );
             if ui
                 .put(button, |ui: &mut egui::Ui| {
-                    kit::push_button(ui, None, "Clear Filters", true)
+                    kit::push_button(
+                        ui,
+                        None,
+                        crate::ui::tr("Clear Filters", "Очистить фильтры"),
+                        true,
+                    )
                 })
                 .clicked()
             {
@@ -418,8 +426,11 @@ pub fn show(
                 ui,
                 grid::body_rect(outer),
                 empty::Scene::Transactions,
-                "No Transactions",
-                "Add a transaction or import a CSV to get started.",
+                crate::ui::tr("No Transactions", "Нет сделок"),
+                crate::ui::tr(
+                    "Add a transaction or import a CSV to get started.",
+                    "Добавьте сделку или импортируйте CSV, чтобы начать.",
+                ),
             );
         }
     } else {
@@ -562,7 +573,7 @@ fn toolbar(
             ui,
             search_id,
             &mut state.filters.search,
-            "Search asset, notes, or source",
+            crate::ui::tr("Search asset, notes, or source", "Поиск актива, заметок или биржи…"),
             246.0,
         );
 
@@ -634,12 +645,19 @@ fn toolbar(
                 }
             },
         );
-        if state.filters.is_active() && grid::link(ui, "Clear") {
+        if state.filters.is_active() && grid::link(ui, crate::ui::tr("Clear", "Очистить")) {
             state.filters.clear();
         }
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             ui.add_space(INSET);
-            if kit::push_button(ui, Some(Icon::Plus), "Add Transaction", true).clicked() {
+            if kit::push_button(
+                ui,
+                Some(Icon::Plus),
+                crate::ui::tr("Add Transaction", "Добавить сделку"),
+                true,
+            )
+            .clicked()
+            {
                 actions.push(TransactionAction::Add);
             }
         });
@@ -1178,18 +1196,28 @@ fn transaction_row(
 }
 
 fn row_menu(ui: &mut egui::Ui, id: u64, actions: &mut Vec<TransactionAction>) {
-    grid::fit_menu(ui, &["Edit", "Duplicate", "Delete"]);
+    let edit_text = crate::ui::tr("Edit", "Редактировать");
+    let duplicate_text = crate::ui::tr("Duplicate", "Дублировать");
+    let delete_text = crate::ui::tr("Delete", "Удалить");
+    grid::fit_menu(
+        ui,
+        &[
+            edit_text.as_ref(),
+            duplicate_text.as_ref(),
+            delete_text.as_ref(),
+        ],
+    );
     ui.spacing_mut().item_spacing.y = 0.0;
-    if kit::menu_item(ui, Icon::Pencil, "Edit", true, false) {
+    if kit::menu_item(ui, Icon::Pencil, edit_text, true, false) {
         actions.push(TransactionAction::Edit(id));
         ui.close();
     }
-    if kit::menu_item(ui, Icon::CopyDoc, "Duplicate", true, false) {
+    if kit::menu_item(ui, Icon::CopyDoc, duplicate_text, true, false) {
         actions.push(TransactionAction::Duplicate(id));
         ui.close();
     }
     kit::menu_separator(ui);
-    if kit::menu_item(ui, Icon::Trash, "Delete", true, true) {
+    if kit::menu_item(ui, Icon::Trash, delete_text, true, true) {
         actions.push(TransactionAction::Delete(id));
         ui.close();
     }
