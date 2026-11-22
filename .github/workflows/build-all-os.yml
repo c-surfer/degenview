@@ -9,6 +9,9 @@ on:
 permissions:
   contents: read
 
+env:
+  RUST_TOOLCHAIN: "1.100.0"
+
 jobs:
   windows:
     name: Build Windows (x64)
@@ -24,6 +27,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
           targets: x86_64-pc-windows-msvc
 
       - name: Build Windows binary & portable zip
@@ -68,6 +72,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
           targets: x86_64-unknown-linux-gnu
 
       - name: Build Linux binary & tar.gz package
@@ -106,6 +111,8 @@ jobs:
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
 
       - name: Build macOS binaries
         run: |

@@ -33,6 +33,8 @@ ignore = [
     # Through rmcp and schemars (the MCP server's protocol and schema crates), never a direct
     # dependency. Reported unmaintained on 2026-11-17; follows the rmcp release that moves off it.
     { id = "RUSTSEC-2026-0543", reason = "chrono: unmaintained, transitive through rmcp and schemars; follows rmcp" },
+    # Transitive via egui-winit -> webbrowser. Stack overflow in blob URLs, DegenView does not parse untrusted blob URLs.
+    { id = "RUSTSEC-2026-0592", reason = "url: stack overflow in blob URLs, transitive via egui-winit" },
 ]
 
 [sources]
