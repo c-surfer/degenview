@@ -3,8 +3,8 @@ name: Build All OS Installers
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    tags:
+      - "v*-ru"
 
 permissions:
   contents: write
@@ -15,10 +15,12 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
           targets: x86_64-pc-windows-msvc
 
@@ -37,7 +39,7 @@ jobs:
           ./tools/windows-installer.sh v0.6.0-rc.33 target/release/degenview.exe x64
 
       - name: Upload Windows Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: windows-assets
           path: dist/*
@@ -47,7 +49,9 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Install Linux build dependencies
         run: |
@@ -58,7 +62,7 @@ jobs:
             libgl1-mesa-dev libegl1-mesa-dev libssl-dev pkg-config
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
           targets: x86_64-unknown-linux-gnu
 
@@ -74,7 +78,7 @@ jobs:
           tar -czf "dist/DegenView-v0.6.0-rc.33-linux-x64.tar.gz" -C pkg .
 
       - name: Upload Linux Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: linux-assets
           path: dist/*
@@ -84,7 +88,9 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Install dmgbuild
         run: |
@@ -93,7 +99,7 @@ jobs:
           echo "$RUNNER_TEMP/dmgvenv/bin" >> "$GITHUB_PATH"
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
 
       - name: Build macOS binaries
         run: |
@@ -113,7 +119,7 @@ jobs:
           ditto -c -k --sequesterRsrc --keepParent target/DegenView.app "dist/DegenView-v0.6.0-rc.33-macos-arm64.zip"
 
       - name: Upload macOS Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: macos-assets
           path: dist/*
@@ -126,10 +132,12 @@ jobs:
       contents: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Download all assets
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4
         with:
           path: dist
           merge-multiple: true
@@ -138,32 +146,10 @@ jobs:
         run: ls -la dist/
 
       - name: Create or Update GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v0.6.0-rc.33-ru
-          name: "DegenView v0.6.0-rc.33 (Russian Localization)"
-          body: |
-            ### 🚀 Релиз DegenView v0.6.0-rc.33 с полной русской локализацией
-
-            Готовые установщики и архивы для всех платформ:
-
-            * 🪟 **Windows (x64)**:
-              - `DegenView-v0.6.0-rc.33-windows-x64-setup.exe` — полноценный установщик.
-              - `DegenView-v0.6.0-rc.33-windows-x64.zip` — портативная версия (не требует установки).
-            * 🍏 **macOS (Apple Silicon / arm64)**:
-              - `DegenView-v0.6.0-rc.33-macos-arm64.dmg` — образ диска с установкой перетаскиванием в Applications.
-              - `DegenView-v0.6.0-rc.33-macos-arm64.zip` — архив приложения `DegenView.app`.
-            * 🐧 **Linux (x64)**:
-              - `DegenView-v0.6.0-rc.33-linux-x64.tar.gz` — бинарный архив с приложением, иконкой и desktop-файлом.
-
-            ---
-            **Особенности данного релиза:**
-            - Полная глубокая локализация всех интерфейсов (Графики, Индикаторы, Market Flow, Сравнение, Снимки, Сеть, MCP, Pine Studio, Портфолио).
-            - Компактный выпадающий выбор языка в настройках оформления.
-            - Сохранение биржевых тикеров и термина `Win Rate` в оригинальном написании.
-            - Корректная русская морфологическая плюрализация для всех счетчиков.
-          files: dist/*
-          draft: false
-          prerelease: false
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create v0.6.0-rc.33-ru dist/* \
+            --title "DegenView v0.6.0-rc.33 (Russian Localization)" \
+            --notes "Релиз DegenView v0.6.0-rc.33 с полной локализацией на русский язык." || \
+          gh release upload v0.6.0-rc.33-ru dist/* --clobber
