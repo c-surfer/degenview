@@ -185,13 +185,16 @@ fn form(
     price_card(ui, state);
     ui.add_space(18.0);
 
-    section_title(ui, "Alert me when the price");
+    section_title(
+        ui,
+        crate::ui::tr("Alert me when the price", "Оповестить, когда цена"),
+    );
     ui.add_space(8.0);
     let items: Vec<kit::TabItem<Direction>> = Direction::ALL
         .into_iter()
         .map(|direction| kit::TabItem {
             value: direction,
-            title: direction.title(),
+            title: crate::ui::t(direction.title()),
             icon: direction_icon(direction),
             count: 0,
         })
@@ -207,7 +210,7 @@ fn form(
         state.focus_value = true;
     }
     ui.add_space(8.0);
-    hint(ui, state.draft.direction.blurb(), theme::text_secondary());
+    hint(ui, crate::ui::t(state.draft.direction.blurb()), theme::text_secondary());
     ui.add_space(18.0);
 
     value_section(ui, state);
@@ -216,7 +219,7 @@ fn form(
     // How often: a slim row, since most alerts keep the default.
     ui.horizontal(|ui| {
         ui.label(kit::text(
-            "How often",
+            crate::ui::tr("How often", "Как часто"),
             size::SUBHEADLINE + 1.0,
             kit::REGULAR,
             theme::text_secondary(),
@@ -226,8 +229,11 @@ fn form(
                 ui,
                 Id::new("price-alert-frequency"),
                 &[
-                    (AlertFrequency::Once, "Once"),
-                    (AlertFrequency::EveryTime, "Every time"),
+                    (AlertFrequency::Once, crate::ui::tr("Once", "Однократно")),
+                    (
+                        AlertFrequency::EveryTime,
+                        crate::ui::tr("Every time", "Каждый раз"),
+                    ),
                 ],
                 &mut state.draft.frequency,
             );
@@ -252,7 +258,7 @@ fn form(
                 ui,
                 note_id,
                 &mut state.draft.note,
-                "Add a note (optional)",
+                crate::ui::tr("Add a note (optional)", "Добавить заметку (необязательно)"),
                 size::BODY,
                 kit::REGULAR,
                 width,
@@ -302,9 +308,9 @@ fn header(ui: &mut egui::Ui, state: &PriceAlertEditorState) {
     let title = kit::galley(
         ui,
         if state.draft.is_new() {
-            "Create Price Alert"
+            crate::ui::tr("Create Price Alert", "Создать оповещение")
         } else {
-            "Edit Price Alert"
+            crate::ui::tr("Edit Price Alert", "Редактировать оповещение")
         },
         size::TITLE2 + 1.0,
         SEMIBOLD,
@@ -346,7 +352,7 @@ fn price_card(ui: &mut egui::Ui, state: &PriceAlertEditorState) {
     );
     let caption = kit::galley(
         ui,
-        "Current price",
+        crate::ui::tr("Current price", "Текущая цена"),
         size::CAPTION + 0.5,
         kit::REGULAR,
         theme::text_secondary(),
@@ -376,7 +382,7 @@ fn price_card(ui: &mut egui::Ui, state: &PriceAlertEditorState) {
         theme::text_primary(),
     );
     let (label, tone) = if state.draft.current_price().is_some() {
-        ("Live", kit::Tone::Good)
+        (crate::ui::tr("Live", "В реальном времени"), kit::Tone::Good)
     } else {
         ("No price yet", kit::Tone::Warning)
     };
@@ -469,30 +475,35 @@ fn value_section(ui: &mut egui::Ui, state: &mut PriceAlertEditorState) {
 
     let id = Id::new("price-alert-target");
     let mut currency = state.draft.currency();
-    value_field(ui, id, "Target price", |ui, _| {
-        ui.label(kit::text(
-            currency.glyph(),
-            15.0,
-            kit::REGULAR,
-            theme::text_secondary(),
-        ));
-        let width = ui.available_width() - 52.0;
-        let response = kit::plain_field(
-            ui,
-            id,
-            &mut state.draft.target,
-            "0.00",
-            15.0,
-            SEMIBOLD,
-            width,
-        );
-        if focus {
-            response.request_focus();
-        }
-        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            currency_menu(ui, &mut currency);
-        });
-    });
+    value_field(
+        ui,
+        id,
+        crate::ui::tr("Target price", "Целевая цена"),
+        |ui, _| {
+            ui.label(kit::text(
+                currency.glyph(),
+                15.0,
+                kit::REGULAR,
+                theme::text_secondary(),
+            ));
+            let width = ui.available_width() - 52.0;
+            let response = kit::plain_field(
+                ui,
+                id,
+                &mut state.draft.target,
+                "0.00",
+                15.0,
+                SEMIBOLD,
+                width,
+            );
+            if focus {
+                response.request_focus();
+            }
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                currency_menu(ui, &mut currency);
+            });
+        },
+    );
     state.draft.set_currency(currency);
     let offsets = state.draft.offset_options();
     if !offsets.is_empty() {
@@ -585,10 +596,13 @@ fn footer(
     let mut outcome = None;
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = 12.0;
-        let summary = state
-            .draft
-            .summary()
-            .unwrap_or_else(|| "Set a level to create the alert.".to_owned());
+        let summary = state.draft.summary().unwrap_or_else(|| {
+            crate::ui::tr(
+                "Set a level to create the alert.",
+                "Укажите уровень для создания оповещения.",
+            )
+            .to_owned()
+        });
         let width = ui.available_width() - 76.0 - 120.0 - 24.0;
         ui.allocate_ui_with_layout(
             Vec2::new(width, 30.0),
@@ -609,9 +623,9 @@ fn footer(
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             ui.spacing_mut().item_spacing.x = 12.0;
             let label = if state.draft.is_new() {
-                "Create Alert"
+                crate::ui::tr("Create Alert", "Создать оповещение")
             } else {
-                "Save Changes"
+                crate::ui::tr("Save Changes", "Сохранить изменения")
             };
             if kit::sheet_button(ui, label, true, state.draft.can_save()).clicked() {
                 outcome = state
@@ -619,7 +633,7 @@ fn footer(
                     .result(now_ms)
                     .map(|alert| PriceAlertEditorOutcome::Save(Box::new(alert)));
             }
-            if kit::sheet_button(ui, "Cancel", false, true).clicked() {
+            if kit::sheet_button(ui, crate::ui::tr("Cancel", "Отмена"), false, true).clicked() {
                 outcome = Some(PriceAlertEditorOutcome::Cancel);
             }
         });

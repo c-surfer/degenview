@@ -97,7 +97,11 @@ pub fn send_section(
 ) -> bool {
     let picked = summary(selection, endpoints);
     let subtitle = if !*is_on {
-        "Also post this alert to your own server or bot.".to_owned()
+        crate::ui::tr(
+            "Also post this alert to your own server or bot.",
+            "Также отправлять это оповещение на ваш сервер или боту.",
+        )
+        .to_owned()
     } else if picked.selected > 0 {
         format!("{} selected", picked.selected)
     } else if endpoints.is_empty() {
@@ -188,7 +192,7 @@ fn toggle_card(ui: &mut Ui, id: Id, is_on: &mut bool, subtitle: &str, highlight:
     let left = icon.right() + 12.0;
     let title = kit::galley(
         ui,
-        "Send to webhooks",
+        crate::ui::tr("Send to webhooks", "Отправка на вебхук"),
         size::SUBHEADLINE + 1.0,
         SEMIBOLD,
         theme::text_primary(),
@@ -220,7 +224,12 @@ fn toggle_card(ui: &mut Ui, id: Id, is_on: &mut bool, subtitle: &str, highlight:
         vec2(32.0, 18.0),
     );
     let mut child = ui.new_child(egui::UiBuilder::new().max_rect(switch));
-    let flipped = kit::switch(&mut child, is_on, "Send to webhooks").clicked();
+    let flipped = kit::switch(
+        &mut child,
+        is_on,
+        crate::ui::tr("Send to webhooks", "Отправка на вебхук"),
+    )
+    .clicked();
     if response.clicked() && !flipped {
         *is_on = !*is_on;
     }

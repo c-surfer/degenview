@@ -45,6 +45,7 @@ fn persisted_session_round_trips() {
                 id: 1,
                 symbol: "ETHUSDT".into(),
                 source: DataSource::Binance,
+                timeframe: None,
                 log_scale: false,
                 scale_mode: None,
                 y_zoom: 1.0,

@@ -266,6 +266,7 @@ impl ChartWorkspace {
             tree_open: self.context.tree_chart == Some(chart.id),
             stats_open: self.context.stats_chart == Some(chart.id),
             scale_mode: chart.scale_mode,
+            can_close: self.charts.len() > 1,
             ..Facts::default()
         };
         match &context.target {
@@ -429,6 +430,17 @@ impl ChartWorkspace {
                 }
             }
             Command::Paste => self.paste(ctx, &context),
+            Command::DuplicateChart => {
+                self.duplicate_chart(chart_id, ctx);
+            }
+            Command::CloseChart => {
+                if self.charts.len() > 1 {
+                    self.remove_chart(chart_id);
+                    if self.focused.is_none() {
+                        self.focused = self.charts.first().map(|c| c.id);
+                    }
+                }
+            }
             Command::AddAlert => self.start_alert(&context, host),
             Command::QuickOrder(order) => {
                 if let Some(price) = context.price() {
@@ -951,7 +963,7 @@ impl ChartWorkspace {
             return;
         };
         let chart = &self.charts[index];
-        let title = format!("{} {}", chart.symbol, self.timeframe.label());
+        let title = format!("{} {}", chart.symbol, chart.timeframe.label());
         let price = chart.chart.appearance().price_format();
         let feed = chart.chart.table_feed();
         let action = table_view::show(ui, &mut self.context.table, &title, feed.as_deref(), price);
@@ -969,9 +981,9 @@ impl ChartWorkspace {
         let Some(index) = self.chart_index(chart_id) else {
             return;
         };
-        let title = format!("{} {}", self.charts[index].symbol, self.timeframe.label());
+        let title = format!("{} {}", self.charts[index].symbol, self.charts[index].timeframe.label());
         let hours = session_stats::MarketHours::for_source(self.charts[index].source);
-        let bar_ms = self.timeframe.nominal_ms();
+        let bar_ms = self.charts[index].timeframe.nominal_ms();
         // The chart data borrows the workspace, so the panel's state is lent out for the frame.
         let mut state = std::mem::take(&mut self.context.stats);
         let action = {

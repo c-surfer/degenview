@@ -410,7 +410,7 @@ pub fn instrument_row(ui: &mut egui::Ui, item: &WatchlistInstrument, row: &RowSt
             // Providers disagree on what a change is measured against, so say which.
             if let Some(basis) = quote.and_then(|quote| quote.change_basis) {
                 text.push('\n');
-                text.push_str(basis.label());
+                text.push_str(crate::ui::t(basis.label()));
             }
             text
         }

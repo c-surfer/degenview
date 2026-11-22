@@ -250,7 +250,7 @@ pub(super) fn detail_panel(
     if let Some(basis) = quote.and_then(|quote| quote.change_basis) {
         let basis = kit::galley(
             ui,
-            &format!("· {}", basis.label()),
+            &format!("· {}", crate::ui::t(basis.label())),
             11.0,
             kit::REGULAR,
             theme::text_tertiary(),
@@ -279,14 +279,14 @@ pub(super) fn detail_panel(
     let volume = watchlist::quote::volume_text(quote);
     let tile_width = (width - DETAIL_TILE_GAP) / 2.0;
     let tiles = [
-        ("Volume", volume.as_str(), None),
+        (crate::ui::tr("Volume", "Объём"), volume.as_str(), None),
         (
-            "Status",
-            freshness.label(),
+            crate::ui::tr("Status", "Статус"),
+            crate::ui::t(freshness.label()),
             Some(freshness_color(freshness)),
         ),
-        ("Symbol", symbol.as_str(), None),
-        ("Updated", updated.as_str(), None),
+        (crate::ui::tr("Symbol", "Символ"), symbol.as_str(), None),
+        (crate::ui::tr("Updated", "Обновлено"), updated.as_str(), None),
     ];
     for (index, (label, value, dot)) in tiles.into_iter().enumerate() {
         let (column, row) = (index % 2, index / 2);
@@ -321,7 +321,7 @@ pub(super) fn detail_panel(
     let row_mid = y + DETAIL_LISTS / 2.0;
     let caption = kit::galley(
         ui,
-        "IN LISTS",
+        crate::ui::tr("IN LISTS", "В СПИСКАХ"),
         9.5,
         kit::SEMIBOLD,
         theme::text_tertiary(),

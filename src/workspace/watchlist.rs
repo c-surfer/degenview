@@ -405,7 +405,7 @@ impl ChartWorkspace {
             self.add_card(card);
             return;
         }
-        let outcome = self.add_chart_for(&item.instrument, ctx);
+        let outcome = self.force_add_chart_for(&item.instrument, ctx);
         if let Some(chart) = self
             .charts
             .iter_mut()

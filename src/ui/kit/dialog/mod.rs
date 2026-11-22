@@ -73,7 +73,7 @@ impl<'a> Dialog<'a> {
             title,
             message,
             accept,
-            dismiss: "Cancel",
+            dismiss: crate::ui::tr("Cancel", "Отмена"),
             leading: None,
             destructive: false,
             cautious: false,

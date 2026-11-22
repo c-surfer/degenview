@@ -7,7 +7,7 @@ use crate::model::drawings::market::MarketDrawings;
 use crate::model::overlay::OverlayList;
 use crate::model::pine::instance::PineInstance;
 use crate::model::portfolio::card::PortfolioCard;
-use crate::model::{ChartAppearance, DataSource, IndicatorConfig};
+use crate::model::{ChartAppearance, DataSource, IndicatorConfig, Timeframe};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -15,6 +15,8 @@ pub struct PersistedChart {
     pub id: u64,
     pub symbol: String,
     pub source: DataSource,
+    #[serde(default)]
+    pub timeframe: Option<Timeframe>,
     /// The log switch of builds before the four scale modes. Still written (it is
     /// `scale_mode == Logarithmic`) so such a build opens the layout a newer one saved; read only
     /// when `scale_mode` is missing, i.e. a row an older build wrote.
@@ -81,6 +83,7 @@ mod tests {
             id: 1,
             symbol: "BTCUSDT".into(),
             source: DataSource::Binance,
+            timeframe: None,
             log_scale: false,
             scale_mode: None,
             y_zoom: 1.0,
@@ -146,6 +149,20 @@ mod tests {
             row_with(None, Some("percent")).price_scale_mode(),
             PriceScaleMode::Percent
         );
+    }
+
+    #[test]
+    fn a_row_without_timeframe_defaults_to_none_and_with_timeframe_round_trips() {
+        let mut saved = chart();
+        saved.timeframe = Some(Timeframe::MINUTE_15);
+        let encoded = serde_json::to_string(&saved).unwrap();
+        let decoded: PersistedChart = serde_json::from_str(&encoded).unwrap();
+        assert_eq!(decoded.timeframe, Some(Timeframe::MINUTE_15));
+
+        let mut row = serde_json::to_value(chart()).unwrap();
+        row.as_object_mut().unwrap().remove("timeframe");
+        let restored: PersistedChart = serde_json::from_value(row).unwrap();
+        assert_eq!(restored.timeframe, None);
     }
 
     #[test]

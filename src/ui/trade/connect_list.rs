@@ -15,7 +15,7 @@ pub fn show(ui: &mut egui::Ui, venues: &[VenueInfo]) -> Option<TradingVenue> {
     ui.add_space(24.0);
     ui.vertical_centered(|ui| {
         ui.label(kit::text(
-            "Choose where to trade",
+            crate::ui::tr("Choose where to trade", "Выберите платформу для торговли"),
             kit::size::TITLE2,
             kit::SEMIBOLD,
             theme::text_primary(),
@@ -23,7 +23,10 @@ pub fn show(ui: &mut egui::Ui, venues: &[VenueInfo]) -> Option<TradingVenue> {
         ui.add_space(4.0);
         ui.add(
             egui::Label::new(kit::text(
-                "Nothing is connected until you choose. You can add or remove places at any time in Settings.",
+                crate::ui::tr(
+                    "Nothing is connected until you choose. You can add or remove places at any time in Settings.",
+                    "Ничего не подключено, пока вы не выберете. Вы можете добавить или удалить платформы в любое время в Настройках.",
+                ),
                 kit::size::CAPTION + 1.0,
                 kit::REGULAR,
                 theme::text_secondary(),
@@ -46,19 +49,25 @@ pub fn show(ui: &mut egui::Ui, venues: &[VenueInfo]) -> Option<TradingVenue> {
                 ui.horizontal(|ui| {
                     ui.spacing_mut().item_spacing.x = 8.0;
                     ui.label(kit::text(
-                        &info.name,
+                        crate::ui::t(&info.name),
                         kit::size::BODY,
                         kit::SEMIBOLD,
                         theme::text_primary(),
                     ));
                     let (label, tone) = match info.kind {
-                        VenueKind::Live => ("Real money", Tone::Warning),
-                        VenueKind::Test => ("Test", Tone::Neutral),
-                        VenueKind::Simulated => ("Simulated", Tone::Neutral),
+                        VenueKind::Live => (
+                            crate::ui::tr("Real money", "Реальные средства"),
+                            Tone::Warning,
+                        ),
+                        VenueKind::Test => (crate::ui::tr("Test", "Тест"), Tone::Neutral),
+                        VenueKind::Simulated => (
+                            crate::ui::tr("Simulated", "Симуляция"),
+                            Tone::Neutral,
+                        ),
                     };
                     kit::status_badge(ui, label, tone);
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if kit::sheet_button(ui, "Connect", false, true).clicked() {
+                        if kit::sheet_button(ui, crate::ui::tr("Connect", "Подключить"), false, true).clicked() {
                             chosen = Some(info.venue);
                         }
                     });
@@ -71,7 +80,7 @@ pub fn show(ui: &mut egui::Ui, venues: &[VenueInfo]) -> Option<TradingVenue> {
                 };
                 ui.add(
                     egui::Label::new(kit::text(
-                        &info.summary,
+                        crate::ui::t(&info.summary),
                         kit::size::CAPTION + 1.0,
                         kit::REGULAR,
                         note_color,

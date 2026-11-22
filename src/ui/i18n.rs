@@ -151,6 +151,151 @@ mod tests {
         assert_eq!(tr("Nonexistent key xyz", "Фолбэк"), "Фолбэк");
         assert_eq!(t("Nonexistent key xyz"), "Nonexistent key xyz");
 
+        // Screenshot 1
+        assert_eq!(t("Choose where to trade"), "Выберите платформу для торговли");
+        assert_eq!(
+            t("Nothing is connected until you choose. You can add or remove places at any time in Settings."),
+            "Ничего не подключено, пока вы не выберете. Вы можете добавить или удалить платформы в любое время в Настройках."
+        );
+        assert_eq!(t("Connect"), "Подключить");
+        assert_eq!(t("Paper trading"), "Демо-торговля");
+        assert_eq!(t("Simulated"), "Симуляция");
+        assert_eq!(
+            t("Practice with pretend money. Nothing leaves this computer."),
+            "Тренируйтесь на виртуальных средствах. Никакие данные не покидают этот компьютер."
+        );
+        assert_eq!(t("Real money"), "Реальные средства");
+        assert_eq!(t("Real orders on your Coinbase account."), "Реальные ордера на вашем счете Coinbase.");
+        assert_eq!(t("Test"), "Тест");
+        assert_eq!(
+            t("Practice orders on Coinbase Sandbox's test environment. No real money."),
+            "Тренировочные ордера в тестовой среде Coinbase Sandbox. Без реальных денег."
+        );
+
+        // Screenshot 2
+        assert_eq!(t("Alerts"), "Оповещения");
+        assert_eq!(t("No price alerts yet"), "Ценовых оповещений пока нет");
+        assert_eq!(t("Foreground evaluation only"), "Проверка только при активном окне");
+        assert_eq!(
+            t("Alerts are only checked while DegenView is open."),
+            "Оповещения проверяются, только пока DegenView открыт."
+        );
+        assert_eq!(
+            t("Alerts keep being checked when DegenView is closed."),
+            "Оповещения продолжают проверяться при закрытом DegenView."
+        );
+        assert_eq!(t("Search asset or name"), "Поиск актива или названия");
+        assert_eq!(t("Active"), "Активные");
+        assert_eq!(t("Triggered"), "Сработавшие");
+        assert_eq!(t("Paused"), "На паузе");
+        assert_eq!(t("All"), "Все");
+        assert_eq!(t("History"), "История");
+        assert_eq!(t("Scripts"), "Скрипты");
+        assert_eq!(t("No Active Alerts"), "Нет активных оповещений");
+        assert_eq!(
+            t("Click the bell on a chart to alert on a price."),
+            "Нажмите на колокольчик на графике, чтобы создать оповещение по цене."
+        );
+        assert_eq!(t("Nothing Triggered"), "Нет сработавших");
+        assert_eq!(
+            t("An alert that fires once waits here until you re-enable it."),
+            "Оповещение, сработавшее один раз, ожидает здесь повторной активации."
+        );
+        assert_eq!(t("Nothing Paused"), "Нет оповещений на паузе");
+        assert_eq!(
+            t("Paused alerts wait here until you resume them."),
+            "Оповещения на паузе отображаются здесь до их возобновления."
+        );
+        assert_eq!(t("No Alerts"), "Нет оповещений");
+        assert_eq!(t("No Trigger History"), "История срабатываний пуста");
+        assert_eq!(
+            t("Every time an alert fires it is logged here."),
+            "Каждое срабатывание оповещения записывается сюда."
+        );
+        assert_eq!(t("No Script Alerts"), "Нет скриптовых оповещений");
+        assert_eq!(
+            t("Alerts raised by your Pine scripts appear here."),
+            "Оповещения от ваших Pine-скриптов будут появляться здесь."
+        );
+
+        // Screenshot 3 & 8
+        assert_eq!(t("Volume"), "Объём");
+        assert_eq!(t("Status"), "Статус");
+        assert_eq!(t("Live"), "В реальном времени");
+        assert_eq!(t("Symbol"), "Символ");
+        assert_eq!(t("Updated"), "Обновлено");
+        assert_eq!(t("IN LISTS"), "В СПИСКАХ");
+        assert_eq!(t("Change over the last 24 hours"), "Изменение за последние 24 часа");
+
+        // Screenshot 4
+        assert_eq!(t("Replay"), "Симулятор рынка");
+        assert_eq!(t("Choose a start"), "Выберите точку старта");
+        assert_eq!(t("Pick a start"), "Выберите точку старта");
+        assert_eq!(t("Select bar on chart"), "Выбрать свечу на графике");
+        assert_eq!(t("Click a candle"), "Кликните по свече");
+        assert_eq!(t("or"), "или");
+        assert_eq!(t("Date & Time"), "Дата и время");
+        assert_eq!(t("Random"), "Случайно");
+        assert_eq!(t("First Bar"), "Первая свеча");
+
+        // Screenshot 5
+        assert_eq!(t("Create Price Alert"), "Создать оповещение");
+        assert_eq!(t("Edit Price Alert"), "Редактировать оповещение");
+        assert_eq!(t("Current price"), "Текущая цена");
+        assert_eq!(t("Alert me when the price"), "Оповестить, когда цена");
+        assert_eq!(t("Above"), "Выше");
+        assert_eq!(t("Below"), "Ниже");
+        assert_eq!(t("Rises"), "Растёт");
+        assert_eq!(t("Falls"), "Падает");
+        assert_eq!(
+            t("Notify me when the price crosses above a level."),
+            "Оповестить при пересечении уровня снизу вверх."
+        );
+        assert_eq!(
+            t("Notify me when the price crosses below a level."),
+            "Оповестить при пересечении уровня сверху вниз."
+        );
+        assert_eq!(
+            t("Notify me when the price rises by a percentage."),
+            "Оповестить при росте цены на процент."
+        );
+        assert_eq!(
+            t("Notify me when the price falls by a percentage."),
+            "Оповестить при падении цены на процент."
+        );
+        assert_eq!(t("Target price"), "Целевая цена");
+        assert_eq!(t("How often"), "Как часто");
+        assert_eq!(t("Once"), "Однократно");
+        assert_eq!(t("Every time"), "Каждый раз");
+        assert_eq!(t("Add a note (optional)"), "Добавить заметку (необязательно)");
+        assert_eq!(t("Send to webhooks"), "Отправка на вебхук");
+        assert_eq!(
+            t("Also post this alert to your own server or bot."),
+            "Также отправлять это оповещение на ваш сервер или боту."
+        );
+        assert_eq!(
+            t("Set a level to create the alert."),
+            "Укажите уровень для создания оповещения."
+        );
+        assert_eq!(t("Cancel"), "Отмена");
+        assert_eq!(t("Create Alert"), "Создать оповещение");
+        assert_eq!(t("Save Changes"), "Сохранить изменения");
+
+        // Screenshot 6
+        assert_eq!(t("Undo ({})"), "Отменить ({})");
+        assert_eq!(t("Redo ({})"), "Повторить ({})");
+
+        // Screenshot 7
+        assert_eq!(t("Remove from watchlist"), "Удалить из избранного");
+        assert_eq!(t("Add to watchlist"), "Добавить в избранное");
+
+        // Screenshot 9
+        assert_eq!(
+            t("The chart leaves this tab. You can add it again from the symbol search."),
+            "График будет удален из этой вкладки. Вы можете снова добавить его через поиск символов."
+        );
+        assert_eq!(t("Remove"), "Удалить");
+
         set_lang(LANG_EN);
     }
 }

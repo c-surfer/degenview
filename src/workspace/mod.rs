@@ -215,6 +215,10 @@ pub struct ChartWorkspace {
     grid_drag: ui::workspace::grid_drop::GridDrag,
     /// Choosing what a content tool places: the picture that waits, the sheet, the worker.
     content: drawing::content::ContentFlow,
+    /// Normalized column width weights (sum = 1.0).
+    pub column_weights: Vec<f32>,
+    /// Normalized row height weights per column id (sum = 1.0 for each column).
+    pub row_weights: HashMap<u64, Vec<f32>>,
 }
 
 impl ChartWorkspace {
@@ -332,7 +336,19 @@ impl ChartWorkspace {
             layout: LayoutSession::default(),
             grid_drag: ui::workspace::grid_drop::GridDrag::default(),
             content: drawing::content::ContentFlow::default(),
+            column_weights: Vec::new(),
+            row_weights: HashMap::new(),
         }
+    }
+
+    #[allow(dead_code)]
+    pub fn column_weights(&self) -> &[f32] {
+        &self.column_weights
+    }
+
+    #[allow(dead_code)]
+    pub fn row_weights(&self, column_id: u64) -> Option<&[f32]> {
+        self.row_weights.get(&column_id).map(|w| w.as_slice())
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -469,7 +485,7 @@ impl ChartWorkspace {
             // A card has no timeframe to name.
             return chart.display_title();
         }
-        format!("{} · {}", chart.display_title(), self.timeframe.label())
+        format!("{} · {}", chart.display_title(), chart.timeframe.label())
     }
 
     /// The focused chart's market, when it is one (a portfolio card has none). The strip's
@@ -566,13 +582,13 @@ impl ChartWorkspace {
         let ctx = ui.ctx().clone();
         // Everything below the tab strip: the favorites bar may be moved over all of it.
         let window = ui.max_rect();
-        let timeframe = self.timeframe;
         for chart in &mut self.charts {
-            chart.receive_fetch(timeframe);
-            chart.receive_older(timeframe);
-            chart.request_older(timeframe, &ctx);
+            let chart_timeframe = chart.timeframe;
+            chart.receive_fetch(chart_timeframe);
+            chart.receive_older(chart_timeframe);
+            chart.request_older(chart_timeframe, &ctx);
             if chart.refresh_due() {
-                chart.fetch(timeframe, &ctx);
+                chart.fetch(chart_timeframe, &ctx);
             }
         }
 
@@ -824,6 +840,7 @@ mod tests {
                     id: 1,
                     symbol: "BTCUSDT".into(),
                     source: DataSource::Binance,
+                    timeframe: None,
                     log_scale: false,
                     scale_mode: None,
                     y_zoom: 1.0,
@@ -843,6 +860,7 @@ mod tests {
                     id: 2,
                     symbol: "ETHUSDT".into(),
                     source: DataSource::Coinbase,
+                    timeframe: None,
                     log_scale: true,
                     scale_mode: None,
                     y_zoom: 1.5,

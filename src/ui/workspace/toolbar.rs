@@ -83,6 +83,7 @@ pub enum ToolbarAction {
     CompareSymbol,
     /// A type picked from the chart-type menu, for the focused chart.
     SetChartType(ChartType),
+    ApplyGridPreset(crate::model::GridLayoutPreset),
     SaveLayout,
     ToggleAutosave,
     CopyLayout,
@@ -126,6 +127,7 @@ pub fn replay_tooltip(replay_open: bool, has_market: bool) -> &'static str {
 enum Menu {
     ChartType,
     Timeframe,
+    GridPreset,
     Layout,
     Snapshot,
 }
@@ -167,6 +169,7 @@ pub fn show(ui: &mut Ui, input: &ToolbarInput) -> Vec<ToolbarAction> {
                     None => {}
                 }
             }
+            Menu::GridPreset => grid_preset_popup(ui, response, actions),
             Menu::Layout => layout_popup(ui, response, input, actions),
             Menu::Snapshot => {
                 match crate::ui::workspace::snapshot_menu::menu(ui, response, &input.snapshot) {
@@ -283,16 +286,22 @@ fn left_items(input: &ToolbarInput) -> Vec<Item> {
     items.push(Item::Separator);
 
     items.push(Item::Button(
-        Button::new("undo", format!("Undo ({})", shortcut::UNDO.label()))
-            .icon(Icon::Undo)
-            .enabled(input.can_undo)
-            .on_click(ToolbarAction::Undo),
+        Button::new(
+            "undo",
+            crate::ui::tr("Undo ({})", "Отменить ({})").replace("{}", &shortcut::UNDO.label()),
+        )
+        .icon(Icon::Undo)
+        .enabled(input.can_undo)
+        .on_click(ToolbarAction::Undo),
     ));
     items.push(Item::Button(
-        Button::new("redo", format!("Redo ({})", shortcut::REDO.label()))
-            .icon(Icon::Redo)
-            .enabled(input.can_redo)
-            .on_click(ToolbarAction::Redo),
+        Button::new(
+            "redo",
+            crate::ui::tr("Redo ({})", "Повторить ({})").replace("{}", &shortcut::REDO.label()),
+        )
+        .icon(Icon::Redo)
+        .enabled(input.can_redo)
+        .on_click(ToolbarAction::Redo),
     ));
     items
 }
@@ -316,6 +325,13 @@ fn right_items(input: &ToolbarInput) -> Vec<Item> {
     layout.menu = Some(Menu::Layout);
     layout.access = Some(format!("Layout: {help}"));
 
+    let mut grid_preset = Button::new(
+        "grid-preset",
+        crate::ui::tr("Select grid layout", "Выбрать сетку графиков"),
+    )
+    .icon(Icon::RectLeft);
+    grid_preset.menu = Some(Menu::GridPreset);
+
     let mut snapshot = Button::new("snapshot", crate::ui::tr("Take a snapshot", "Снимок экрана"))
         .icon(Icon::Camera)
         .enabled(input.chart.is_some())
@@ -333,6 +349,7 @@ fn right_items(input: &ToolbarInput) -> Vec<Item> {
         crate::ui::tr("Show Market Flow", "Рыночный поток")
     };
     vec![
+        Item::Button(grid_preset),
         Item::Button(layout),
         Item::Button(
             Button::new("chart-settings", crate::ui::tr("Chart settings", "Свойства графика"))
@@ -366,6 +383,51 @@ fn right_items(input: &ToolbarInput) -> Vec<Item> {
                 .on_click(ToolbarAction::ToggleWatchlist),
         ),
     ]
+}
+
+/// The menu for picking a multi-chart grid preset in the style of TradingView.
+fn grid_preset_popup(
+    ui: &mut Ui,
+    response: &Response,
+    actions: &mut Vec<ToolbarAction>,
+) {
+    let presets = [
+        (
+            crate::model::GridLayoutPreset::Single,
+            crate::ui::tr("1 chart", "1 график"),
+        ),
+        (
+            crate::model::GridLayoutPreset::TwoColumns,
+            crate::ui::tr("2 charts", "2 графика"),
+        ),
+        (
+            crate::model::GridLayoutPreset::ThreeLeftFocus,
+            crate::ui::tr("3 charts", "3 графика"),
+        ),
+        (
+            crate::model::GridLayoutPreset::FourGrid,
+            crate::ui::tr("4 charts", "4 графика"),
+        ),
+        (
+            crate::model::GridLayoutPreset::FiveSplit,
+            crate::ui::tr("5 charts", "5 графиков"),
+        ),
+    ];
+
+    let rows: Vec<(&str, Option<&str>)> = presets
+        .iter()
+        .map(|(_, label)| (*label, None))
+        .collect();
+
+    kit::fitted_menu_rows(ui, response, egui::RectAlign::BOTTOM_END, &rows, |ui| {
+        for (preset, label) in presets {
+            let icon = Icon::RectLeft;
+            if kit::menu_item(ui, icon, label, true, false) {
+                actions.push(ToolbarAction::ApplyGridPreset(preset));
+                ui.close();
+            }
+        }
+    });
 }
 
 /// The menu under the layout button: what can be done with the layout.
