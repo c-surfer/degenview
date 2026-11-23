@@ -137,9 +137,64 @@ jobs:
           name: macos-assets
           path: dist/*
 
+  macos-x64:
+    name: Build macOS (Intel x64)
+    runs-on: macos-15-intel
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Install dmgbuild
+        run: |
+          python3 -m venv "$RUNNER_TEMP/dmgvenv"
+          "$RUNNER_TEMP/dmgvenv/bin/pip" install --quiet --require-hashes -r tools/requirements/dmgbuild.txt
+          echo "$RUNNER_TEMP/dmgvenv/bin" >> "$GITHUB_PATH"
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+
+      - name: Build macOS binaries
+        run: |
+          cargo build --release --locked --bin degenview --bin degenview-alert-agent
+
+      - name: Package macOS App Bundle
+        env:
+          DEGENVIEW_SKIP_BUILD: "1"
+        run: |
+          ./tools/bundle.sh
+          codesign --force --deep --sign - target/DegenView.app
+
+      - name: Build macOS DMG and ZIP
+        run: |
+          mkdir -p dist
+          ./tools/make-dmg.sh target/DegenView.app "dist/DegenView-v0.6.0-rc.34-macos-x64.dmg"
+          ditto -c -k --sequesterRsrc --keepParent target/DegenView.app "dist/DegenView-v0.6.0-rc.34-macos-x64.zip"
+
+      - name: Upload macOS Intel Artifacts
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: macos-x64-assets
+          path: dist/*
+
+  flatpak:
+    name: Build Flatpak
+    permissions:
+      contents: read
+    uses: ./.github/workflows/flatpak.yml
+    with:
+      bundle-prefix: DegenView-v0.6.0-rc.34-linux
+      branch: beta
+      arm64: true
+
   publish:
     name: Publish GitHub Release
-    needs: [windows, linux, macos]
+    needs: [windows, linux, macos, macos-x64, flatpak]
     runs-on: ubuntu-latest
     permissions:
       contents: write
