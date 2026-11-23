@@ -52,14 +52,14 @@ impl TransactionColumn {
     /// Money columns name the reporting currency.
     pub fn title(self, currency_code: &str) -> String {
         match self {
-            Self::Date => "Date".to_owned(),
-            Self::Asset => "Asset".to_owned(),
-            Self::Type => "Type".to_owned(),
-            Self::Quantity => "Quantity".to_owned(),
-            Self::Price => format!("Price ({currency_code})"),
-            Self::Total => format!("Total ({currency_code})"),
-            Self::Fee => "Fee".to_owned(),
-            Self::Notes => "Notes".to_owned(),
+            Self::Date => crate::ui::tr("Date", "Дата").to_owned(),
+            Self::Asset => crate::ui::tr("Asset", "Актив").to_owned(),
+            Self::Type => crate::ui::tr("Type", "Тип").to_owned(),
+            Self::Quantity => crate::ui::tr("Quantity", "Количество").to_owned(),
+            Self::Price => format!("{} ({currency_code})", crate::ui::tr("Price", "Цена")),
+            Self::Total => format!("{} ({currency_code})", crate::ui::tr("Total", "Всего")),
+            Self::Fee => crate::ui::tr("Fee", "Комиссия").to_owned(),
+            Self::Notes => crate::ui::tr("Notes", "Заметки").to_owned(),
         }
     }
 
@@ -127,6 +127,22 @@ pub fn type_name(kind: PortfolioTransactionType) -> &'static str {
         Interest => "Interest",
         Fee => "Fee",
         Adjustment => "Adjustment",
+    }
+}
+
+pub fn type_display_name(kind: PortfolioTransactionType) -> &'static str {
+    use PortfolioTransactionType::*;
+    match kind {
+        Buy => crate::ui::tr("Buy", "Покупка"),
+        Sell => crate::ui::tr("Sell", "Продажа"),
+        TransferIn | TransferOut => crate::ui::tr("Transfer", "Перевод"),
+        Reward => crate::ui::tr("Reward", "Вознаграждение"),
+        StakingReward => crate::ui::tr("Staking Reward", "Стейкинг"),
+        Airdrop => crate::ui::tr("Airdrop", "Аирдроп"),
+        Mining => crate::ui::tr("Mining", "Майнинг"),
+        Interest => crate::ui::tr("Interest", "Проценты"),
+        Fee => crate::ui::tr("Fee", "Комиссия"),
+        Adjustment => crate::ui::tr("Adjustment", "Корректировка"),
     }
 }
 
@@ -398,8 +414,11 @@ pub fn show(
                 ui,
                 grid::body_rect(outer),
                 Icon::Magnifier,
-                "No Matching Transactions",
-                "Nothing matches the current search and filters.",
+                crate::ui::tr("No Matching Transactions", "Нет подходящих сделок"),
+                crate::ui::tr(
+                    "Nothing matches the current search and filters.",
+                    "Ничего не найдено по текущим фильтрам.",
+                ),
             );
             let button = Rect::from_center_size(
                 pos2(outer.center().x, grid::body_rect(outer).center().y + 62.0),
@@ -407,7 +426,12 @@ pub fn show(
             );
             if ui
                 .put(button, |ui: &mut egui::Ui| {
-                    kit::push_button(ui, None, "Clear Filters", true)
+                    kit::push_button(
+                        ui,
+                        None,
+                        crate::ui::tr("Clear Filters", "Очистить фильтры"),
+                        true,
+                    )
                 })
                 .clicked()
             {
@@ -418,8 +442,11 @@ pub fn show(
                 ui,
                 grid::body_rect(outer),
                 empty::Scene::Transactions,
-                "No Transactions",
-                "Add a transaction or import a CSV to get started.",
+                crate::ui::tr("No Transactions", "Нет сделок"),
+                crate::ui::tr(
+                    "Add a transaction or import a CSV to get started.",
+                    "Добавьте сделку или импортируйте CSV, чтобы начать.",
+                ),
             );
         }
     } else {
@@ -432,6 +459,12 @@ pub fn show(
             &mut actions,
         );
     }
+    let currency_code = input.formatter.currency.code();
+    let price_fee_footer = if crate::ui::is_ru() {
+        format!("Цены и комиссии в {currency_code}")
+    } else {
+        format!("Prices and fees in {currency_code}")
+    };
     grid::footer(
         ui,
         outer,
@@ -440,7 +473,7 @@ pub fn show(
             input.ledger.len(),
             ("transaction", "transactions"),
         ),
-        &format!("Prices and fees in {}", input.formatter.currency.code()),
+        &price_fee_footer,
     );
     if shown.len() > PAGE_SIZES[0] {
         pager(ui, state, outer, shown.len(), on_page);
@@ -562,13 +595,14 @@ fn toolbar(
             ui,
             search_id,
             &mut state.filters.search,
-            "Search asset, notes, or source",
+            crate::ui::tr("Search asset, notes, or source", "Поиск актива, заметок или биржи…"),
             246.0,
         );
 
-        let kind_label = state.filters.kind.map_or("All Types", type_name);
-        let kind_choices: Vec<&str> = std::iter::once("All Types")
-            .chain(ALL_TYPES.iter().map(|kind| type_name(*kind)))
+        let all_types = crate::ui::tr("All Types", "Все типы");
+        let kind_label = state.filters.kind.map_or(all_types, type_display_name);
+        let kind_choices: Vec<&str> = std::iter::once(all_types)
+            .chain(ALL_TYPES.iter().map(|kind| type_display_name(*kind)))
             .collect();
         grid::dropdown(
             ui,
@@ -578,7 +612,7 @@ fn toolbar(
             &kind_choices,
             |ui| {
                 let filters = &mut state.filters;
-                if kit::menu_item_marked(ui, Icon::Check, "All Types", filters.kind.is_none()) {
+                if kit::menu_item_marked(ui, Icon::Check, all_types, filters.kind.is_none()) {
                     filters.kind = None;
                     ui.close();
                 }
@@ -587,7 +621,7 @@ fn toolbar(
                     if kit::menu_item_marked(
                         ui,
                         Icon::Check,
-                        type_name(kind),
+                        type_display_name(kind),
                         filters.kind == Some(kind),
                     ) {
                         filters.kind = Some(kind);
@@ -598,13 +632,14 @@ fn toolbar(
         );
 
         let choices = asset_choices(input.ledger);
+        let all_assets = crate::ui::tr("All Assets", "Все активы");
         let asset_label = state
             .filters
             .asset_key
             .as_ref()
             .and_then(|key| choices.iter().find(|(candidate, _)| candidate == key))
-            .map_or("All Assets", |(_, ticker)| ticker.as_str());
-        let asset_names: Vec<&str> = std::iter::once("All Assets")
+            .map_or(all_assets, |(_, ticker)| ticker.as_str());
+        let asset_names: Vec<&str> = std::iter::once(all_assets)
             .chain(choices.iter().map(|(_, ticker)| ticker.as_str()))
             .collect();
         grid::dropdown(
@@ -615,7 +650,7 @@ fn toolbar(
             &asset_names,
             |ui| {
                 let filters = &mut state.filters;
-                if kit::menu_item_marked(ui, Icon::Check, "All Assets", filters.asset_key.is_none())
+                if kit::menu_item_marked(ui, Icon::Check, all_assets, filters.asset_key.is_none())
                 {
                     filters.asset_key = None;
                     ui.close();
@@ -634,12 +669,19 @@ fn toolbar(
                 }
             },
         );
-        if state.filters.is_active() && grid::link(ui, "Clear") {
+        if state.filters.is_active() && grid::link(ui, crate::ui::tr("Clear", "Очистить")) {
             state.filters.clear();
         }
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             ui.add_space(INSET);
-            if kit::push_button(ui, Some(Icon::Plus), "Add Transaction", true).clicked() {
+            if kit::push_button(
+                ui,
+                Some(Icon::Plus),
+                crate::ui::tr("Add Transaction", "Добавить сделку"),
+                true,
+            )
+            .clicked()
+            {
                 actions.push(TransactionAction::Add);
             }
         });
@@ -703,7 +745,7 @@ fn summary_band(ui: &mut egui::Ui, input: &TransactionsInput) {
         ui,
         inner.left_top(),
         Align2::LEFT_TOP,
-        "Transactions",
+        crate::ui::tr("Transactions", "Сделки"),
         kit::size::CAPTION,
         REGULAR,
         secondary,
@@ -751,7 +793,7 @@ fn summary_band(ui: &mut egui::Ui, input: &TransactionsInput) {
         ui,
         area.left_top(),
         Align2::LEFT_TOP,
-        "By Type",
+        crate::ui::tr("By Type", "По типам"),
         kit::size::CAPTION,
         REGULAR,
         secondary,
@@ -761,9 +803,9 @@ fn summary_band(ui: &mut egui::Ui, input: &TransactionsInput) {
         area.right_top(),
         Align2::RIGHT_TOP,
         &if summary.fees > 0.0 {
-            format!("Fees paid \u{00B7} {}", f.money(summary.fees))
+            format!("{} \u{00B7} {}", crate::ui::tr("Fees paid", "Уплачено комиссий"), f.money(summary.fees))
         } else {
-            "No fees paid".to_owned()
+            crate::ui::tr("No fees paid", "Без комиссий").to_owned()
         },
         kit::size::CAPTION,
         REGULAR,
@@ -790,15 +832,22 @@ pub(crate) fn type_mix(
     let mut start = 0.0_f32;
     for (index, (kind, count)) in by_kind.iter().enumerate() {
         let from = bar.left() + bar.width() * start;
-        start += *count as f32 / total as f32;
+        let share = *count as f32 / total as f32;
+        start += share;
         let to = bar.left() + bar.width() * start;
         let gap = if index + 1 < by_kind.len() { 2.0 } else { 0.0 };
         let width = (to - from - gap).max(2.0);
+        let segment = Rect::from_min_size(
+            pos2(from, bar.top()),
+            vec2(width, bar.height()),
+        );
         ui.painter().rect_filled(
-            Rect::from_min_size(pos2(from, bar.top()), vec2(width, bar.height())),
+            segment,
             (width / 2.0).min(6.0),
             type_tint(*kind),
         );
+        ui.interact(segment, egui::Id::new(("portfolio-type-mix-bar", index)), Sense::hover())
+            .on_hover_text(format!("{}: {count} ({:.1}%)", type_display_name(*kind), share * 100.0));
     }
 
     let middle = area.top() + 56.0;
@@ -806,7 +855,7 @@ pub(crate) fn type_mix(
     for (kind, count) in by_kind {
         let galley = kit::galley(
             ui,
-            &format!("{} {count}", type_name(*kind)),
+            &format!("{} {count}", type_display_name(*kind)),
             kit::size::CAPTION,
             REGULAR,
             secondary,
@@ -1086,7 +1135,7 @@ fn transaction_row(
     );
 
     // Type: a tinted capsule; hovering says where the transaction came from.
-    let capsule = paint_type_capsule(ui, cells[2], tx.kind, item.type_name());
+    let capsule = paint_type_capsule(ui, cells[2], tx.kind, type_display_name(tx.kind));
     ui.interact(
         capsule,
         egui::Id::new(("portfolio-transaction-type", tx.id)),
@@ -1178,18 +1227,28 @@ fn transaction_row(
 }
 
 fn row_menu(ui: &mut egui::Ui, id: u64, actions: &mut Vec<TransactionAction>) {
-    grid::fit_menu(ui, &["Edit", "Duplicate", "Delete"]);
+    let edit_text = crate::ui::tr("Edit", "Редактировать");
+    let duplicate_text = crate::ui::tr("Duplicate", "Дублировать");
+    let delete_text = crate::ui::tr("Delete", "Удалить");
+    grid::fit_menu(
+        ui,
+        &[
+            edit_text.as_ref(),
+            duplicate_text.as_ref(),
+            delete_text.as_ref(),
+        ],
+    );
     ui.spacing_mut().item_spacing.y = 0.0;
-    if kit::menu_item(ui, Icon::Pencil, "Edit", true, false) {
+    if kit::menu_item(ui, Icon::Pencil, edit_text, true, false) {
         actions.push(TransactionAction::Edit(id));
         ui.close();
     }
-    if kit::menu_item(ui, Icon::CopyDoc, "Duplicate", true, false) {
+    if kit::menu_item(ui, Icon::CopyDoc, duplicate_text, true, false) {
         actions.push(TransactionAction::Duplicate(id));
         ui.close();
     }
     kit::menu_separator(ui);
-    if kit::menu_item(ui, Icon::Trash, "Delete", true, true) {
+    if kit::menu_item(ui, Icon::Trash, delete_text, true, true) {
         actions.push(TransactionAction::Delete(id));
         ui.close();
     }

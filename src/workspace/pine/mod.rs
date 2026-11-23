@@ -102,7 +102,7 @@ impl ChartWorkspace {
                 .map(|instance| PineInstanceView {
                     chart_id,
                     instrument: instrument.clone(),
-                    timeframe: self.timeframe,
+                    timeframe: chart.timeframe,
                     instance: instance.clone(),
                     run: chart
                         .chart
@@ -361,7 +361,7 @@ impl ChartWorkspace {
         Some(PineChartTarget {
             chart_id: chart.id,
             instrument: InstrumentId::new(chart.source, &chart.symbol),
-            timeframe: self.timeframe,
+            timeframe: chart.timeframe,
             instances: chart.chart.pine_instances().to_vec(),
         })
     }
@@ -376,7 +376,7 @@ impl ChartWorkspace {
                 (
                     chart.id,
                     InstrumentId::new(chart.source, &chart.symbol).key(),
-                    self.timeframe.interval().to_owned(),
+                    chart.timeframe.interval().to_owned(),
                 )
             })
             .collect()
@@ -400,7 +400,7 @@ impl ChartWorkspace {
                 ChartFeed {
                     chart_id: chart.id,
                     symbol_key: InstrumentId::new(chart.source, &chart.symbol).key(),
-                    timeframe: self.timeframe.interval().to_owned(),
+                    timeframe: chart.timeframe.interval().to_owned(),
                     bars,
                     run,
                     instances: chart.chart.pine_instances().to_vec(),

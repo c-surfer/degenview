@@ -237,14 +237,19 @@ fn empty_state(
     actions: &mut Vec<WatchlistAction>,
 ) {
     if state.filter.is_active() {
+        let nothing_matches = if crate::ui::is_ru() {
+            format!("В списке «{}» нет подходящих инструментов.", crate::ui::t(&list.name))
+        } else {
+            format!("Nothing in {} matches this filter.", list.name)
+        };
         centered_message(
             ui,
             Icon::Magnifier,
-            "No Matches",
-            &format!("Nothing in {} matches this filter.", list.name),
+            crate::ui::tr("No Matches", "Нет совпадений"),
+            &nothing_matches,
         );
         ui.vertical_centered(|ui| {
-            if ui.button("Clear Filter").clicked() {
+            if ui.button(crate::ui::tr("Clear Filter", "Очистить фильтр")).clicked() {
                 state.clear_filter();
             }
         });
@@ -252,11 +257,15 @@ fn empty_state(
         centered_message(
             ui,
             Icon::Star,
-            "No Symbols",
-            "Add a stock, crypto, or prediction-market item to follow it here.",
+            crate::ui::tr("No Symbols", "Нет символов"),
+            crate::ui::tr(
+                "Add a stock, crypto, or prediction-market item to follow it here.",
+                "Добавьте акции, криптовалюту или инструмент, чтобы отслеживать его здесь.",
+            )
+            .as_ref(),
         );
         ui.vertical_centered(|ui| {
-            if ui.button("Add Symbol").clicked() {
+            if ui.button(crate::ui::tr("Add Symbol", "Добавить символ")).clicked() {
                 actions.push(WatchlistAction::AddSymbol {
                     list: Some(list.id),
                 });

@@ -64,11 +64,11 @@ pub fn width(ui: &Ui) -> f32 {
     };
     let rows = CursorMode::ALL
         .iter()
-        .map(|mode| text(mode.label()))
+        .map(|mode| text(crate::ui::t(mode.label())))
         .fold(0.0, f32::max)
         + LABEL_X
         + STAR_ROOM;
-    let toggle = text(TOGGLE_LABEL) + TOGGLE_X + SWITCH_GAP + SWITCH.x + END_PAD / 2.0;
+    let toggle = text(crate::ui::t(TOGGLE_LABEL)) + TOGGLE_X + SWITCH_GAP + SWITCH.x + END_PAD / 2.0;
     (rows.max(toggle) + kit::MENU_FRAME_MARGIN).ceil()
 }
 
@@ -126,14 +126,14 @@ fn row(
     let response = accessibility::selected_as(
         response,
         egui::WidgetType::RadioButton,
-        mode.label(),
+        crate::ui::t(mode.label()),
         selected,
     );
     let star = star_button(
         ui,
         rect,
         Id::new(("cursor-menu-star", mode.label())),
-        mode.label(),
+        crate::ui::t(mode.label()),
         favorite,
     );
     let (fill, ink) = if selected {
@@ -157,7 +157,7 @@ fn row(
     );
     let galley = kit::galley(
         ui,
-        mode.label(),
+        crate::ui::t(mode.label()),
         kit::size::BODY,
         kit::REGULAR,
         ink,
@@ -181,14 +181,14 @@ fn toggle_row(ui: &mut Ui, on: bool) -> egui::Response {
     let (rect, response) =
         ui.allocate_exact_size(vec2(ui.available_width(), ROW_HEIGHT), Sense::click());
     let response =
-        accessibility::selected_as(response, egui::WidgetType::Checkbox, TOGGLE_LABEL, on);
+        accessibility::selected_as(response, egui::WidgetType::Checkbox, crate::ui::t(TOGGLE_LABEL), on);
     if response.hovered() || response.has_focus() {
         ui.painter()
             .rect_filled(rect, 6.0, theme::selected_tint(true));
     }
     let galley = kit::galley(
         ui,
-        TOGGLE_LABEL,
+        crate::ui::t(TOGGLE_LABEL),
         kit::size::BODY,
         kit::REGULAR,
         theme::text_primary(),

@@ -20,6 +20,7 @@ use crate::ui::{
     kit::{self, sheet},
     settings::card,
     theme,
+    tr,
 };
 use eframe::egui::{
     self, Color32, CornerRadius, Id, Key, Rect, Sense, Stroke, StrokeKind, Ui, Vec2, pos2, vec2,
@@ -116,15 +117,19 @@ struct Tile<'a> {
 fn tiles(view: &View) -> Vec<Tile<'_>> {
     let mut tiles = vec![Tile {
         selection: ThemeSelection::Auto,
-        name: crate::model::editor_theme::AUTOMATIC_NAME.to_owned(),
-        caption: "Follows the app".to_owned(),
+        name: tr(crate::model::editor_theme::AUTOMATIC_NAME, "По умолчанию").to_owned(),
+        caption: tr("Follows the app", "Как в приложении").to_owned(),
         palettes: vec![BuiltInTheme::Dark.palette(), BuiltInTheme::Light.palette()],
         custom: None,
     }];
     tiles.extend(BuiltInTheme::ALL.iter().map(|built_in| Tile {
         selection: ThemeSelection::BuiltIn(*built_in),
-        name: built_in.name().to_owned(),
-        caption: "Built-in".to_owned(),
+        name: match built_in {
+            BuiltInTheme::Dark => tr("Dark", "Тёмная").to_owned(),
+            BuiltInTheme::Light => tr("Light", "Светлая").to_owned(),
+            BuiltInTheme::Dracula => tr("Dracula", "Дракула").to_owned(),
+        },
+        caption: tr("Built-in", "Встроенная").to_owned(),
         palettes: vec![built_in.palette()],
         custom: None,
     }));
@@ -132,9 +137,13 @@ fn tiles(view: &View) -> Vec<Tile<'_>> {
         selection: ThemeSelection::Custom(custom.theme.id),
         name: custom.theme.name.clone(),
         caption: match custom.theme.override_count() {
-            0 => "Custom".to_owned(),
-            1 => "Custom · 1 change".to_owned(),
-            count => format!("Custom · {count} changes"),
+            0 => tr("Custom", "Пользовательская").to_owned(),
+            1 => tr("Custom · 1 change", "Пользовательская · 1 изменение").to_owned(),
+            count => if crate::ui::i18n::is_ru() {
+                format!("Пользовательская · {count} изм.")
+            } else {
+                format!("Custom · {count} changes")
+            },
         },
         palettes: vec![custom.theme.palette()],
         custom: Some(custom),
@@ -212,14 +221,17 @@ fn overview(ui: &mut Ui, state: &mut PineStudioState, host: &EditorThemeHost, vi
     }
     section(
         ui,
-        "Editor Theme",
-        Some("The colors of the code, the gutter and the editor around them."),
+        tr("Editor Theme", "Тема редактора"),
+        Some(tr(
+            "The colors of the code, the gutter and the editor around them.",
+            "Цвета кода, номеров строк и оформления редактора.",
+        )),
         |ui| {
             theme_tiles(ui, state, host, view);
             ui.add_space(12.0);
             ui.horizontal(|ui| {
                 ui.spacing_mut().item_spacing.x = 8.0;
-                if kit::push_button(ui, Some(Icon::Plus), "Create Theme", true).clicked() {
+                if kit::push_button(ui, Some(Icon::Plus), tr("Create Theme", "Создать тему"), true).clicked() {
                     state.dialog = Some(Dialog::Create {
                         name: String::new(),
                         source: 0,
@@ -229,7 +241,7 @@ fn overview(ui: &mut Ui, state: &mut PineStudioState, host: &EditorThemeHost, vi
                 }
                 if crate::platform::has_file_dialogs() {
                     let idle = state.flow.is_none();
-                    if kit::push_button(ui, Some(Icon::Download), "Import…", idle).clicked() {
+                    if kit::push_button(ui, Some(Icon::Download), tr("Import…", "Импорт…"), idle).clicked() {
                         state.flow = Some(Flow::Import(host.choose_file()));
                     }
                 }
@@ -240,23 +252,25 @@ fn overview(ui: &mut Ui, state: &mut PineStudioState, host: &EditorThemeHost, vi
             }
         },
     );
-    section(ui, "Typography", None, |ui| {
+    section(ui, tr("Typography", "Типографика"), None, |ui| {
         typography(ui, state, host, view);
     });
     section(
         ui,
-        "Theme Customization",
-        Some(
+        tr("Theme Customization", "Настройка темы"),
+        Some(tr(
             "Change syntax colors, editor backgrounds, selection colors and the other colors the editor paints.",
-        ),
+            "Настройка подсветки синтаксиса, фона редактора, цветов выделения и других элементов.",
+        )),
         |ui| customization(ui, state, host, view),
     );
     section(
         ui,
-        "Live Preview",
-        Some(
+        tr("Live Preview", "Предпросмотр"),
+        Some(tr(
             "This is the editor itself. Click in it, select text or press ⌘F to see more of the theme.",
-        ),
+            "Окно редактора. Кликните внутри, выделите текст или нажмите Ctrl+F для просмотра темы.",
+        )),
         |ui| {
             let width = ui.available_width();
             let frame = egui::Frame::new()
@@ -830,24 +844,43 @@ pub(in crate::ui) fn typography_controls(
     ui.spacing_mut().item_spacing.y = 8.0;
     let hint = match shown.status {
         FontStatus::Missing(name) => {
-            format!("“{name}” is not installed on this Mac, so the default is used until it is.")
+            if crate::ui::i18n::is_ru() {
+                format!("Шрифт «{name}» не установлен в системе, используется стандартный.")
+            } else {
+                format!("“{name}” is not installed on this computer, so the default is used until it is.")
+            }
         }
-        FontStatus::Failed(name, why) => format!("“{name}” could not be loaded: {why}"),
-        FontStatus::Loading(name) => format!("Loading “{name}”…"),
-        _ => "Built in: JetBrains Mono. Or any monospaced font installed on this Mac.".to_owned(),
+        FontStatus::Failed(name, why) => {
+            if crate::ui::i18n::is_ru() {
+                format!("Не удалось загрузить «{name}»: {why}")
+            } else {
+                format!("“{name}” could not be loaded: {why}")
+            }
+        }
+        FontStatus::Loading(name) => {
+            if crate::ui::i18n::is_ru() {
+                format!("Загрузка «{name}»…")
+            } else {
+                format!("Loading “{name}”…")
+            }
+        }
+        _ => tr(
+            "Built in: JetBrains Mono. Or any monospaced font installed on this computer.",
+            "Встроенный: JetBrains Mono. Или любой моноширинный шрифт системы.",
+        ).to_owned(),
     };
     // A control and, beside it while a theme sets the value, its reset: room for both.
     card::card_reserving(
         ui,
         Icon::TextFormat,
-        "Font",
+        tr("Font", "Шрифт"),
         Some(&hint),
         font_picker::BUTTON_WIDTH + RESET_ROOM,
         |ui| {
             reset_button(
                 ui,
                 shown.resettable[0],
-                "Use the editor's own font",
+                tr("Use the editor's own font", "Шрифт редактора по умолчанию"),
                 &mut change.reset[0],
             );
             change.family = font_picker::show(
@@ -862,17 +895,22 @@ pub(in crate::ui) fn typography_controls(
             );
         },
     );
+    let size_hint = if crate::ui::i18n::is_ru() {
+        format!("От {MIN_FONT_SIZE} до {MAX_FONT_SIZE} пт.")
+    } else {
+        format!("{MIN_FONT_SIZE} to {MAX_FONT_SIZE} points.")
+    };
     card::card_reserving(
         ui,
         Icon::Sliders,
-        "Font size",
-        Some(&format!("{MIN_FONT_SIZE} to {MAX_FONT_SIZE} points.")),
+        tr("Font size", "Размер шрифта"),
+        Some(&size_hint),
         SIZE_WIDTH + RESET_ROOM,
         |ui| {
             reset_button(
                 ui,
                 shown.resettable[1],
-                "Use the editor's own size",
+                tr("Use the editor's own size", "Размер редактора по умолчанию"),
                 &mut change.reset[1],
             );
             change.size = size_field(ui, controls, salt, shown.size);
@@ -881,19 +919,24 @@ pub(in crate::ui) fn typography_controls(
     card::card_reserving(
         ui,
         Icon::List,
-        "Line height",
-        Some("The space each line of code gets."),
+        tr("Line height", "Высота строки"),
+        Some(tr("The space each line of code gets.", "Межстрочный интервал в коде.")),
         LINE_HEIGHT_WIDTH + RESET_ROOM,
         |ui| {
             reset_button(
                 ui,
                 shown.resettable[2],
-                "Use the editor's own line height",
+                tr("Use the editor's own line height", "Высота строки по умолчанию"),
                 &mut change.reset[2],
             );
             let labels: Vec<String> = LineHeight::ALL
                 .iter()
-                .map(|height| height.label().to_owned())
+                .map(|height| match height {
+                    LineHeight::Compact => tr("Compact", "Компактная").to_owned(),
+                    LineHeight::Default => tr("Default", "По умолчанию").to_owned(),
+                    LineHeight::Relaxed => tr("Relaxed", "Свободная").to_owned(),
+                    LineHeight::Loose => tr("Loose", "Просторная").to_owned(),
+                })
                 .collect();
             let current = LineHeight::ALL
                 .iter()
@@ -1038,15 +1081,15 @@ fn customization(ui: &mut Ui, state: &mut PineStudioState, host: &EditorThemeHos
     let custom = matches!(view.selected, ThemeSelection::Custom(_));
     let (title, hint, button) = if custom {
         (
-            "Edit this theme",
-            "Change any color it paints, with the editor beside you.",
-            "Edit Current Theme",
+            tr("Edit this theme", "Редактировать тему"),
+            tr("Change any color it paints, with the editor beside you.", "Изменение любых цветов с мгновенным предпросмотром в редакторе."),
+            tr("Edit Current Theme", "Редактировать тему"),
         )
     } else {
         (
-            "Make your own",
-            "Built-in themes can't be changed. Duplicate & Customize makes a copy that is yours to edit.",
-            "Duplicate & Customize",
+            tr("Make your own", "Создать свою тему"),
+            tr("Built-in themes can't be changed. Duplicate & Customize makes a copy that is yours to edit.", "Встроенные темы нельзя менять. Кнопка «Дублировать и настроить» создаст копию для редактирования."),
+            tr("Duplicate & Customize", "Дублировать и настроить"),
         )
     };
     card::card_reserving(ui, Icon::Palette, title, Some(hint), 190.0, |ui| {

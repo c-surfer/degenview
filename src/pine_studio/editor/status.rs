@@ -24,22 +24,50 @@ pub fn status_chip(status: CompileStatus, diagnostics: &[Diagnostic]) -> (Icon, 
         CompileStatus::NotCompiled => (
             Icon::CircleDashed,
             theme::text_secondary(),
-            "Not compiled".to_owned(),
+            crate::ui::tr("Not compiled", "Не скомпилировано").to_owned(),
         ),
         CompileStatus::Valid => (
             Icon::CheckCircleFill,
             Color32::from_rgb(0x30, 0xD1, 0x58),
-            "No problems".to_owned(),
+            crate::ui::tr("No problems", "Нет проблем").to_owned(),
         ),
         CompileStatus::Warning => (
             Icon::TriangleFill,
             theme::YELLOW,
-            plural(warnings.max(1), "warning"),
+            if crate::ui::is_ru() {
+                let n = warnings.max(1);
+                let rem10 = n % 10;
+                let rem100 = n % 100;
+                let word = if rem10 == 1 && rem100 != 11 {
+                    "предупреждение"
+                } else if rem10 >= 2 && rem10 <= 4 && !(rem100 >= 12 && rem100 <= 14) {
+                    "предупреждения"
+                } else {
+                    "предупреждений"
+                };
+                format!("{n} {word}")
+            } else {
+                plural(warnings.max(1), "warning")
+            },
         ),
         CompileStatus::Error => (
             Icon::XmarkOctagonFill,
             theme::syntax::string(),
-            plural(errors.max(1), "error"),
+            if crate::ui::is_ru() {
+                let n = errors.max(1);
+                let rem10 = n % 10;
+                let rem100 = n % 100;
+                let word = if rem10 == 1 && rem100 != 11 {
+                    "ошибка"
+                } else if rem10 >= 2 && rem10 <= 4 && !(rem100 >= 12 && rem100 <= 14) {
+                    "ошибки"
+                } else {
+                    "ошибок"
+                };
+                format!("{n} {word}")
+            } else {
+                plural(errors.max(1), "error")
+            },
         ),
     }
 }
@@ -78,8 +106,8 @@ impl ProblemsChip {
         let (icon, color, text) =
             status_chip_with_runtime(state.status, &state.diagnostics, &state.runtime_problems);
         let hover = match state.runtime_problems.first() {
-            Some(failure) => format!("The script failed when it ran: {}", failure.message),
-            None => "Compile status of the code in the editor".to_owned(),
+            Some(failure) => format!("{}: {}", crate::ui::tr("The script failed when it ran", "Ошибка при выполнении скрипта"), failure.message),
+            None => crate::ui::tr("Compile status of the code in the editor", "Статус компиляции кода в редакторе").to_owned(),
         };
         Self {
             icon,
@@ -133,14 +161,22 @@ pub(super) fn status_bar(ui: &mut Ui, bar: Rect, state: &EditorState, changes: &
                     .size(10.0)
                     .color(theme::editor_diff_added()),
             )
-            .on_hover_text(format!("{added} lines added since the last save"));
+            .on_hover_text(if crate::ui::is_ru() {
+                format!("{added} строк добавлено с момента сохранения")
+            } else {
+                format!("{added} lines added since the last save")
+            });
         inner
             .label(
                 RichText::new(format!("−{removed}"))
                     .size(10.0)
                     .color(theme::editor_diff_deleted()),
             )
-            .on_hover_text(format!("{removed} lines removed since the last save"));
+            .on_hover_text(if crate::ui::is_ru() {
+                format!("{removed} строк удалено с момента сохранения")
+            } else {
+                format!("{removed} lines removed since the last save")
+            });
     }
     if let Some((text, at)) = state.notice.as_ref()
         && let Some(left) =

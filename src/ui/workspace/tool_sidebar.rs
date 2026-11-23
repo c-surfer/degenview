@@ -206,12 +206,12 @@ impl Menu {
 
     fn corner_label(self) -> &'static str {
         match self {
-            Self::Lines => "More lines, channels and pitchforks",
-            Self::Fib => "More Fibonacci and Gann tools",
-            Self::Patterns => "More chart patterns, Elliott waves and cycles",
-            Self::Forecast => "More forecasting, volume and measurement tools",
-            Self::Shapes => "More brushes, arrows and shapes",
-            Self::Notes => "More text and notes",
+            Self::Lines => crate::ui::t("More lines, channels and pitchforks"),
+            Self::Fib => crate::ui::t("More Fibonacci and Gann tools"),
+            Self::Patterns => crate::ui::t("More chart patterns, Elliott waves and cycles"),
+            Self::Forecast => crate::ui::t("More forecasting, volume and measurement tools"),
+            Self::Shapes => crate::ui::t("More brushes, arrows and shapes"),
+            Self::Notes => crate::ui::t("More text and notes"),
         }
     }
 }
@@ -337,6 +337,7 @@ pub fn show(ui: &mut Ui, input: &ToolSidebarInput) -> Vec<ToolSidebarAction> {
         match slot {
             Slot::Cursor => cursor_tile(ui, rect, input, strip.right(), &mut actions),
             Slot::Tool(tool, icon, label) => {
+                let label = crate::ui::t(label);
                 let tile = Tile {
                     icon,
                     label,
@@ -351,7 +352,7 @@ pub fn show(ui: &mut Ui, input: &ToolSidebarInput) -> Vec<ToolSidebarAction> {
                     tint: None,
                     enabled: true,
                     badge: 0,
-                    key: "",
+                    key: "ruler",
                     notch: false,
                     mark: None,
                 };
@@ -388,14 +389,20 @@ pub fn show(ui: &mut Ui, input: &ToolSidebarInput) -> Vec<ToolSidebarAction> {
         Active::Off
     };
     if rect.bottom() <= limit
-        && tile_button(ui, rect, &zoom(Icon::ZoomIn, "Zoom in", lit), strip.right()).clicked()
+        && tile_button(
+            ui,
+            rect,
+            &zoom(Icon::ZoomIn, crate::ui::t("Zoom in"), lit),
+            strip.right(),
+        )
+        .clicked()
     {
         actions.push(ToolSidebarAction::ToggleZoomIn);
     }
     y += BUTTON + SPACING;
     if input.can_zoom_out && y + BUTTON <= limit {
         let rect = Rect::from_min_size(pos2(x, y), Vec2::splat(BUTTON));
-        let tile = zoom(Icon::ZoomOut, "Zoom out", Active::Off);
+        let tile = zoom(Icon::ZoomOut, crate::ui::t("Zoom out"), Active::Off);
         if tile_button(ui, rect, &tile, strip.right()).clicked() {
             actions.push(ToolSidebarAction::ZoomOut);
         }
@@ -432,8 +439,8 @@ pub fn show(ui: &mut Ui, input: &ToolSidebarInput) -> Vec<ToolSidebarAction> {
         (
             toggle(
                 Icon::Magnet,
-                "Magnet",
-                input.magnet.label(),
+                crate::ui::t("Magnet"),
+                crate::ui::t(input.magnet.label()),
                 "magnet",
                 input.magnet != MagnetMode::Off,
                 true,
@@ -448,11 +455,11 @@ pub fn show(ui: &mut Ui, input: &ToolSidebarInput) -> Vec<ToolSidebarAction> {
         (
             toggle(
                 Icon::KeepDrawing,
-                "Keep drawing",
+                crate::ui::t("Keep drawing"),
                 if input.keep_drawing {
-                    "Keep drawing: on (stay on the tool)"
+                    crate::ui::t("Keep drawing: on (stay on the tool)")
                 } else {
-                    "Keep drawing: off (back to the crosshair)"
+                    crate::ui::t("Keep drawing: off (back to the crosshair)")
                 },
                 "keep",
                 input.keep_drawing,
@@ -468,11 +475,11 @@ pub fn show(ui: &mut Ui, input: &ToolSidebarInput) -> Vec<ToolSidebarAction> {
                 } else {
                     Icon::LockOpen
                 },
-                "Lock all drawings",
+                crate::ui::t("Lock all drawings"),
                 if input.all_locked {
-                    "Unlock all drawings"
+                    crate::ui::t("Unlock all drawings")
                 } else {
-                    "Lock all drawings"
+                    crate::ui::t("Lock all drawings")
                 },
                 "lock",
                 input.all_locked,
@@ -488,11 +495,11 @@ pub fn show(ui: &mut Ui, input: &ToolSidebarInput) -> Vec<ToolSidebarAction> {
                 } else {
                     Icon::Eye
                 },
-                "Hide all drawings",
+                crate::ui::t("Hide all drawings"),
                 if input.hide_all {
-                    "Show all drawings"
+                    crate::ui::t("Show all drawings")
                 } else {
-                    "Hide all drawings"
+                    crate::ui::t("Hide all drawings")
                 },
                 "hide",
                 input.hide_all,
@@ -533,9 +540,13 @@ pub fn show(ui: &mut Ui, input: &ToolSidebarInput) -> Vec<ToolSidebarAction> {
     let mut y = strip.bottom() - 10.0 - BUTTON;
     let bell = Rect::from_min_size(pos2(x, y), Vec2::splat(BUTTON));
     let bell_label = if input.unseen_alerts > 0 {
-        format!("View Price Alerts, {} new", input.unseen_alerts)
+        if crate::ui::is_ru() {
+            format!("Оповещения цены, {} новых", input.unseen_alerts)
+        } else {
+            format!("View Price Alerts, {} new", input.unseen_alerts)
+        }
     } else {
-        "View Price Alerts".to_owned()
+        crate::ui::t("View Price Alerts").to_owned()
     };
     if tile_button(
         ui,
@@ -543,12 +554,12 @@ pub fn show(ui: &mut Ui, input: &ToolSidebarInput) -> Vec<ToolSidebarAction> {
         &Tile {
             icon: Icon::Bell,
             label: &bell_label,
-            tooltip: "View Price Alerts",
+            tooltip: crate::ui::t("View Price Alerts"),
             active: Active::Off,
             tint: None,
             enabled: true,
             badge: input.unseen_alerts,
-            key: "",
+            key: "alerts",
             notch: false,
             mark: None,
         },
@@ -575,14 +586,14 @@ pub fn show(ui: &mut Ui, input: &ToolSidebarInput) -> Vec<ToolSidebarAction> {
         &Tile {
             icon: Icon::ArrowLeftRight,
             label: if input.paper_open {
-                "Hide Paper Trading panel"
+                crate::ui::t("Hide Paper Trading panel")
             } else {
-                "Show Paper Trading panel"
+                crate::ui::t("Show Paper Trading panel")
             },
             tooltip: if input.paper_open {
-                "Hide Paper Trading"
+                crate::ui::t("Hide Paper Trading")
             } else {
-                "Paper Trading"
+                crate::ui::t("Paper Trading")
             },
             active: if input.paper_open {
                 Active::Tinted
@@ -592,7 +603,7 @@ pub fn show(ui: &mut Ui, input: &ToolSidebarInput) -> Vec<ToolSidebarAction> {
             tint: None,
             enabled: true,
             badge: 0,
-            key: "",
+            key: "paper",
             notch: false,
             mark: None,
         },
@@ -666,8 +677,8 @@ fn cursor_tile(
 ) {
     let tile = Tile {
         icon: cursor_menu::icon(input.cursor),
-        label: "Cursors",
-        tooltip: "Cursors",
+        label: crate::ui::t("Cursors"),
+        tooltip: crate::ui::t("Cursors"),
         active: Active::Off,
         tint: None,
         enabled: true,
@@ -713,7 +724,7 @@ fn menu_tile(
     menu: Menu,
 ) {
     let tool = menu.tool(input);
-    let label = tool.label();
+    let label = crate::ui::t(tool.label());
     let tile = Tile {
         icon: tool_icon(tool),
         label,
@@ -785,7 +796,7 @@ fn tool_menu(
                 }
                 first = false;
                 ui.add_space(4.0);
-                let heading = group.title().to_uppercase();
+                let heading = crate::ui::t(group.title()).to_uppercase();
                 ui.label(kit::text(
                     heading,
                     kit::size::CAPTION,
@@ -838,13 +849,13 @@ fn menu_row(
 ) -> (egui::Response, egui::Response) {
     let width = ui.available_width();
     let (rect, response) = ui.allocate_exact_size(vec2(width, ROW_HEIGHT), Sense::click());
-    let response = crate::ui::accessibility::label(response, tool.label());
+    let response = crate::ui::accessibility::label(response, crate::ui::t(tool.label()));
     // Made after the row, so it is the one the pointer lands on where the two overlap.
     let star = star_button(
         ui,
         rect,
         Id::new(("tool-sidebar-star", tool)),
-        tool.label(),
+        crate::ui::t(tool.label()),
         favorite,
     );
     let highlighted = response.hovered() || star.hovered() || response.has_focus();
@@ -864,7 +875,7 @@ fn menu_row(
     let hint_width = if hint.is_some() { 56.0 } else { 0.0 };
     let galley = kit::galley(
         ui,
-        tool.label(),
+        crate::ui::t(tool.label()),
         kit::size::BODY,
         kit::REGULAR,
         color,
@@ -931,9 +942,9 @@ pub(super) fn star_button(
         .interact(star_rect, id, Sense::click())
         .on_hover_cursor(egui::CursorIcon::PointingHand)
         .on_hover_text(if favorite {
-            "Remove from favorites"
+            crate::ui::t("Remove from favorites")
         } else {
-            "Add to favorites"
+            crate::ui::t("Add to favorites")
         });
     crate::ui::accessibility::selected_as(
         star,

@@ -781,6 +781,7 @@ fn the_live_pills_can_be_pressed_and_the_star_stays_at_the_right_edge() {
                             &[],
                             &mut action,
                             1,
+                            false,
                         );
                     });
             });

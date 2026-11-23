@@ -3,71 +3,71 @@
 //! `ui::shortcut`.
 
 /// "in your Keychain" / "in secure storage".
-pub const fn in_secret_store() -> &'static str {
+pub fn in_secret_store() -> &'static str {
     if cfg!(target_os = "macos") {
-        "in your Keychain"
+        crate::ui::tr("in your Keychain", "в Связке ключей Mac")
     } else if cfg!(windows) {
-        "in Windows Credential Manager"
+        crate::ui::tr("in Windows Credential Manager", "в Диспетчере учетных данных Windows")
     } else {
-        "in secure storage"
+        crate::ui::tr("in secure storage", "в защищённом хранилище")
     }
 }
 
 /// "Saved securely in Keychain." in green beside a credentials form.
-pub const fn saved_securely() -> &'static str {
+pub fn saved_securely() -> &'static str {
     if cfg!(target_os = "macos") {
-        "Saved securely in Keychain."
+        crate::ui::tr("Saved securely in Keychain.", "Надёжно сохранено в Связке ключей Mac.")
     } else if cfg!(windows) {
-        "Saved securely in Windows Credential Manager."
+        crate::ui::tr("Saved securely in Windows Credential Manager.", "Надёжно сохранено в Диспетчере Windows.")
     } else {
-        "Saved securely in secure storage."
+        crate::ui::tr("Saved securely in secure storage.", "Надёжно сохранено в защищённом хранилище.")
     }
 }
 
 /// The hint under a credential field that holds nothing yet.
-pub const fn credential_stored_hint() -> &'static str {
+pub fn credential_stored_hint() -> &'static str {
     if cfg!(target_os = "macos") {
-        "Stored in your Mac's Keychain, never in a file."
+        crate::ui::tr("Stored in your Mac's Keychain, never in a file.", "Хранится в Связке ключей Mac, никогда в файле.")
     } else if cfg!(windows) {
-        "Stored in Windows Credential Manager, never in a file."
+        crate::ui::tr("Stored in Windows Credential Manager, never in a file.", "Хранится в Диспетчере Windows, никогда в файле.")
     } else {
-        "Stored in this computer's secure storage, never in a file."
+        crate::ui::tr("Stored in this computer's secure storage, never in a file.", "Хранится в защищённом хранилище системы, никогда в файле.")
     }
 }
 
 /// Where a saved key stays, as a sentence: "The key stays in this Mac's Keychain."
-pub const fn key_stays_stored() -> &'static str {
+pub fn key_stays_stored() -> &'static str {
     if cfg!(target_os = "macos") {
-        "The key stays in this Mac's Keychain."
+        crate::ui::tr("The key stays in this Mac's Keychain.", "Ключ остаётся в Связке ключей этого Mac.")
     } else if cfg!(windows) {
-        "The key stays in Windows Credential Manager on this computer."
+        crate::ui::tr("The key stays in Windows Credential Manager on this computer.", "Ключ остаётся в Диспетчере учетных данных Windows.")
     } else {
-        "The key stays in this computer's secure storage."
+        crate::ui::tr("The key stays in this computer's secure storage.", "Ключ остаётся в защищённом хранилище этого компьютера.")
     }
 }
 
 /// The hint under a credential field that already holds a key.
-pub const fn credential_saved_hint() -> &'static str {
+pub fn credential_saved_hint() -> &'static str {
     if cfg!(target_os = "macos") {
-        "A key is saved in your Keychain. Enter a new one to replace it."
+        crate::ui::tr("A key is saved in your Keychain. Enter a new one to replace it.", "Ключ сохранён в Связке ключей. Введите новый для замены.")
     } else if cfg!(windows) {
-        "A key is saved in Windows Credential Manager. Enter a new one to replace it."
+        crate::ui::tr("A key is saved in Windows Credential Manager. Enter a new one to replace it.", "Ключ сохранён в Диспетчере Windows. Введите новый для замены.")
     } else {
-        "A key is saved in secure storage. Enter a new one to replace it."
+        crate::ui::tr("A key is saved in secure storage. Enter a new one to replace it.", "Ключ сохранён в защищённом хранилище. Введите новый для замены.")
     }
 }
 
 /// The user's machine, for "your Mac's light or dark setting".
-pub const fn computer() -> &'static str {
+pub fn computer() -> &'static str {
     if cfg!(target_os = "macos") {
         "Mac"
     } else {
-        "computer"
+        crate::ui::tr("computer", "системы")
     }
 }
 
 /// The OS file browser's name.
-pub const fn file_manager() -> &'static str {
+pub fn file_manager() -> &'static str {
     if cfg!(target_os = "macos") {
         "Finder"
     } else if cfg!(windows) {

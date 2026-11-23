@@ -665,7 +665,7 @@ fn a_drag_across_charts_captures_the_layout_cropped_to_the_selection() {
     rig.workspace.focus_chart(rig.ids[1]);
     rig.settle();
     rig.begin();
-    let (from, to) = (rig.at(0, (0.5, 0.3)), rig.at(1, (0.5, 0.7)));
+    let (from, to) = (rig.at(0, (0.5, 0.3)), rig.at(1, (0.5, 0.35)));
     rig.drag(from, to);
     let layout = layout(&rig);
     // Only the charts the selection reaches are frozen, in the layout of all three.
@@ -704,7 +704,7 @@ fn the_focused_chart_is_the_first_reached_when_it_is_not_among_them() {
     rig.workspace.focus_chart(rig.ids[2]);
     rig.settle();
     rig.begin();
-    rig.drag(rig.at(0, (0.5, 0.3)), rig.at(1, (0.5, 0.7)));
+    rig.drag(rig.at(0, (0.5, 0.3)), rig.at(1, (0.5, 0.35)));
     assert_eq!(layout(&rig).focused().unwrap().chart_id(), rig.ids[0]);
 }
 

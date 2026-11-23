@@ -89,7 +89,20 @@ pub fn top_holdings(holdings: &[PortfolioHolding]) -> Vec<&PortfolioHolding> {
 
 /// "Portfolio · 3 assets".
 pub fn asset_count_text(count: usize) -> String {
-    format!("{count} {}", if count == 1 { "asset" } else { "assets" })
+    if crate::ui::is_ru() {
+        let rem10 = count % 10;
+        let rem100 = count % 100;
+        let word = if rem10 == 1 && rem100 != 11 {
+            "актив"
+        } else if (2..=4).contains(&rem10) && !(12..=14).contains(&rem100) {
+            "актива"
+        } else {
+            "активов"
+        };
+        format!("{count} {word}")
+    } else {
+        format!("{count} {}", if count == 1 { "asset" } else { "assets" })
+    }
 }
 
 /// How current the prices behind the total are; colours the dot beside the caption.
@@ -158,14 +171,14 @@ pub fn show_overview(
                                 let each = (panel_height(PANEL_CONTENT_HEIGHT) - GRID_GAP) / 2.0;
                                 performer_card(
                                     ui,
-                                    "Best Performer",
+                                    crate::ui::tr("Best Performer", "Лучший актив"),
                                     stats.best.as_ref(),
                                     input,
                                     each,
                                 );
                                 performer_card(
                                     ui,
-                                    "Worst Performer",
+                                    crate::ui::tr("Worst Performer", "Худший актив"),
                                     stats.worst.as_ref(),
                                     input,
                                     each,
@@ -176,14 +189,14 @@ pub fn show_overview(
                         ui.columns(2, |columns| {
                             performer_card(
                                 &mut columns[0],
-                                "Best Performer",
+                                crate::ui::tr("Best Performer", "Лучший актив"),
                                 stats.best.as_ref(),
                                 input,
                                 CARD_HEIGHT,
                             );
                             performer_card(
                                 &mut columns[1],
-                                "Worst Performer",
+                                crate::ui::tr("Worst Performer", "Худший актив"),
                                 stats.worst.as_ref(),
                                 input,
                                 CARD_HEIGHT,
@@ -207,7 +220,7 @@ fn allocation_panel(
     input: &OverviewInput,
     content_height: f32,
 ) {
-    panel(ui, content_height, Icon::PieChart, "Allocation", |_, ui| {
+    panel(ui, content_height, Icon::PieChart, crate::ui::tr("Allocation", "Распределение"), |_, ui| {
         charts::show_allocation(
             ui,
             input.holdings,

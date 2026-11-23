@@ -1,9 +1,12 @@
 //! Settings ▸ Appearance: the app theme, picked from small previews of a window in each theme.
 
 use crate::model::tab::title::TabTitleStyle;
+use crate::ui::i18n::{self, UiLanguage};
 use crate::ui::icons::{self, Icon};
 use crate::ui::kit;
+use crate::ui::settings::card;
 use crate::ui::theme::{self, AppTheme};
+use crate::ui::tr;
 use eframe::egui::{
     self, Color32, CornerRadius, Pos2, Rect, Sense, Stroke, StrokeKind, Vec2, pos2,
 };
@@ -19,11 +22,12 @@ pub fn body(ui: &mut egui::Ui, current: AppTheme) -> Option<AppTheme> {
     let mut picked = None;
     super::window::section(
         ui,
-        "Theme",
-        Some(&format!(
-            "System follows your {}'s light or dark setting.",
-            crate::platform::computer()
-        )),
+        tr("Theme", "Тема оформления"),
+        Some(&if i18n::is_ru() {
+            "Системная тема повторяет настройки вашей системы.".to_string()
+        } else {
+            format!("System follows your {}'s light or dark setting.", crate::platform::computer())
+        }),
         |ui| {
             let width = TILE_WIDTH * 3.0 + TILE_GAP * 2.0;
             let (row, _) = ui.allocate_exact_size(
@@ -55,10 +59,11 @@ pub fn tabs(ui: &mut egui::Ui, current: TabTitleStyle) -> Option<TabTitleStyle> 
     let mut picked = None;
     super::window::section(
         ui,
-        "Tabs",
-        Some(
+        tr("Tabs", "Вкладки"),
+        Some(tr(
             "What a chart tab shows. The layout name and the price follow the tab's focused chart.",
-        ),
+            "Название вкладки графика. Имя слоя и цена берутся из активного графика.",
+        )),
         |ui| {
             let width = TILE_WIDTH * 3.0 + TILE_GAP * 2.0;
             let (row, _) = ui.allocate_exact_size(
@@ -88,7 +93,7 @@ pub fn tabs(ui: &mut egui::Ui, current: TabTitleStyle) -> Option<TabTitleStyle> 
                 ui.add_space(10.0);
                 let restore = ui.add(
                     egui::Label::new(
-                        egui::RichText::new("Restore default")
+                        egui::RichText::new(tr("Restore default", "По умолчанию"))
                             .size(kit::size::SUBHEADLINE + 1.0)
                             .underline()
                             .color(theme::text_secondary()),
@@ -107,6 +112,40 @@ pub fn tabs(ui: &mut egui::Ui, current: TabTitleStyle) -> Option<TabTitleStyle> 
     picked.filter(|style| *style != current)
 }
 
+/// Choose interface language: English or Russian.
+pub fn language(ui: &mut egui::Ui, current: UiLanguage) -> Option<UiLanguage> {
+    let labels = ["English (US)".to_owned(), "Русский (RU)".to_owned()];
+    let current_index = match current {
+        UiLanguage::English => 0,
+        UiLanguage::Russian => 1,
+    };
+    let mut picked = None;
+    card::card_reserving(
+        ui,
+        Icon::Globe,
+        tr("Language", "Язык"),
+        Some(tr(
+            "Choose interface language.",
+            "Выберите язык интерфейса приложения.",
+        )),
+        180.0,
+        |ui| {
+            if let Some(index) = kit::menu_picker(ui, 180.0, &labels, current_index, true) {
+                let chosen_lang = match index {
+                    0 => UiLanguage::English,
+                    1 => UiLanguage::Russian,
+                    _ => current,
+                };
+                if chosen_lang != current {
+                    crate::ui::i18n::set_language(chosen_lang);
+                    picked = Some(chosen_lang);
+                }
+            }
+        },
+    );
+    picked
+}
+
 /// The words a tab shows in `style`, as they read on a strip: the price is the app's addition.
 fn tab_sample(style: TabTitleStyle) -> &'static str {
     match style {
@@ -118,9 +157,9 @@ fn tab_sample(style: TabTitleStyle) -> &'static str {
 
 fn tab_label(style: TabTitleStyle) -> &'static str {
     match style {
-        TabTitleStyle::Full => "Symbol, price and layout",
-        TabTitleStyle::SymbolOnly => "Symbol only",
-        TabTitleStyle::LayoutOnly => "Layout name only",
+        TabTitleStyle::Full => tr("Symbol, price and layout", "Символ, цена и слой"),
+        TabTitleStyle::SymbolOnly => tr("Symbol only", "Только символ"),
+        TabTitleStyle::LayoutOnly => tr("Layout name only", "Только имя слоя"),
     }
 }
 

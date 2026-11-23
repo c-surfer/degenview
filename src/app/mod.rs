@@ -180,6 +180,12 @@ impl DegenViewApp {
             .and_then(|store| store.setting(crate::ui::theme::THEME_KEY))
             .unwrap_or_default();
         crate::ui::theme::install(&creation.egui_ctx, app_theme);
+        let app_lang: crate::ui::i18n::UiLanguage = store
+            .lock()
+            .ok()
+            .and_then(|store| store.setting(crate::ui::i18n::LANG_KEY))
+            .unwrap_or_default();
+        crate::ui::i18n::set_language(app_lang);
         egui_extras::install_image_loaders(&creation.egui_ctx);
         crate::service::annotation::asset_host::install(
             &creation.egui_ctx,

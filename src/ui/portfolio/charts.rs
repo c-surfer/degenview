@@ -67,7 +67,11 @@ pub fn slices(holdings: &[PortfolioHolding]) -> Vec<Slice> {
     if !rest.is_empty() {
         result.push(Slice {
             id: "other".to_owned(),
-            label: format!("Other ({})", rest.len()),
+            label: if crate::ui::is_ru() {
+                format!("Остальные ({})", rest.len())
+            } else {
+                format!("Other ({})", rest.len())
+            },
             share: rest.iter().map(|h| h.allocation).sum(),
             value: Some(rest.iter().filter_map(|h| h.current_value).sum()),
             color: OTHER_COLOR,
@@ -114,8 +118,8 @@ pub fn show_allocation(
             ui,
             area,
             empty::Scene::Allocation,
-            "No Allocations",
-            "Priced holdings appear here.",
+            crate::ui::tr("No Allocations", "Нет распределения"),
+            crate::ui::tr("Priced holdings appear here.", "Здесь появятся активы с рыночной ценой."),
         );
         return;
     }
@@ -200,7 +204,18 @@ pub fn show_allocation(
             );
             let caption = kit::galley(
                 ui,
-                if holdings.len() == 1 {
+                if crate::ui::is_ru() {
+                    let n = holdings.len();
+                    let rem10 = n % 10;
+                    let rem100 = n % 100;
+                    if rem10 == 1 && rem100 != 11 {
+                        "актив"
+                    } else if (2..=4).contains(&rem10) && !(12..=14).contains(&rem100) {
+                        "актива"
+                    } else {
+                        "активов"
+                    }
+                } else if holdings.len() == 1 {
                     "Asset"
                 } else {
                     "Assets"

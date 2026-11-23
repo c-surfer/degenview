@@ -147,21 +147,24 @@ fn header(ui: &Ui, painter: &egui::Painter, area: Rect, columns: &Columns) {
             color,
         );
     };
-    put("Stack", columns.stack.1 - 6.0, Align2::RIGHT_CENTER);
-    put("Bid", columns.bid.1 - 6.0, Align2::RIGHT_CENTER);
+    put(crate::ui::tr("Stack", "Стек"), columns.stack.1 - 6.0, Align2::RIGHT_CENTER);
+    put(crate::ui::tr("Bid", "Покупка"), columns.bid.1 - 6.0, Align2::RIGHT_CENTER);
     put(
-        "Price",
+        crate::ui::tr("Price", "Цена"),
         (columns.price.0 + columns.price.1) / 2.0,
         Align2::CENTER_CENTER,
     );
-    put("Ask", columns.ask.0 + 6.0, Align2::LEFT_CENTER);
-    put("Traded", columns.traded.1, Align2::RIGHT_CENTER);
+    put(crate::ui::tr("Ask", "Продажа"), columns.ask.0 + 6.0, Align2::LEFT_CENTER);
+    put(crate::ui::tr("Traded", "Объем"), columns.traded.1, Align2::RIGHT_CENTER);
     let tip = Rect::from_x_y_ranges(
         columns.stack.0 - PAD..=columns.stack.1,
         area.top()..=area.top() + HEADER_HEIGHT,
     );
     ui.interact(tip, ui.id().with("stack-header"), Sense::hover())
-        .on_hover_text(HEADER_TIP);
+        .on_hover_text(crate::ui::tr(
+            HEADER_TIP,
+            "Накопление/снятие: объем, добавленный (+) или снятый (−) по этой цене за последние 10 секунд, без учета совершенных сделок",
+        ));
     painter.hline(
         area.x_range(),
         area.top() + HEADER_HEIGHT - 0.5,
@@ -347,7 +350,11 @@ fn draw_spread(painter: &egui::Painter, rect: Rect, ladder: &Ladder, tick: Price
         return;
     };
     painter.rect_filled(rect, 0.0, theme::quaternary(0.28));
-    let text = format!("Spread {}", spread.format(tick.decimals()));
+    let text = if crate::ui::i18n::is_ru() {
+        format!("Спред {}", spread.format(tick.decimals()))
+    } else {
+        format!("Spread {}", spread.format(tick.decimals()))
+    };
     painter.text(
         rect.center(),
         Align2::CENTER_CENTER,

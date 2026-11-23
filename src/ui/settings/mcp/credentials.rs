@@ -15,13 +15,16 @@ pub(super) fn credentials_section(
     input: &McpSettingsInput,
     actions: &mut Vec<McpAction>,
 ) {
-    section(ui, "Credentials", None, |ui| {
+    section(ui, crate::ui::tr("Credentials", "Учётные данные"), None, |ui| {
         let ready = !state.new_client_name.trim().is_empty() && input.load_error.is_none();
         action_card(
             ui,
             Icon::Key,
-            "Generate Credential",
-            "A token for one MCP client. It is shown once; only a hash is kept.",
+            crate::ui::tr("Generate Credential", "Создать токен"),
+            crate::ui::tr(
+                "A token for one MCP client. It is shown once; only a hash is kept.",
+                "Токен для клиента MCP. Отображается только один раз, сохраняется только хэш.",
+            ),
             |ui| {
                 let mut submit = kit::sheet_button(ui, "Generate", true, ready).clicked();
                 let width = ui.available_width();
@@ -29,7 +32,7 @@ pub(super) fn credentials_section(
                     ui,
                     Id::new("mcp-client-name"),
                     &mut state.new_client_name,
-                    "Client name, e.g. Claude Desktop",
+                    crate::ui::tr("Client name, e.g. Claude Desktop", "Имя клиента, например Claude Desktop"),
                     width,
                 );
                 if state.new_client_name.chars().count() > MAX_CLIENT_NAME_LEN {

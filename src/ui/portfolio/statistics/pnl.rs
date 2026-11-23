@@ -23,10 +23,14 @@ pub(super) fn pnl_panel(
         ui,
         content_height,
         Icon::BarChart,
-        "P&L by Asset",
+        crate::ui::tr("P&L by Asset", "P&L по активам"),
         |header, ui| {
             header.label(kit::text(
-                format!("Total, in {}", f.currency.code()),
+                if crate::ui::is_ru() {
+                    format!("Всего, в {}", f.currency.code())
+                } else {
+                    format!("Total, in {}", f.currency.code())
+                },
                 kit::size::SUBHEADLINE,
                 REGULAR,
                 caption_color(),
@@ -50,8 +54,8 @@ fn pnl_bars_view(
             ui,
             area,
             empty::Scene::Results,
-            "No Results Yet",
-            "Priced holdings appear here.",
+            crate::ui::tr("No Results Yet", "Пока нет результатов"),
+            crate::ui::tr("Priced holdings appear here.", "Здесь появятся активы с рыночной ценой."),
         );
         return;
     }

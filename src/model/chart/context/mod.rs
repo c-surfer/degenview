@@ -158,6 +158,7 @@ pub struct Facts {
     pub pane: Option<PaneFacts>,
     pub alert: Option<AlertState>,
     pub order: Option<OrderFacts>,
+    pub can_close: bool,
 }
 
 impl Default for Facts {
@@ -183,6 +184,7 @@ impl Default for Facts {
             pane: None,
             alert: None,
             order: None,
+            can_close: false,
         }
     }
 }
@@ -199,6 +201,8 @@ pub enum Hint {
 pub enum Command {
     CopyPrice,
     Paste,
+    DuplicateChart,
+    CloseChart,
     AddAlert,
     QuickOrder(QuickOrder),
     AddOrder,
@@ -634,12 +638,18 @@ fn background(context: &ChartContext, facts: &Facts) -> Vec<Entry> {
         .disabled_unless(facts.time_locked || context.time_ms.is_some(), NO_PRICE),
     ];
 
-    let utilities = vec![
+    let mut utilities = vec![
+        Item::new(Command::DuplicateChart, "Duplicate chart"),
+    ];
+    if facts.can_close {
+        utilities.push(Item::new(Command::CloseChart, "Close chart"));
+    }
+    utilities.extend([
         Item::new(Command::ToggleTable, "Table view").checked(facts.table_open),
         Item::new(Command::ToggleObjectTree, "Object tree").checked(facts.tree_open),
         Item::new(Command::ToggleSessionStats, "Session statistics").checked(facts.stats_open),
         template_submenu(facts),
-    ];
+    ]);
 
     let cleanup = vec![
         Item::new(

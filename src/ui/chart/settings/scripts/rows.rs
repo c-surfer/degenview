@@ -8,6 +8,7 @@ use crate::ui::icons::{self, Icon};
 use crate::ui::kit;
 use crate::ui::kit::loading::LoadingIndicator;
 use crate::ui::theme;
+use crate::ui::tr;
 use eframe::egui::{
     self, Color32, CornerRadius, CursorIcon, FontId, Id, Margin, Rect, RichText, Sense, Stroke,
     StrokeKind, Ui, Vec2, pos2, vec2,
@@ -155,7 +156,11 @@ pub(super) fn available_row(
     );
     let meta = kit::galley(
         ui,
-        script.script_type.display_name(),
+        match script.script_type {
+            ScriptType::Indicator => tr("Indicator", "Индикатор"),
+            ScriptType::Strategy => tr("Strategy", "Стратегия"),
+            ScriptType::Library => tr("Library", "Библиотека"),
+        },
         kit::size::CAPTION + 0.5,
         kit::REGULAR,
         theme::text_secondary(),
@@ -277,23 +282,23 @@ pub(super) fn instance_row(
     );
     let meta_text = row.failure.clone().unwrap_or_else(|| {
         if row.evaluating {
-            "Evaluating…".to_owned()
+            tr("Evaluating…", "Вычисление…").to_owned()
         } else {
             let mut parts = vec![
                 if row.is_strategy {
-                    "Strategy"
+                    tr("Strategy", "Стратегия")
                 } else {
-                    "Indicator"
+                    tr("Indicator", "Индикатор")
                 }
                 .to_owned(),
             ];
             if !row.is_strategy
                 && let Some(overlay) = row.overlay
             {
-                parts.push(if overlay { "On chart" } else { "Own pane" }.to_owned());
+                parts.push(if overlay { tr("On chart", "На графике") } else { tr("Own pane", "В подвале") }.to_owned());
             }
             if !row.visible {
-                parts.push("Off".to_owned());
+                parts.push(tr("Off", "Откл").to_owned());
             }
             parts.join(" · ")
         }

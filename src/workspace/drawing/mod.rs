@@ -208,18 +208,22 @@ impl ChartWorkspace {
             self.tools.confirm_remove = None;
             return;
         }
-        let message = format!(
-            "{count} drawing{} will be removed from this chart. You can undo it.",
-            if count == 1 { "" } else { "s" }
-        );
+        let message = if crate::ui::is_ru() {
+            format!("{count} рисунков будет удалено с этого графика. Вы сможете отменить действие.")
+        } else {
+            format!(
+                "{count} drawing{} will be removed from this chart. You can undo it.",
+                if count == 1 { "" } else { "s" }
+            )
+        };
         let result = crate::ui::kit::confirm(
             ctx,
             egui::Id::new("remove-drawings"),
             &crate::ui::kit::Confirm {
                 icon: crate::ui::icons::Icon::Trash,
-                title: "Remove all drawings?",
+                title: crate::ui::t("Remove all drawings?"),
                 message: &message,
-                destructive: "Remove All",
+                destructive: crate::ui::t("Remove All"),
             },
         );
         match result {

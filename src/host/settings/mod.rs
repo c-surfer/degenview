@@ -254,6 +254,10 @@ impl SettingsHost {
                     let _ = store.set_setting(crate::ui::theme::THEME_KEY, &theme);
                     crate::ui::theme::apply(ctx, theme);
                 }
+                SettingsAction::SetLanguage(lang) => {
+                    let _ = store.set_setting(crate::ui::i18n::LANG_KEY, &lang);
+                    crate::ui::i18n::set_language(lang);
+                }
                 SettingsAction::SetTabTitleStyle(style) => {
                     // The page draws under the store's lock, so it is written through it.
                     let _ = self.tab_titles.set(Some(store), style);

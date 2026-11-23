@@ -538,20 +538,26 @@ fn variable_row(
     egui::Popup::context_menu(&response)
         .frame(kit::menu_frame())
         .show(|ui| {
-            kit::menu_fit(ui, &["Copy Name", "Copy Value", "Add to Watches"]);
+            let copy_name = crate::ui::tr("Copy Name", "Скопировать имя");
+            let copy_val = crate::ui::tr("Copy Value", "Скопировать значение");
+            let add_watch = crate::ui::tr("Add to Watches", "Добавить в выражения");
+            kit::menu_fit(
+                ui,
+                &[copy_name.as_ref(), copy_val.as_ref(), add_watch.as_ref()],
+            );
             ui.spacing_mut().item_spacing.y = 0.0;
-            if kit::menu_item(ui, Icon::CopyDoc, "Copy Name", true, false) {
+            if kit::menu_item(ui, Icon::CopyDoc, copy_name, true, false) {
                 ui.ctx().copy_text(variable.name.clone());
                 ui.close();
             }
-            if kit::menu_item(ui, Icon::CopyDoc, "Copy Value", variable.assigned, false) {
+            if kit::menu_item(ui, Icon::CopyDoc, copy_val, variable.assigned, false) {
                 ui.ctx().copy_text(variable.full.clone());
                 ui.close();
             }
             if allow_watch
                 && depth == 0
                 && !key.starts_with("watch:")
-                && kit::menu_item(ui, Icon::Eye, "Add to Watches", true, false)
+                && kit::menu_item(ui, Icon::Eye, add_watch, true, false)
             {
                 actions.push(PanelAction::AddWatch(variable.name.clone()));
                 ui.close();

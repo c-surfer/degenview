@@ -197,9 +197,12 @@ pub fn notice(ui: &mut Ui, state: &mut TemplateState) {
 
 /// The "Templates ▾" button and its menu.
 pub fn menu(ui: &mut Ui, state: &mut TemplateState, store: &SharedStore, card: &mut ChartCard) {
-    let response = kit::push_button(ui, Some(Icon::Palette), "Templates", true);
-    let response = crate::ui::accessibility::label(response, "Templates")
-        .on_hover_text("Save this chart's look, or give it another.");
+    let response = kit::push_button(ui, Some(Icon::Palette), crate::ui::tr("Templates", "Шаблоны"), true);
+    let response = crate::ui::accessibility::label(response, crate::ui::tr("Templates", "Шаблоны"))
+        .on_hover_text(crate::ui::tr(
+            "Save this chart's look, or give it another.",
+            "Сохранить вид этого графика или применить другой.",
+        ));
     let scope = state.scope;
     // Read before the menu opens: the list is the sheet's, not each frame's.
     let entries: Vec<TemplateEntry> = state.templates(store).book().entries();

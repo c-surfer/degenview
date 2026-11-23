@@ -267,33 +267,79 @@ fn headline(panel: &DebugPanel) -> (eframe::egui::Color32, String) {
     match panel.state_of_session() {
         DebugState::Idle => (
             resting,
-            "Not debugging — press ▶ to run to a breakpoint, or step to start at the first line"
-                .to_owned(),
+            crate::ui::tr(
+                "Not debugging — press ▶ to run to a breakpoint, or step to start at the first line",
+                "Отладка не запущена — нажмите ▶ для перехода к брейкпоинту…",
+            )
+            .to_owned(),
         ),
-        DebugState::Preparing => (resting, "Starting…".to_owned()),
-        DebugState::Running => (kit::GREEN, "Running".to_owned()),
-        DebugState::Pausing => (theme::editor_debug_line(), "Pausing…".to_owned()),
-        DebugState::Stopping => (resting, "Stopping…".to_owned()),
+        DebugState::Preparing => (
+            resting,
+            crate::ui::tr("Starting…", "Запуск…").to_owned(),
+        ),
+        DebugState::Running => (
+            kit::GREEN,
+            crate::ui::tr("Running", "Выполняется").to_owned(),
+        ),
+        DebugState::Pausing => (
+            theme::editor_debug_line(),
+            crate::ui::tr("Pausing…", "Пауза…").to_owned(),
+        ),
+        DebugState::Stopping => (
+            resting,
+            crate::ui::tr("Stopping…", "Остановка…").to_owned(),
+        ),
         DebugState::Paused => match panel.shown.as_ref().map(|shown| &shown.snapshot) {
             Some(snapshot) => {
                 let line = snapshot
                     .stop
                     .location
-                    .map(|location| format!(" at line {}", location.line))
+                    .map(|location| {
+                        if crate::ui::is_ru() {
+                            format!(" на строке {}", location.line)
+                        } else {
+                            format!(" at line {}", location.line)
+                        }
+                    })
                     .unwrap_or_default();
                 match &snapshot.stop.reason {
                     StopReason::Breakpoint(_) => (
                         theme::editor_debug_line(),
-                        format!("Paused on a breakpoint{line}"),
+                        if crate::ui::is_ru() {
+                            format!("Остановка на брейкпоинте{line}")
+                        } else {
+                            format!("Paused on a breakpoint{line}")
+                        },
                     ),
-                    StopReason::Step => (theme::editor_debug_line(), format!("Paused{line}")),
+                    StopReason::Step => (
+                        theme::editor_debug_line(),
+                        if crate::ui::is_ru() {
+                            format!("Остановлено{line}")
+                        } else {
+                            format!("Paused{line}")
+                        },
+                    ),
                     StopReason::Pause => (
                         theme::editor_debug_line(),
-                        format!("Paused by request{line}"),
+                        if crate::ui::is_ru() {
+                            format!("Остановка по запросу{line}")
+                        } else {
+                            format!("Paused by request{line}")
+                        },
                     ),
                     StopReason::Bar => (
                         theme::editor_debug_line(),
-                        format!("Paused at the start of bar {}", snapshot.stop.bar_index),
+                        if crate::ui::is_ru() {
+                            format!(
+                                "Остановка в начале бара {}",
+                                snapshot.stop.bar_index
+                            )
+                        } else {
+                            format!(
+                                "Paused at the start of bar {}",
+                                snapshot.stop.bar_index
+                            )
+                        },
                     ),
                     StopReason::Exception(error) => (
                         theme::editor_breakpoint(),
@@ -301,13 +347,23 @@ fn headline(panel: &DebugPanel) -> (eframe::egui::Color32, String) {
                     ),
                 }
             }
-            None => (theme::editor_debug_line(), "Paused".to_owned()),
+            None => (
+                theme::editor_debug_line(),
+                crate::ui::tr("Paused", "Остановлено").to_owned(),
+            ),
         },
         DebugState::Completed => match &panel.outcome {
-            Some(Outcome::Stopped) => (resting, "Stopped".to_owned()),
+            Some(Outcome::Stopped) => (
+                resting,
+                crate::ui::tr("Stopped", "Остановлено").to_owned(),
+            ),
             _ => (
                 kit::GREEN,
-                "Finished — the script ran to the end of the bars".to_owned(),
+                crate::ui::tr(
+                    "Finished — the script ran to the end of the bars",
+                    "Завершено — скрипт выполнен до конца баров",
+                )
+                .to_owned(),
             ),
         },
         DebugState::Failed => match panel.failure() {
@@ -315,7 +371,10 @@ fn headline(panel: &DebugPanel) -> (eframe::egui::Color32, String) {
                 theme::editor_breakpoint(),
                 format!("{}: {}", error.code, error.message),
             ),
-            None => (theme::editor_breakpoint(), "The script failed".to_owned()),
+            None => (
+                theme::editor_breakpoint(),
+                crate::ui::tr("The script failed", "Ошибка выполнения скрипта").to_owned(),
+            ),
         },
     }
 }
@@ -435,7 +494,7 @@ fn variables_pane(ui: &mut Ui, context: &mut Context<'_>, with_header: bool) {
                 .layout(Layout::left_to_right(Align::Center)),
         );
         row.label(kit::text(
-            "VARIABLES",
+            crate::ui::tr("VARIABLES", "ПЕРЕМЕННЫЕ"),
             kit::size::CAPTION + 0.5,
             kit::SEMIBOLD,
             theme::text_secondary(),
@@ -457,14 +516,23 @@ fn variables_pane(ui: &mut Ui, context: &mut Context<'_>, with_header: bool) {
         }
         row.with_layout(Layout::right_to_left(Align::Center), |ui| {
             let id = egui::Id::new("script-debug-filter");
-            flat_filter(ui, id, &mut context.state.filter, "Filter variables", 190.0);
+            flat_filter(
+                ui,
+                id,
+                &mut context.state.filter,
+                crate::ui::tr("Filter variables", "Фильтр переменных…"),
+                190.0,
+            );
         });
     }
     let Some(shown) = panel.shown.as_ref() else {
         placeholder(
             ui,
-            "Nothing to inspect",
-            "Variables appear here when the script is stopped at a breakpoint or a step.",
+            crate::ui::tr("Nothing to inspect", "Нечего инспектировать"),
+            crate::ui::tr(
+                "Variables appear here when the script is stopped at a breakpoint or a step.",
+                "Переменные появятся здесь при остановке на брейкпоинте или шаге.",
+            ),
         );
         return;
     };
@@ -601,7 +669,7 @@ fn stacked(ui: &mut Ui, context: &mut Context<'_>) {
                 .shown
                 .as_ref()
                 .map(|shown| shown.variables.iter().map(|g| g.variables.len()).sum());
-            section_header(ui, "Variables", count, true, |_| {});
+            section_header(ui, crate::ui::tr("Variables", "Переменные"), count, true, |_| {});
             ui.allocate_ui(vec2(ui.available_width(), 190.0), |ui| {
                 variables_pane(ui, context, false);
             });
@@ -613,15 +681,15 @@ fn section(ui: &mut Ui, context: &mut Context<'_>, which: Section) {
     let panel = context.panel;
     let open = context.is_open(which);
     let (title, count) = match which {
-        Section::Watches => ("Watches", Some(panel.state.watches.len())),
-        Section::Stack => ("Call Stack", Some(panel.stack().len())),
-        Section::Breakpoints => ("Breakpoints", Some(panel.state.breakpoints.len())),
-        Section::Console => ("Console", None),
+        Section::Watches => (crate::ui::tr("Watches", "Выражения (Watches)"), Some(panel.state.watches.len())),
+        Section::Stack => (crate::ui::tr("Call Stack", "Стек вызовов"), Some(panel.stack().len())),
+        Section::Breakpoints => (crate::ui::tr("Breakpoints", "Брейкпоинты"), Some(panel.state.breakpoints.len())),
+        Section::Console => (crate::ui::tr("Console", "Консоль"), None),
     };
     let mut trailing_actions = Vec::new();
     let toggled = section_header(ui, title, count, open, |ui| match which {
         Section::Breakpoints if !panel.state.breakpoints.is_empty() => {
-            if icon_button(ui, Icon::Trash, true, "Remove all breakpoints") {
+            if icon_button(ui, Icon::Trash, true, crate::ui::tr("Remove all breakpoints", "Удалить все брейкпоинты")) {
                 trailing_actions.push(PanelAction::RemoveAllBreakpoints);
             }
             let all_on = panel.state.breakpoints.iter().all(|b| b.spec.enabled);

@@ -8,7 +8,7 @@ use crate::service::update::check::Channel;
 use crate::ui::icons::{self, Icon};
 use crate::ui::kit::loading::LoadingIndicator;
 use crate::ui::window::{update_indicator, update_sheet};
-use crate::ui::{kit, theme};
+use crate::ui::{kit, theme, tr};
 use eframe::egui::{self, Color32, Rect, Sense, Stroke, StrokeKind, Ui, Vec2, pos2, vec2};
 use std::time::{Duration, UNIX_EPOCH};
 
@@ -129,7 +129,7 @@ pub fn show(ui: &mut Ui, updates: &UpdateHost) -> Outcome {
                                 ui,
                                 Icon::DocText,
                                 Color32::from_rgb(48, 176, 199),
-                                "License",
+                                tr("License", "Лицензия"),
                                 |ui| {
                                     ui.label(kit::text(
                                         LICENSE,
@@ -144,7 +144,7 @@ pub fn show(ui: &mut Ui, updates: &UpdateHost) -> Outcome {
                                 ui,
                                 Icon::InfoCircle,
                                 Color32::from_rgb(94, 92, 230),
-                                "Build Info",
+                                tr("Build Info", "Сборка"),
                                 |ui| {
                                     copy_button(ui, build);
                                     ui.add_space(6.0);
@@ -166,8 +166,8 @@ pub fn show(ui: &mut Ui, updates: &UpdateHost) -> Outcome {
                                 ui,
                                 egui::include_image!("../../../assets/brand/docs.svg"),
                                 Color32::from_rgb(24, 23, 23),
-                                "Documentation",
-                                "User guide for every feature",
+                                tr("Documentation", "Документация"),
+                                tr("User guide for every feature", "Руководство пользователя по всем функциям"),
                                 DOCS_URL,
                             );
                             divider(ui);
@@ -176,7 +176,7 @@ pub fn show(ui: &mut Ui, updates: &UpdateHost) -> Outcome {
                                 egui::include_image!("../../../assets/brand/github.svg"),
                                 Color32::from_rgb(24, 23, 23),
                                 "GitHub",
-                                "Source code, issues and releases",
+                                tr("Source code, issues and releases", "Исходный код, отчёты об ошибках и релизы"),
                                 REPOSITORY_URL,
                             );
                             divider(ui);

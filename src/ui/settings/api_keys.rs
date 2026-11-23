@@ -14,7 +14,7 @@ use crate::ui::kit::loading::LoadingIndicator;
 use crate::ui::kit::{Autosave, Tone, destructive_button, field, open_button};
 use crate::ui::settings::card::StatusMessage;
 use crate::ui::settings::window::{card, section, status_message};
-use crate::ui::{kit, theme};
+use crate::ui::{kit, theme, tr};
 use eframe::egui;
 
 #[derive(Default)]
@@ -68,9 +68,9 @@ impl AlpacaForm {
 
     pub fn badge(&self) -> (&'static str, Tone) {
         if self.is_saved {
-            ("Keys saved", Tone::Good)
+            (tr("Keys saved", "Ключи сохранены"), Tone::Good)
         } else {
-            ("Not configured", Tone::Neutral)
+            (tr("Not configured", "Не настроено"), Tone::Neutral)
         }
     }
 
@@ -149,17 +149,17 @@ impl CmcForm {
 
     pub fn badge(&self) -> (&'static str, Tone) {
         if self.configured {
-            ("API key configured", Tone::Good)
+            (tr("API key configured", "API-ключ настроен"), Tone::Good)
         } else {
-            ("Public API mode", Tone::Neutral)
+            (tr("Public API mode", "Публичный режим API"), Tone::Neutral)
         }
     }
 
     pub fn field_title(&self) -> &'static str {
         if self.configured {
-            "Replace API Key"
+            tr("Replace API Key", "Заменить API-ключ")
         } else {
-            "API Key"
+            tr("API Key", "API-ключ")
         }
     }
 
@@ -299,15 +299,15 @@ pub fn alpaca_body(ui: &mut egui::Ui, state: &mut ApiKeysState, store: &AlpacaCr
     let (text, tone) = form.badge();
     kit::status_badge(ui, text, tone);
     ui.add_space(18.0);
-    section(ui, "API credentials", None, |ui| {
+    section(ui, tr("API credentials", "Ключи API"), None, |ui| {
         card(ui, |ui| {
             ui.vertical(|ui| {
-                let key_id = field(ui, "API Key ID", None, "PK…", &mut form.key_id, false);
+                let key_id = field(ui, tr("API Key ID", "Идентификатор ключа (Key ID)"), None, "PK…", &mut form.key_id, false);
                 form.autosave.watch(&key_id, false);
                 ui.add_space(12.0);
                 let secret = field(
                     ui,
-                    "Secret Key",
+                    tr("Secret Key", "Секретный ключ (Secret Key)"),
                     Some(crate::platform::credential_stored_hint()),
                     "",
                     &mut form.secret_key,
@@ -319,13 +319,13 @@ pub fn alpaca_body(ui: &mut egui::Ui, state: &mut ApiKeysState, store: &AlpacaCr
                 ui.spacing_mut().item_spacing.x = 10.0;
                 if form.is_testing() {
                     ui.add(LoadingIndicator::new().size(14.0));
-                } else if kit::sheet_button(ui, "Test Connection", false, form.can_save()).clicked()
+                } else if kit::sheet_button(ui, tr("Test Connection", "Проверить подключение"), false, form.can_save()).clicked()
                 {
                     form.start_test(Some(ui.ctx()), |key_id, secret| {
                         crate::service::alpaca_test_connection(&key_id, &secret)
                     });
                 }
-                if form.is_saved && destructive_button(ui, "Remove Keys").clicked() {
+                if form.is_saved && destructive_button(ui, tr("Remove Keys", "Удалить ключи")).clicked() {
                     form.remove(store);
                     form.autosave.cancel();
                 }
@@ -340,22 +340,22 @@ pub fn alpaca_body(ui: &mut egui::Ui, state: &mut ApiKeysState, store: &AlpacaCr
     if form.autosave.due(ui.ctx()) && form.can_save() {
         form.save(store);
     }
-    section(ui, "Getting your keys", None, |ui| {
+    section(ui, tr("Getting your keys", "Как получить ключи"), None, |ui| {
         card(ui, |ui| {
-            step(ui, 1, "Create a free Alpaca account.");
+            step(ui, 1, tr("Create a free Alpaca account.", "Создайте бесплатный аккаунт Alpaca."));
             step(
                 ui,
                 2,
-                "Open the API Keys section of the dashboard and generate a key.",
+                tr("Open the API Keys section of the dashboard and generate a key.", "Откройте раздел API Keys в панели управления и создайте ключ."),
             );
             step(
                 ui,
                 3,
-                "Copy both values here. Alpaca only shows the secret once.",
+                tr("Copy both values here. Alpaca only shows the secret once.", "Скопируйте оба значения сюда. Alpaca показывает секретный ключ только один раз."),
             );
             link(
                 ui,
-                "Open the Alpaca dashboard",
+                tr("Open the Alpaca dashboard", "Перейти в панель управления Alpaca"),
                 "https://app.alpaca.markets/",
             );
         });
@@ -378,7 +378,7 @@ pub fn coinmarketcap_body(
     kit::status_badge(ui, text, tone);
     ui.add_space(18.0);
     let (title, hint) = (form.field_title(), form.field_hint());
-    section(ui, "API access", None, |ui| {
+    section(ui, tr("API access", "Доступ к API"), None, |ui| {
         card(ui, |ui| {
             ui.vertical(|ui| {
                 let key = field(ui, title, Some(hint), "", &mut form.api_key, true);
@@ -388,11 +388,11 @@ pub fn coinmarketcap_body(
                 ui.spacing_mut().item_spacing.x = 10.0;
                 if form.is_testing() {
                     ui.add(LoadingIndicator::new().size(14.0));
-                } else if kit::sheet_button(ui, "Test Connection", false, true).clicked() {
+                } else if kit::sheet_button(ui, tr("Test Connection", "Проверить подключение"), false, true).clicked() {
                     form.start_test(Some(ui.ctx()), crate::service::market::cmc::test_connection);
                 }
-                open_button(ui, "Get API Key", "https://pro.coinmarketcap.com/signup/");
-                if form.configured && destructive_button(ui, "Remove Key").clicked() {
+                open_button(ui, tr("Get API Key", "Получить API-ключ"), "https://pro.coinmarketcap.com/signup/");
+                if form.configured && destructive_button(ui, tr("Remove Key", "Удалить ключ")).clicked() {
                     form.remove(store);
                     form.autosave.cancel();
                 }
@@ -410,10 +410,11 @@ pub fn coinmarketcap_body(
         ui,
         Icon::InfoCircle,
         theme::text_secondary(),
-        "A key is optional",
-        Some(
+        tr("A key is optional", "Ключ не обязателен"),
+        Some(tr(
             "CoinMarketCap works without an API key. Adding one gives DegenView higher API rate limits.",
-        ),
+            "CoinMarketCap работает и без API-ключа. Добавление ключа увеличивает лимиты запросов к API.",
+        )),
         None,
     );
 }

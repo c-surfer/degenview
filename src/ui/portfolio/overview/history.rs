@@ -19,7 +19,7 @@ pub(super) fn history_card(
         ui,
         height,
         Icon::ChartUptrend,
-        "Portfolio Value",
+        crate::ui::tr("Portfolio Value", "Стоимость портфеля"),
         |header, ui| {
             history_range_control(header, &mut state.range);
             let loading =

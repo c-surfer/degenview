@@ -172,7 +172,7 @@ pub(super) fn overview(ui: &mut Ui, set: &PermissionSet) -> Rect {
     if overview.headline == "No access" {
         return ui
             .label(kit::text(
-                "No access",
+                crate::ui::tr("No access", "Нет доступа"),
                 kit::size::CAPTION + 0.5,
                 kit::REGULAR,
                 theme::text_tertiary(),
@@ -186,9 +186,9 @@ pub(super) fn overview(ui: &mut Ui, set: &PermissionSet) -> Rect {
         } else {
             Tone::Neutral
         };
-        capsule(ui, overview.headline, tone, None);
+        capsule(ui, crate::ui::t(overview.headline), tone, None);
         ui.label(kit::text(
-            overview.detail,
+            crate::ui::t(&overview.detail),
             kit::size::CAPTION + 0.5,
             kit::REGULAR,
             theme::text_secondary(),

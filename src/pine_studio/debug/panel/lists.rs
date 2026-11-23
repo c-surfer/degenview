@@ -20,8 +20,11 @@ pub fn call_stack(ui: &mut Ui, panel: &DebugPanel, actions: &mut Vec<PanelAction
     let Some(shown) = panel.shown.as_ref() else {
         placeholder(
             ui,
-            "No call stack",
-            "It shows who called whom when the script is stopped.",
+            crate::ui::tr("No call stack", "Стек вызовов пуст"),
+            crate::ui::tr(
+                "It shows who called whom when the script is stopped.",
+                "Показывает цепочку вызовов при остановке скрипта.",
+            ),
         );
         return;
     };
@@ -141,15 +144,15 @@ pub fn watches(
             ui,
             id,
             &mut state.watch_input,
-            "Add expression, e.g. close - open",
+            crate::ui::tr("Add expression, e.g. close - open", "Добавить выражение, например close - open"),
             width,
             true,
         );
         let ready = !state.watch_input.trim().is_empty();
         let entered =
             response.lost_focus() && ui.input(|input| input.key_pressed(egui::Key::Enter)) && ready;
-        let clicked = kit::push_button(ui, None, "Add", ready)
-            .on_hover_text("Watch this expression")
+        let clicked = kit::push_button(ui, None, crate::ui::tr("Add", "Добавить"), ready)
+            .on_hover_text(crate::ui::tr("Watch this expression", "Отслеживать это выражение"))
             .clicked();
         if (entered || clicked) && ready {
             actions.push(PanelAction::AddWatch(std::mem::take(
@@ -348,32 +351,36 @@ fn watch_row(
     egui::Popup::context_menu(&response)
         .frame(kit::menu_frame())
         .show(|ui| {
+            let edit_expr = crate::ui::tr("Edit Expression", "Редактировать выражение");
+            let copy_expr = crate::ui::tr("Copy Expression", "Скопировать выражение");
+            let copy_val = crate::ui::tr("Copy Value", "Скопировать значение");
+            let remove_watch = crate::ui::tr("Remove Watch", "Удалить выражение");
             kit::menu_fit(
                 ui,
                 &[
-                    "Edit Expression",
-                    "Copy Expression",
-                    "Copy Value",
-                    "Remove Watch",
+                    edit_expr.as_ref(),
+                    copy_expr.as_ref(),
+                    copy_val.as_ref(),
+                    remove_watch.as_ref(),
                 ],
             );
             ui.spacing_mut().item_spacing.y = 0.0;
-            if kit::menu_item(ui, Icon::Pencil, "Edit Expression", true, false) {
+            if kit::menu_item(ui, Icon::Pencil, edit_expr, true, false) {
                 state.editing_watch = Some((index, text.to_owned()));
                 ui.close();
             }
-            if kit::menu_item(ui, Icon::CopyDoc, "Copy Expression", true, false) {
+            if kit::menu_item(ui, Icon::CopyDoc, copy_expr, true, false) {
                 ui.ctx().copy_text(text.to_owned());
                 ui.close();
             }
             if let Some(variable) = &value
                 && !failed
-                && kit::menu_item(ui, Icon::CopyDoc, "Copy Value", true, false)
+                && kit::menu_item(ui, Icon::CopyDoc, copy_val, true, false)
             {
                 ui.ctx().copy_text(variable.full.clone());
                 ui.close();
             }
-            if kit::menu_item(ui, Icon::Trash, "Remove Watch", true, true) {
+            if kit::menu_item(ui, Icon::Trash, remove_watch, true, true) {
                 actions.push(PanelAction::RemoveWatch(index));
                 ui.close();
             }
@@ -399,8 +406,11 @@ pub fn breakpoints(
     if panel.state.breakpoints.is_empty() {
         placeholder(
             ui,
-            "No breakpoints",
-            "Click a line number to stop there, or press the breakpoint key on the caret's line.",
+            crate::ui::tr("No breakpoints", "Нет брейкпоинтов"),
+            crate::ui::tr(
+                "Click a line number to stop there, or press the breakpoint key on the caret's line.",
+                "Нажмите на номер строки для брейкпоинта или используйте горячую клавишу.",
+            ),
         );
         return;
     }
@@ -609,45 +619,51 @@ fn breakpoint_row(
             state.toggle_editor(stored);
         }
     }
-    let response = response.on_hover_text("Show this line");
+    let response = response.on_hover_text(crate::ui::tr("Show this line", "Показать эту строку"));
     if response.clicked() && !stored.unresolved {
         actions.push(PanelAction::GotoLine(spec.line));
     }
     egui::Popup::context_menu(&response)
         .frame(kit::menu_frame())
         .show(|ui| {
+            let edit_bp = crate::ui::tr("Edit Breakpoint…", "Редактировать брейкпоинт…");
+            let disable_bp = crate::ui::tr("Disable Breakpoint", "Отключить брейкпоинт");
+            let enable_bp = crate::ui::tr("Enable Breakpoint", "Включить брейкпоинт");
+            let remove_bp = crate::ui::tr("Remove Breakpoint", "Удалить брейкпоинт");
+            let remove_all = crate::ui::tr("Remove All Breakpoints", "Удалить все брейкпоинты");
+            let toggle_label = if spec.enabled { disable_bp } else { enable_bp };
             kit::menu_fit(
                 ui,
                 &[
-                    "Edit Breakpoint…",
-                    "Disable Breakpoint",
-                    "Remove Breakpoint",
-                    "Remove All Breakpoints",
+                    edit_bp.as_ref(),
+                    toggle_label.as_ref(),
+                    remove_bp.as_ref(),
+                    remove_all.as_ref(),
                 ],
             );
             ui.spacing_mut().item_spacing.y = 0.0;
-            if kit::menu_item(ui, Icon::Pencil, "Edit Breakpoint…", true, false) {
+            if kit::menu_item(ui, Icon::Pencil, edit_bp, true, false) {
                 state.toggle_editor(stored);
                 ui.close();
             }
-            let (icon, label) = if spec.enabled {
-                (Icon::EyeSlash, "Disable Breakpoint")
+            let icon = if spec.enabled {
+                Icon::EyeSlash
             } else {
-                (Icon::Eye, "Enable Breakpoint")
+                Icon::Eye
             };
-            if kit::menu_item(ui, icon, label, true, false) {
+            if kit::menu_item(ui, icon, toggle_label, true, false) {
                 actions.push(PanelAction::SetBreakpointEnabled {
                     id: spec.id,
                     enabled: !spec.enabled,
                 });
                 ui.close();
             }
-            if kit::menu_item(ui, Icon::Trash, "Remove Breakpoint", true, true) {
+            if kit::menu_item(ui, Icon::Trash, remove_bp, true, true) {
                 actions.push(PanelAction::RemoveBreakpoint(spec.id));
                 ui.close();
             }
             kit::menu_separator(ui);
-            if kit::menu_item(ui, Icon::Trash, "Remove All Breakpoints", true, true) {
+            if kit::menu_item(ui, Icon::Trash, remove_all, true, true) {
                 actions.push(PanelAction::RemoveAllBreakpoints);
                 ui.close();
             }

@@ -468,17 +468,21 @@ fn caption(ui: &mut Ui, text: impl Into<String>, color: Color32) {
 pub fn preview(ui: &mut Ui, state: &mut ActivityState, input: &ActivityInput) {
     section(
         ui,
-        "Recent activity",
-        Some(
+        crate::ui::tr("Recent activity", "Недавняя активность"),
+        Some(crate::ui::tr(
             "What connected clients asked DegenView to do, newest first. Kept on this Mac only, and holds ids and results, never what a request contained.",
-        ),
+            "Действия подключённых клиентов, сначала новые. Хранится только на этом компьютере и содержит идентификаторы и результаты.",
+        )),
         |ui| {
             if input.entries.is_empty() {
                 card(ui, |ui| {
                     ui.add_space(2.0);
                     caption(
                         ui,
-                        "Nothing yet. Calls from connected clients appear here.",
+                        crate::ui::tr(
+                            "Nothing yet. Calls from connected clients appear here.",
+                            "Пока ничего нет. Вызовы от подключённых клиентов появятся здесь.",
+                        ),
                         theme::text_secondary(),
                     );
                     ui.add_space(2.0);
@@ -924,7 +928,10 @@ fn list(
                 if input.entries.is_empty() {
                     caption(
                         ui,
-                        "Nothing yet. Calls from connected clients appear here.",
+                        crate::ui::tr(
+                            "Nothing yet. Calls from connected clients appear here.",
+                            "Пока ничего нет. Вызовы от подключённых клиентов появятся здесь.",
+                        ),
                         theme::text_secondary(),
                     );
                 } else {

@@ -19,7 +19,6 @@ impl ChartWorkspace {
     pub(in crate::workspace) fn sync_paper_quotes(&mut self, host: &mut PaperHost) {
         let now = Instant::now();
         let wall_clock = crate::clock::now_ms();
-        let timeframe = self.timeframe;
         let mut snapshot_demand = Vec::new();
         for chart in &mut self.charts {
             if !chart.is_market() || !Self::supports_paper_trading(chart.source) {
@@ -31,7 +30,7 @@ impl ChartWorkspace {
             }
             // Bars that may be minutes old cannot price an order: those charts are priced from
             // the market's real-time snapshot instead.
-            let quote = if chart.source.bars_are_real_time(timeframe) {
+            let quote = if chart.source.bars_are_real_time(chart.timeframe) {
                 chart.candles.last().and_then(|candle| {
                     paper_quote(
                         instrument.key,

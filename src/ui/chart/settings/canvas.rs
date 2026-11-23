@@ -18,6 +18,7 @@ use crate::ui::chart::card::ChartCard;
 use crate::ui::icons::Icon;
 use crate::ui::kit;
 use crate::ui::settings::card;
+use crate::ui::tr;
 use eframe::egui::{self, Id, Sense, Stroke, StrokeKind, Ui, vec2};
 
 /// The width of a switch: the column rows without one keep free (or put a preview in), so the
@@ -59,14 +60,17 @@ pub fn show(
 
     section_title(
         ui,
-        "Chart basic styles",
-        Some("The page the chart is drawn on. Colors you leave alone follow the app theme."),
+        tr("Chart basic styles", "Основные стили графика"),
+        Some(tr(
+            "The page the chart is drawn on. Colors you leave alone follow the app theme.",
+            "Холст графика. Неизменённые цвета следуют системной теме.",
+        )),
     );
     background_row(ui, canvas, &defaults);
     grid_row(
         ui,
-        "Vertical grid lines",
-        "Drawn on the time axis' labels.",
+        tr("Vertical grid lines", "Вертикальная сетка"),
+        tr("Drawn on the time axis' labels.", "Линии по меткам шкалы времени."),
         Icon::SplitColumns,
         &mut canvas.vertical_grid,
         swatch(
@@ -77,8 +81,8 @@ pub fn show(
     );
     grid_row(
         ui,
-        "Horizontal grid lines",
-        "Drawn on the price axis' labels.",
+        tr("Horizontal grid lines", "Горизонтальная сетка"),
+        tr("Drawn on the price axis' labels.", "Линии по меткам ценовой шкалы."),
         Icon::List,
         &mut canvas.horizontal_grid,
         swatch(
@@ -108,28 +112,32 @@ pub fn show(
     readout_row(ui, &mut canvas.ohlc_readout);
 
     ui.add_space(16.0);
-    section_title(ui, "Scales", Some("The price and time axes."));
+    section_title(ui, tr("Scales", "Шкалы"), Some(tr("The price and time axes.", "Оси цены и времени.")));
     scales_rows(ui, canvas, &defaults);
 
     ui.add_space(16.0);
     section_title(
         ui,
-        "Buttons",
-        Some(
+        tr("Buttons", "Кнопки"),
+        Some(tr(
             "Hiding a button group hides only the buttons: the wheel, the trackpad and the keyboard still work.",
-        ),
+            "Скрытие кнопок убирает только кнопки: колесо мыши, трекпад и клавиатура продолжают работать.",
+        )),
     );
     button_rows(ui, canvas);
 
     ui.add_space(16.0);
-    section_title(ui, "Margins", Some("The room around the price range."));
+    section_title(ui, tr("Margins", "Отступы"), Some(tr("The room around the price range.", "Свободное пространство вокруг диапазона цен.")));
     margin_rows(ui, id, &mut canvas.margins);
 
     ui.add_space(12.0);
     let changed = *canvas != ChartCanvas::default();
     ui.horizontal(|ui| {
-        if kit::push_button(ui, Some(Icon::Undo), "Reset Canvas to Defaults", changed)
-            .on_hover_text("Puts every setting on this page back. Candle colors and the chart type are not touched.")
+        if kit::push_button(ui, Some(Icon::Undo), tr("Reset Canvas to Defaults", "Сброс холста по умолчанию"), changed)
+            .on_hover_text(tr(
+                "Puts every setting on this page back. Candle colors and the chart type are not touched.",
+                "Возвращает все настройки холста к стандартным. Цвета свечей и тип графика не затрагиваются.",
+            ))
             .clicked()
         {
             card.appearance_mut().canvas = ChartCanvas::default();
@@ -158,22 +166,26 @@ fn background_row(ui: &mut Ui, canvas: &mut ChartCanvas, defaults: &CanvasStyle)
     let background = &mut canvas.background;
     let modes: Vec<String> = BackgroundMode::ALL
         .iter()
-        .map(|mode| mode.label().to_owned())
+        .map(|mode| match mode {
+            BackgroundMode::Solid => tr("Solid", "Сплошной").to_owned(),
+            BackgroundMode::Gradient => tr("Gradient", "Градиент").to_owned(),
+        })
         .collect();
     card::card_reserving(
         ui,
         Icon::Palette,
-        "Background",
-        Some(
+        tr("Background", "Фон"),
+        Some(tr(
             "One color, or a gradient from top to bottom, behind the plot, its scales and every pane.",
-        ),
+            "Сплошной цвет или вертикальный градиент под графиком, шкалами и панелями.",
+        )),
         WIDE,
         |ui| {
             let custom = match background.mode {
                 BackgroundMode::Solid => background.solid.is_some(),
                 BackgroundMode::Gradient => background.top.is_some() || background.bottom.is_some(),
             };
-            if custom && kit::push_button(ui, None, "Reset", true).clicked() {
+            if custom && kit::push_button(ui, None, tr("Reset", "Сброс"), true).clicked() {
                 match background.mode {
                     BackgroundMode::Solid => background.solid = None,
                     BackgroundMode::Gradient => {
@@ -184,17 +196,17 @@ fn background_row(ui: &mut Ui, canvas: &mut ChartCanvas, defaults: &CanvasStyle)
             }
             match background.mode {
                 BackgroundMode::Solid => {
-                    well(ui, "Background color", &mut background.solid, surface);
+                    well(ui, tr("Background color", "Цвет фона"), &mut background.solid, surface);
                 }
                 BackgroundMode::Gradient => {
                     // Right to left: the bottom stop first, so the top reads first.
                     well(
                         ui,
-                        "Gradient bottom color",
+                        tr("Gradient bottom color", "Нижний цвет"),
                         &mut background.bottom,
                         bottom_default,
                     );
-                    well(ui, "Gradient top color", &mut background.top, surface);
+                    well(ui, tr("Gradient top color", "Верхний цвет"), &mut background.top, surface);
                 }
             }
             let selected = BackgroundMode::ALL
@@ -250,7 +262,11 @@ fn well(ui: &mut Ui, name: &str, slot: &mut Option<Rgba>, default: Rgba) {
 fn dash_labels() -> Vec<String> {
     LineDash::ALL
         .iter()
-        .map(|dash| dash.label().to_owned())
+        .map(|dash| match dash {
+            LineDash::Solid => tr("Solid", "Сплошная").to_owned(),
+            LineDash::Dashed => tr("Dashed", "Штриховая").to_owned(),
+            LineDash::Dotted => tr("Dotted", "Точечная").to_owned(),
+        })
         .collect()
 }
 
@@ -284,15 +300,16 @@ fn separator_row(ui: &mut Ui, id: Id, line: &mut LineAppearance, default: Rgba, 
         card::card(
             ui,
             Icon::Layers,
-            "Pane separators",
-            Some(
+            tr("Pane separators", "Разделители панелей"),
+            Some(tr(
                 "The line between the price chart and a script's pane. It appears once a script with its own pane is on the chart.",
-            ),
+                "Линия между графиком цены и панелью скрипта. Появится при наличии индикатора на отдельной панели.",
+            )),
             |ui| {
                 ui.add_enabled(
                     false,
                     egui::Label::new(crate::ui::kit::text(
-                        "No panes",
+                        tr("No panes", "Нет панелей"),
                         11.0,
                         kit::REGULAR,
                         crate::ui::theme::text_tertiary(),
@@ -305,15 +322,18 @@ fn separator_row(ui: &mut Ui, id: Id, line: &mut LineAppearance, default: Rgba, 
     card::card_reserving(
         ui,
         Icon::Layers,
-        "Pane separators",
-        Some("The line between the price chart and each script pane."),
+        tr("Pane separators", "Разделители панелей"),
+        Some(tr(
+            "The line between the price chart and each script pane.",
+            "Линия между графиком цены и каждой панелью скрипта.",
+        )),
         WIDE + 80.0,
         |ui| {
             card::switch(ui, &mut line.visible);
             if line.visible {
                 width_stepper(ui, id.with("separator-width"), &mut line.width);
                 dash_picker(ui, &mut line.dash);
-                color_control(ui, "Pane separators", &mut line.color, default);
+                color_control(ui, tr("Pane separators", "Разделители панелей"), &mut line.color, default);
             }
         },
     );
@@ -323,14 +343,17 @@ fn crosshair_row(ui: &mut Ui, id: Id, line: &mut LineAppearance, default: Rgba) 
     card::card_reserving(
         ui,
         Icon::Plus,
-        "Crosshair",
-        Some("The lines that follow the pointer. Color, opacity, thickness and style."),
+        tr("Crosshair", "Перекрестие"),
+        Some(tr(
+            "The lines that follow the pointer. Color, opacity, thickness and style.",
+            "Линии, следующие за курсором. Цвет, прозрачность, толщина и стиль.",
+        )),
         WIDE + 80.0,
         |ui| {
             ui.add_space(SWITCH_COLUMN + ui.spacing().item_spacing.x);
             width_stepper(ui, id.with("crosshair-width"), &mut line.width);
             dash_picker(ui, &mut line.dash);
-            color_control(ui, "Crosshair", &mut line.color, default);
+            color_control(ui, tr("Crosshair", "Перекрестие"), &mut line.color, default);
         },
     );
 }
@@ -353,23 +376,28 @@ fn watermark_row(ui: &mut Ui, canvas: &mut ChartCanvas, default: Rgba) {
         .collect();
     let labels: Vec<String> = options
         .iter()
-        .map(|(_, label)| (*label).to_owned())
+        .map(|(mode, _)| match mode {
+            WatermarkMode::Hidden => tr("Hidden", "Скрыт").to_owned(),
+            WatermarkMode::Symbol => tr("Symbol and timeframe", "Символ и таймфрейм").to_owned(),
+            WatermarkMode::Replay => tr("Replay only", "Только в реплее").to_owned(),
+        })
         .collect();
     let selected = options
         .iter()
         .position(|(mode, _)| *mode == watermark.mode)
         .unwrap_or(0);
     let hint = match watermark.mode {
-        WatermarkMode::Hidden => "A faint market name behind the candles. Off.",
-        WatermarkMode::Symbol => "The market and its timeframe, behind the candles.",
-        WatermarkMode::Replay => {
-            "The market and its timeframe, behind the candles while a replay is running."
-        }
+        WatermarkMode::Hidden => tr("A faint market name behind the candles. Off.", "Полупрозрачное имя рынка на фоне. Отключено."),
+        WatermarkMode::Symbol => tr("The market and its timeframe, behind the candles.", "Название рынка и таймфрейм на фоне свечей."),
+        WatermarkMode::Replay => tr(
+            "The market and its timeframe, behind the candles while a replay is running.",
+            "Название рынка и таймфрейм на фоне свечей во время реплея.",
+        ),
     };
-    card::card_reserving(ui, Icon::Tag, "Watermark", Some(hint), 250.0, |ui| {
+    card::card_reserving(ui, Icon::Tag, tr("Watermark", "Водяной знак"), Some(hint), 250.0, |ui| {
         ui.add_space(SWITCH_COLUMN + ui.spacing().item_spacing.x);
         if watermark.mode != WatermarkMode::Hidden {
-            color_control(ui, "Watermark", &mut watermark.color, default);
+            color_control(ui, tr("Watermark", "Водяной знак"), &mut watermark.color, default);
         }
         if let Some(index) = kit::menu_picker(ui, 120.0, &labels, selected, true) {
             watermark.mode = options[index].0;
@@ -382,11 +410,17 @@ fn watermark_row(ui: &mut Ui, canvas: &mut ChartCanvas, default: Rgba) {
 /// The box of values under the crosshair, on or off. The crosshair lines and tags stay either way.
 fn readout_row(ui: &mut Ui, on: &mut bool) {
     let hint = if *on {
-        "Open, high, low and close under the crosshair, with volume where the market has it."
+        tr(
+            "Open, high, low and close under the crosshair, with volume where the market has it.",
+            "Цены открытия, максимума, минимума и закрытия под курсором (с объёмом).",
+        )
     } else {
-        "The values box under the crosshair is hidden. The crosshair itself stays."
+        tr(
+            "The values box under the crosshair is hidden. The crosshair itself stays.",
+            "Информационный блок под курсором скрыт. Перекрестие отображается.",
+        )
     };
-    card::card(ui, Icon::Eye, "OHLC values", Some(hint), |ui| {
+    card::card(ui, Icon::Eye, tr("OHLC values", "Значения OHLC"), Some(hint), |ui| {
         card::switch(ui, on);
     });
 }
@@ -403,13 +437,16 @@ fn scales_rows(ui: &mut Ui, canvas: &mut ChartCanvas, defaults: &CanvasStyle) {
     card::card_reserving(
         ui,
         Icon::TextFormat,
-        "Text",
-        Some("The size and color of the price and time labels."),
+        tr("Text", "Шрифт"),
+        Some(tr(
+            "The size and color of the price and time labels.",
+            "Размер и цвет подписей цен и времени.",
+        )),
         WIDE - 80.0,
         |ui| {
             color_control(
                 ui,
-                "Scale text",
+                tr("Scale text", "Шрифт шкал"),
                 &mut scales.text_color,
                 swatch(defaults.text_color),
             );
@@ -421,12 +458,15 @@ fn scales_rows(ui: &mut Ui, canvas: &mut ChartCanvas, defaults: &CanvasStyle) {
     card::card(
         ui,
         Icon::LineDiagonal,
-        "Lines",
-        Some("The lines that bound the price and time axes."),
+        tr("Lines", "Линии"),
+        Some(tr(
+            "The lines that bound the price and time axes.",
+            "Линии, ограничивающие ценовую и временную шкалы.",
+        )),
         |ui| {
             color_control(
                 ui,
-                "Scale lines",
+                tr("Scale lines", "Линии шкал"),
                 &mut scales.line_color,
                 swatch(defaults.scale_line),
             );
@@ -440,15 +480,15 @@ fn button_rows(ui: &mut Ui, canvas: &mut ChartCanvas) {
     visibility_row(
         ui,
         Icon::ArrowLeftRight,
-        "Navigation",
-        "Zoom, scroll and reset, at the foot of the chart.",
+        tr("Navigation", "Навигация"),
+        tr("Zoom, scroll and reset, at the foot of the chart.", "Масштабирование, прокрутка и сброс внизу графика."),
         &mut canvas.buttons.navigation,
     );
     visibility_row(
         ui,
         Icon::Layers,
-        "Pane",
-        "Move, collapse, maximize and remove, on each script pane.",
+        tr("Pane", "Панели"),
+        tr("Move, collapse, maximize and remove, on each script pane.", "Перемещение, сворачивание, разворачивание и удаление на панелях скриптов."),
         &mut canvas.buttons.pane,
     );
 }
@@ -460,7 +500,11 @@ fn visibility_row(ui: &mut Ui, icon: Icon, title: &str, hint: &str, value: &mut 
         .collect();
     let labels: Vec<String> = options
         .iter()
-        .map(|(_, label)| (*label).to_owned())
+        .map(|(option, _)| match option {
+            ButtonVisibility::Always => tr("Always visible", "Всегда видны").to_owned(),
+            ButtonVisibility::OnHover => tr("Visible on mouse over", "При наведении").to_owned(),
+            ButtonVisibility::Never => tr("Never visible", "Скрыты").to_owned(),
+        })
         .collect();
     let selected = options
         .iter()
@@ -486,8 +530,11 @@ fn margin_rows(ui: &mut Ui, id: Id, margins: &mut ChartMargins) {
         ui,
         id.with("margin-top"),
         Icon::Percent,
-        "Top",
-        Some("Percent of the chart's height kept free above the highest price."),
+        tr("Top", "Сверху"),
+        Some(tr(
+            "Percent of the chart's height kept free above the highest price.",
+            "Процент высоты графика над наивысшей ценой.",
+        )),
         &mut top,
         0..=i64::from(top_room),
     ) {
@@ -501,8 +548,11 @@ fn margin_rows(ui: &mut Ui, id: Id, margins: &mut ChartMargins) {
         ui,
         id.with("margin-bottom"),
         Icon::Percent,
-        "Bottom",
-        Some("Percent of the chart's height kept free below the lowest price."),
+        tr("Bottom", "Снизу"),
+        Some(tr(
+            "Percent of the chart's height kept free below the lowest price.",
+            "Процент высоты графика под наименьшей ценой.",
+        )),
         &mut bottom,
         0..=i64::from(bottom_room),
     ) {
@@ -513,8 +563,11 @@ fn margin_rows(ui: &mut Ui, id: Id, margins: &mut ChartMargins) {
         ui,
         id.with("margin-right"),
         Icon::Hash,
-        "Right",
-        Some("Bars of empty space after the newest bar."),
+        tr("Right", "Справа"),
+        Some(tr(
+            "Bars of empty space after the newest bar.",
+            "Количество пустых баров справа от последнего.",
+        )),
         &mut right,
         0..=i64::from(ChartMargins::MAX_RIGHT),
     ) {

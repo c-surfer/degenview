@@ -4,6 +4,7 @@
 use crate::model::ChartSyncSettings;
 use crate::ui::kit::{self, MEDIUM, REGULAR, SEMIBOLD, size};
 use crate::ui::theme;
+use crate::ui::tr;
 use eframe::egui::{
     self, Id, Rect, Sense, Stroke, StrokeKind, Ui, WidgetInfo, WidgetType, pos2, vec2,
 };
@@ -16,10 +17,10 @@ const PADDING: f32 = 10.0;
 /// What the toolbar button says, for its tooltip and its accessibility name.
 pub fn summary(settings: ChartSyncSettings) -> &'static str {
     match (settings.horizontal_position, settings.horizontal_zoom) {
-        (false, false) => "Link charts",
-        (true, false) => "Link charts: position",
-        (false, true) => "Link charts: zoom",
-        (true, true) => "Link charts: position and zoom",
+        (false, false) => tr("Link charts", "Связывание графиков"),
+        (true, false) => tr("Link charts: position", "Связывание графиков: позиция"),
+        (false, true) => tr("Link charts: zoom", "Связывание графиков: масштаб"),
+        (true, true) => tr("Link charts: position and zoom", "Связывание графиков: позиция и масштаб"),
     }
 }
 
@@ -39,7 +40,7 @@ pub fn show(
     ui.horizontal(|ui| {
         ui.add_space(PADDING);
         ui.label(kit::text(
-            "Link charts",
+            tr("Link charts", "Связывание графиков"),
             size::HEADLINE,
             SEMIBOLD,
             theme::text_primary(),
@@ -49,27 +50,44 @@ pub fn show(
     option(
         ui,
         "link-position",
-        "Sync horizontal position",
-        "Panning one chart moves the others to the same point in time.",
+        tr("Sync horizontal position", "Синхронизировать позицию по времени"),
+        tr(
+            "Panning one chart moves the others to the same point in time.",
+            "Перемещение одного графика сдвигает остальные к той же точке времени.",
+        ),
         &mut next.horizontal_position,
     );
     option(
         ui,
         "link-zoom",
-        "Sync zoom level",
-        "Zooming one chart adjusts the others.",
+        tr("Sync zoom level", "Синхронизировать масштаб"),
+        tr(
+            "Zooming one chart adjusts the others.",
+            "Масштабирование одного графика меняет масштаб остальных.",
+        ),
         &mut next.horizontal_zoom,
     );
     kit::menu_separator(ui);
-    note(ui, "Vertical scales remain independent.");
+    note(
+        ui,
+        tr(
+            "Vertical scales remain independent.",
+            "Вертикальные ценовые шкалы остаются независимыми.",
+        ),
+    );
     if !excluded.is_empty() {
-        note(
-            ui,
-            &format!(
+        let msg = if crate::ui::i18n::is_ru() {
+            format!(
+                "Не связаны: {}. Типы графиков на основе цены не имеют общего времени.",
+                excluded.join(", ")
+            )
+        } else {
+            format!(
                 "Not linked: {}. Price-based chart types have no shared time.",
                 excluded.join(", ")
-            ),
-        );
+            )
+        };
+        note(ui, &msg);
     }
     ui.add_space(4.0);
     (next != current).then_some(next)
@@ -192,5 +210,15 @@ mod tests {
             output.textures_delta.clear();
         }
         assert!(heights[1] > heights[0], "a note makes the popover taller");
+    }
+
+    #[test]
+    fn test_link_charts_localization() {
+        crate::ui::i18n::set_lang(crate::ui::i18n::LANG_RU);
+        assert_eq!(summary(ChartSyncSettings { horizontal_position: false, horizontal_zoom: false }), "Связывание графиков");
+        assert_eq!(summary(ChartSyncSettings { horizontal_position: true, horizontal_zoom: false }), "Связывание графиков: позиция");
+        assert_eq!(summary(ChartSyncSettings { horizontal_position: false, horizontal_zoom: true }), "Связывание графиков: масштаб");
+        assert_eq!(summary(ChartSyncSettings { horizontal_position: true, horizontal_zoom: true }), "Связывание графиков: позиция и масштаб");
+        crate::ui::i18n::set_lang(crate::ui::i18n::LANG_EN);
     }
 }

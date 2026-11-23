@@ -69,7 +69,7 @@ pub(super) fn statistics_hero(
         ui,
         pos2(chip.right() + 9.0, chip.center().y),
         Align2::LEFT_CENTER,
-        "Total P&L",
+        crate::ui::tr("Total P&L", "Общий P&L"),
         15.0,
         SEMIBOLD,
         theme::text_primary(),
@@ -78,7 +78,7 @@ pub(super) fn statistics_hero(
         ui,
         pos2(name.right() + 6.0, chip.center().y),
         Align2::LEFT_CENTER,
-        "\u{00B7} All time",
+        crate::ui::tr("\u{00B7} All time", "\u{00B7} За всё время"),
         15.0,
         REGULAR,
         secondary,
@@ -111,7 +111,7 @@ pub(super) fn statistics_hero(
             ui,
             pos2(figure.right() + 5.0, caption_middle),
             Align2::LEFT_CENTER,
-            "on cost basis",
+            crate::ui::tr("on cost basis", "от базовой стоимости"),
             kit::size::CAPTION,
             REGULAR,
             secondary,
@@ -122,7 +122,7 @@ pub(super) fn statistics_hero(
             ui,
             pos2(inner.left(), caption_middle),
             Align2::LEFT_CENTER,
-            "No cost basis yet",
+            crate::ui::tr("No cost basis yet", "Базовая стоимость ещё не сформирована"),
             kit::size::CAPTION,
             REGULAR,
             secondary,
@@ -162,7 +162,7 @@ fn composition(ui: &Ui, f: PortfolioValueFormatter, room: Rect, stats: &Portfoli
         ui,
         pos2(room.left(), top),
         Align2::LEFT_TOP,
-        "Breakdown",
+        crate::ui::tr("Breakdown", "Структура"),
         kit::size::CAPTION,
         REGULAR,
         secondary,
@@ -202,7 +202,10 @@ fn composition(ui: &Ui, f: PortfolioValueFormatter, room: Rect, stats: &Portfoli
         );
     }
 
-    for (index, (label, figure)) in [("Unrealized", open), ("Realized", banked)]
+    for (index, (label, figure)) in [
+        (crate::ui::tr("Unrealized", "Нереализованный"), open),
+        (crate::ui::tr("Realized", "Реализованный"), banked),
+    ]
         .into_iter()
         .enumerate()
     {

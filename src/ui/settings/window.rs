@@ -73,20 +73,20 @@ impl SettingsSection {
 
     pub fn title(self) -> &'static str {
         match self {
-            Self::Appearance => "Appearance",
+            Self::Appearance => crate::ui::tr("Appearance", "Внешний вид"),
             Self::PineStudio => "Pine Studio",
             Self::Alpaca => "Alpaca",
-            Self::Brokers => "Brokers",
+            Self::Brokers => crate::ui::tr("Brokers", "Брокеры"),
             Self::CoinMarketCap => "CoinMarketCap",
-            Self::Ai => "AI Assistant",
-            Self::Notifications => "Notifications",
-            Self::Webhooks => "Webhooks",
-            Self::Snapshots => "Snapshots",
-            Self::Network => "Network",
-            Self::Storage => "Storage",
+            Self::Ai => crate::ui::tr("AI Assistant", "AI Ассистент"),
+            Self::Notifications => crate::ui::tr("Notifications", "Уведомления"),
+            Self::Webhooks => crate::ui::tr("Webhooks", "Вебхуки"),
+            Self::Snapshots => crate::ui::tr("Snapshots", "Снимки"),
+            Self::Network => crate::ui::tr("Network", "Сеть"),
+            Self::Storage => crate::ui::tr("Storage", "Хранилище"),
             Self::Mcp => "MCP Server",
-            Self::Sync => "iCloud Sync",
-            Self::About => "About",
+            Self::Sync => crate::ui::tr("iCloud Sync", "iCloud Синхронизация"),
+            Self::About => crate::ui::tr("About", "О программе"),
         }
     }
 
@@ -138,6 +138,8 @@ pub enum SettingsAction {
     Storage(StorageAction),
     /// A theme tile on the Appearance page was picked.
     SetTheme(crate::ui::theme::AppTheme),
+    /// A language on the Appearance page was picked.
+    SetLanguage(crate::ui::i18n::UiLanguage),
     /// A tab title style on the Appearance page was picked (or restored to the default).
     SetTabTitleStyle(crate::model::tab::title::TabTitleStyle),
     /// A switch on the Notifications page changed: the whole new settings value.
@@ -280,22 +282,28 @@ impl NotificationSwitch {
 
     pub fn title(self) -> &'static str {
         match self {
-            Self::Delivery => "Price Alert Delivery",
-            Self::Sound => "Sound",
-            Self::InAppBanners => "In-App Banners",
-            Self::MacosNotifications => "macOS Notifications",
+            Self::Delivery => crate::ui::tr("Price Alert Delivery", "Доставка ценовых алертов"),
+            Self::Sound => crate::ui::tr("Sound", "Звуковой сигнал"),
+            Self::InAppBanners => crate::ui::tr("In-App Banners", "Баннеры в приложении"),
+            Self::MacosNotifications => crate::ui::tr("macOS Notifications", "Системные уведомления"),
         }
     }
 
     pub fn hint(self) -> &'static str {
         match self {
             Self::Delivery => {
-                "Evaluate armed alerts and deliver them when their conditions are met."
+                crate::ui::tr(
+                    "Evaluate armed alerts and deliver them when their conditions are met.",
+                    "Отслеживание активных алертов и доставка при срабатывании условий.",
+                )
             }
-            Self::Sound => "Play an alert sound when a notification is delivered.",
-            Self::InAppBanners => "Show alerts inside DegenView while the app is open.",
+            Self::Sound => crate::ui::tr("Play an alert sound when a notification is delivered.", "Воспроизводить звук при доставке уведомления."),
+            Self::InAppBanners => crate::ui::tr("Show alerts inside DegenView while the app is open.", "Показывать всплывающие уведомления внутри DegenView при открытом окне."),
             Self::MacosNotifications => {
-                "Send alerts through Notification Center, including in the background."
+                crate::ui::tr(
+                    "Send alerts through Notification Center, including in the background.",
+                    "Отправлять оповещения через центр уведомлений системы, в том числе в фоне.",
+                )
             }
         }
     }
@@ -415,7 +423,10 @@ pub fn show(
             page_shell(
                 &mut page,
                 section,
-                "Choose how DegenView looks across every window and chart.",
+                crate::ui::tr(
+                    "Choose how DegenView looks across every window and chart.",
+                    "Настройка внешнего вида DegenView для всех окон и графиков.",
+                ),
                 |ui| {
                     if let Some(theme) =
                         crate::ui::settings::appearance::body(ui, crate::ui::theme::choice())
@@ -427,6 +438,12 @@ pub fn show(
                         crate::ui::settings::appearance::tabs(ui, input.tab_title_style)
                     {
                         actions.push(SettingsAction::SetTabTitleStyle(style));
+                    }
+                    ui.add_space(22.0);
+                    if let Some(lang) =
+                        crate::ui::settings::appearance::language(ui, crate::ui::i18n::language())
+                    {
+                        actions.push(SettingsAction::SetLanguage(lang));
                     }
                 },
             );
@@ -444,7 +461,10 @@ pub fn show(
             page_shell(
                 &mut page,
                 section,
-                "Connect Alpaca to chart US stocks and ETFs in DegenView.",
+                crate::ui::tr(
+                    "Connect Alpaca to chart US stocks and ETFs in DegenView.",
+                    "Подключение Alpaca для построения графиков акций и ETF США в DegenView.",
+                ),
                 |ui| api_keys::alpaca_body(ui, &mut state.api_keys, store),
             );
         }
@@ -452,7 +472,10 @@ pub fn show(
             page_shell(
                 &mut page,
                 section,
-                "Connect a broker to trade for real from your charts. Paper trading is separate.",
+                crate::ui::tr(
+                    "Connect a broker to trade for real from your charts. Paper trading is separate.",
+                    "Подключение брокера для реальной торговли с графиков. Демо-торговля настраивается отдельно.",
+                ),
                 |ui| {
                     if let Some(prefs) = crate::ui::settings::brokers::body(
                         ui,
@@ -469,7 +492,10 @@ pub fn show(
             page_shell(
                 &mut page,
                 section,
-                "Market sentiment charts, with optional higher API rate limits.",
+                crate::ui::tr(
+                    "Market sentiment charts, with optional higher API rate limits.",
+                    "Графики рыночных настроений с возможностью увеличения лимитов API.",
+                ),
                 |ui| api_keys::coinmarketcap_body(ui, &mut state.api_keys, store),
             );
         }
@@ -478,7 +504,10 @@ pub fn show(
             page_shell(
                 &mut page,
                 section,
-                "Describe a change and an AI model edits your Pine script, using your own API key.",
+                crate::ui::tr(
+                    "Describe a change and an AI model edits your Pine script, using your own API key.",
+                    "Опишите желаемые изменения, и нейросеть отредактирует Pine-скрипт с вашим API-ключом.",
+                ),
                 |ui| crate::ui::settings::ai::body(ui, &mut state.ai, &input.ai, &mut ai_actions),
             );
             actions.extend(ai_actions.into_iter().map(SettingsAction::Ai));
@@ -488,7 +517,10 @@ pub fn show(
             page_shell(
                 &mut page,
                 section,
-                "Route DegenView's connections through a proxy, such as the one your VPN or network sets.",
+                crate::ui::tr(
+                    "Route DegenView's connections through a proxy, such as the one your VPN or network sets.",
+                    "Маршрутизация соединений DegenView через прокси-сервер вашей сети или VPN.",
+                ),
                 |ui| {
                     crate::ui::settings::network::body(
                         ui,
@@ -504,7 +536,10 @@ pub fn show(
             page_shell(
                 &mut page,
                 section,
-                "Choose how DegenView delivers price alerts and check on background delivery.",
+                crate::ui::tr(
+                    "Choose how DegenView delivers price alerts and check on background delivery.",
+                    "Настройка доставки ценовых уведомлений и проверка фоновой работы.",
+                ),
                 |ui| notifications_page(ui, input, &mut actions),
             );
         }
@@ -513,7 +548,10 @@ pub fn show(
             page_shell(
                 &mut page,
                 section,
-                "Logos and lookups saved on this computer so they appear instantly.",
+                crate::ui::tr(
+                    "Logos and lookups saved on this computer so they appear instantly.",
+                    "Логотипы и кэш данных, сохранённые на этом компьютере для мгновенной загрузки.",
+                ),
                 |ui| storage::body(ui, &mut state.storage, &mut storage_actions),
             );
             actions.extend(storage_actions.into_iter().map(SettingsAction::Storage));
@@ -523,7 +561,10 @@ pub fn show(
             page_shell(
                 &mut page,
                 section,
-                "Let AI assistants and automation on this Mac inspect DegenView, with permissions you control.",
+                crate::ui::tr(
+                    "Let AI assistants and automation on this Mac inspect DegenView, with permissions you control.",
+                    "Разрешите AI-ассистентам взаимодействовать с DegenView с контролируемыми правами.",
+                ),
                 |ui| mcp::body(ui, &mut state.mcp, &input.mcp, &mut mcp_actions),
             );
             actions.extend(mcp_actions.into_iter().map(SettingsAction::Mcp));
@@ -533,7 +574,10 @@ pub fn show(
             page_shell(
                 &mut page,
                 section,
-                "Share a picture of a chart, and choose what it shows.",
+                crate::ui::tr(
+                    "Share a picture of a chart, and choose what it shows.",
+                    "Публикация скриншотов графиков и настройка их отображения.",
+                ),
                 |ui| {
                     crate::ui::settings::snapshots::body(
                         ui,
@@ -558,7 +602,10 @@ pub fn show(
             page_shell(
                 &mut page,
                 section,
-                "Keep your watchlists, layouts, drawings, templates, scripts, portfolios and paper trading the same on every Mac.",
+                crate::ui::tr(
+                    "Keep your watchlists, layouts, drawings, templates, scripts, portfolios and paper trading the same on every Mac.",
+                    "Синхронизация списков наблюдения, слоев, рисунков, шаблонов и скриптов.",
+                ),
                 |ui| crate::ui::settings::sync::body(ui, input.sync, input.now_ms),
             );
         }
@@ -567,7 +614,10 @@ pub fn show(
             page_shell(
                 &mut page,
                 section,
-                "Send alert messages to external HTTP endpoints, such as a trading bot or a chat channel.",
+                crate::ui::tr(
+                    "Send alert messages to external HTTP endpoints, such as a trading bot or a chat channel.",
+                    "Отправка алертов на внешние HTTP-эндпоинты (торговые боты, вебхуки, чаты).",
+                ),
                 |ui| webhook_actions = settings::body(ui, &mut state.webhooks, &input.webhooks),
             );
             actions.extend(webhook_actions.into_iter().map(SettingsAction::Webhook));
@@ -752,7 +802,7 @@ impl NotificationSwitch {
 }
 
 fn notifications_page(ui: &mut egui::Ui, input: &SettingsInput, actions: &mut Vec<SettingsAction>) {
-    section(ui, "Delivery", None, |ui| {
+    section(ui, crate::ui::tr("Delivery", "Доставка уведомлений"), None, |ui| {
         for (index, switch) in NotificationSwitch::available().enumerate() {
             if index > 0 {
                 ui.add_space(10.0);
@@ -774,12 +824,12 @@ fn notifications_page(ui: &mut egui::Ui, input: &SettingsInput, actions: &mut Ve
         }
     });
 
-    section(ui, "Paper trading", None, |ui| {
+    section(ui, crate::ui::tr("Paper trading", "Демо-торговля"), None, |ui| {
         card::card(
             ui,
             Icon::SpeakerWave,
-            "Fill sound",
-            Some("Play a sound when a paper order is filled."),
+            crate::ui::tr("Fill sound", "Звук исполнения"),
+            Some(crate::ui::tr("Play a sound when a paper order is filled.", "Воспроизводить звук при исполнении демо-ордера.")),
             |ui| {
                 let prefs = input.trading_hub.paper_prefs();
                 let mut value = prefs.fill_sound;

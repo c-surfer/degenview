@@ -116,12 +116,22 @@ pub fn show(ctx: &egui::Context, view: &UpdateView, installed: &str) -> Option<O
     let ((), outside) = sheet::show_dismissable(ctx, id, WIDTH, |ui| {
         ui.add_space(TOP_SPACE);
         sheet::inset(ui, |ui| {
+            let title = if crate::ui::i18n::is_ru() {
+                format!("Обновление до DegenView {version}")
+            } else {
+                format!("Update to DegenView {version}")
+            };
+            let subtitle = if crate::ui::i18n::is_ru() {
+                format!("У вас установлена {installed}.")
+            } else {
+                format!("You have {installed}.")
+            };
             sheet::header_picture(
                 ui,
                 art::SIZE,
                 PICTURE_LEAD,
-                &format!("Update to DegenView {version}"),
-                &format!("You have {installed}."),
+                &title,
+                &subtitle,
                 art::paint,
             );
         });
@@ -146,9 +156,9 @@ pub fn show(ctx: &egui::Context, view: &UpdateView, installed: &str) -> Option<O
         });
         sheet::footer(ui, |ui| {
             let label = if *installable {
-                "Update"
+                crate::ui::tr("Update", "Обновить")
             } else {
-                "View Release"
+                crate::ui::tr("View Release", "Перейти к релизу")
             };
             if kit::sheet_button_focusable(ui, primary_id, ring, label, true, true).clicked() {
                 outcome = Some(if *installable {
@@ -157,8 +167,15 @@ pub fn show(ctx: &egui::Context, view: &UpdateView, installed: &str) -> Option<O
                     Outcome::ViewRelease
                 });
             }
-            if kit::sheet_button_focusable(ui, id.with("cancel"), ring, "Cancel", false, true)
-                .clicked()
+            if kit::sheet_button_focusable(
+                ui,
+                id.with("cancel"),
+                ring,
+                crate::ui::tr("Cancel", "Отмена"),
+                false,
+                true,
+            )
+            .clicked()
             {
                 outcome = Some(Outcome::Cancel);
             }
@@ -227,7 +244,7 @@ fn changes(ui: &mut Ui, notes: &ReleaseNotes, coverage: &Coverage) {
     if notes.is_empty() {
         ui.add(
             egui::Label::new(kit::text(
-                NO_NOTES,
+                crate::ui::tr(NO_NOTES, "Для этой версии нет описания изменений."),
                 size::BODY,
                 REGULAR,
                 theme::text_secondary(),
@@ -236,7 +253,10 @@ fn changes(ui: &mut Ui, notes: &ReleaseNotes, coverage: &Coverage) {
         );
         return;
     }
-    let groups = [("New", &notes.new), ("Fixed", &notes.fixed)];
+    let groups = [
+        (crate::ui::tr("New", "Новое"), &notes.new),
+        (crate::ui::tr("Fixed", "Исправлено"), &notes.fixed),
+    ];
     for (index, (title, entries)) in groups
         .into_iter()
         .filter(|(_, entries)| !entries.is_empty())
@@ -296,7 +316,7 @@ fn release_notes_link(ui: &mut Ui, url: &str) {
         .add(
             egui::Label::new(
                 kit::text(
-                    "Full release notes",
+                    crate::ui::tr("Full release notes", "Полные примечания к выпуску"),
                     DETAIL_TEXT,
                     REGULAR,
                     theme::text_secondary(),

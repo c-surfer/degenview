@@ -104,7 +104,7 @@ fn market(ui: &mut Ui, area: Rect, result: &SearchResult, detail: &Detail) -> Op
         Some(related) => {
             let heading = kit::galley(
                 ui,
-                "ALSO TRADES AS",
+                crate::ui::t("ALSO TRADES AS"),
                 11.5,
                 SEMIBOLD,
                 theme::text_tertiary(),
@@ -293,7 +293,7 @@ fn stat_row(ui: &Ui, at: Pos2, width: f32, label: &str, value: &str) -> f32 {
 fn about_text(ui: &Ui, area: Rect, inner: Rect, top: f32, about: &str) {
     let heading = kit::galley(
         ui,
-        "ABOUT",
+        crate::ui::t("ABOUT"),
         11.5,
         SEMIBOLD,
         theme::text_tertiary(),
@@ -429,11 +429,11 @@ fn price_line(
 fn status_line(ui: &Ui, at: Pos2, result: &SearchResult, quote: Option<&WatchlistQuote>) -> f32 {
     let (text, open) = match result.source {
         DataSource::Alpaca => match quote.map(|quote| quote.freshness) {
-            Some(Freshness::Live) => ("Market open", true),
-            Some(Freshness::MarketClosed) => ("Market closed", false),
+            Some(Freshness::Live) => (crate::ui::t("Market open"), true),
+            Some(Freshness::MarketClosed) => (crate::ui::t("Market closed"), false),
             _ => return 0.0,
         },
-        _ => ("Open 24/7", true),
+        _ => (crate::ui::t("Open 24/7"), true),
     };
     let galley = kit::galley(
         ui,
@@ -462,7 +462,7 @@ fn venue_line(ui: &Ui, at: Pos2, result: &SearchResult) -> f32 {
         "" => market_kind(result.source),
         kind => kind,
     };
-    let text = format!("{} · {kind}", result.source.display_name());
+    let text = format!("{} · {}", result.source.display_name(), crate::ui::t(kind));
     let galley = kit::galley(
         ui,
         &text,

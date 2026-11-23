@@ -34,6 +34,7 @@ pub enum BackgroundMode {
 impl BackgroundMode {
     pub const ALL: [Self; 2] = [Self::Solid, Self::Gradient];
 
+    #[allow(dead_code)]
     pub const fn label(self) -> &'static str {
         match self {
             Self::Solid => "Solid",

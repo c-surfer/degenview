@@ -100,9 +100,12 @@ pub enum PanelAction {
 /// The toolbar's assistant button: lit while its panel is open.
 pub fn panel_button<A, M>(panel_open: bool, on_click: A) -> bar::Button<A, M> {
     let tip = if panel_open {
-        "Hide the assistant"
+        crate::ui::tr("Hide the assistant", "Скрыть ассистента")
     } else {
-        "Ask an AI assistant to change this script"
+        crate::ui::tr(
+            "Ask an AI assistant to change this script",
+            "Попросить ИИ-ассистента изменить этот скрипт",
+        )
     };
     bar::Button::new("ai", tip)
         .icon(Icon::Sparkles)

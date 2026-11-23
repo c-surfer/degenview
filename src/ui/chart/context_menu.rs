@@ -161,6 +161,7 @@ fn icon_for(item: &Item) -> Option<Icon> {
     Some(match item.command.as_ref()? {
         Command::CopyPrice => Icon::CopyDoc,
         Command::Paste => Icon::Clipboard,
+        Command::DuplicateChart => Icon::CopyDoc,
         Command::AddAlert => Icon::Bell,
         Command::QuickOrder(order) => match order.side {
             PaperOrderSide::Sell => Icon::ArrowDown,
@@ -182,7 +183,7 @@ fn icon_for(item: &Item) -> Option<Icon> {
         Command::OpenSettings | Command::PaneSettings(_) => Icon::Sliders,
         Command::EditAlert(_) => Icon::Pencil,
         Command::PineLogs(_) => Icon::DocText,
-        Command::CancelOrder(_) | Command::ClosePosition(_) => Icon::Xmark,
+        Command::CancelOrder(_) | Command::ClosePosition(_) | Command::CloseChart => Icon::Xmark,
         _ => return None,
     })
 }
@@ -211,7 +212,7 @@ fn rows(ui: &mut egui::Ui, entries: &[Entry], focus: Option<usize>) -> Rows {
         match entry {
             Entry::Heading(text) => {
                 let before = ui.cursor().top();
-                kit::menu_heading(ui, text);
+                kit::menu_heading(ui, crate::ui::t(text));
                 out.rects.push(Rect::from_min_size(
                     pos2(ui.min_rect().left(), before),
                     vec2(0.0, HEADING),
@@ -239,7 +240,7 @@ fn rows(ui: &mut egui::Ui, entries: &[Entry], focus: Option<usize>) -> Rows {
                         chevron: !item.children.is_empty(),
                         destructive: item.destructive,
                         focused: focus == Some(index),
-                        ..kit::MenuRow::new(&item.label)
+                        ..kit::MenuRow::new(crate::ui::t(&item.label))
                     },
                 );
                 if let Some(reason) = item.disabled {
@@ -280,7 +281,7 @@ fn measure(ui: &egui::Ui, entries: &[Entry]) -> f32 {
         .map(|item| {
             let label = kit::galley(
                 ui,
-                &item.label,
+                crate::ui::t(&item.label),
                 kit::size::BODY,
                 kit::REGULAR,
                 egui::Color32::WHITE,

@@ -41,12 +41,12 @@ impl AlertTab {
 
     pub fn title(self) -> &'static str {
         match self {
-            Self::Active => "Active",
-            Self::Triggered => "Triggered",
-            Self::Paused => "Paused",
-            Self::All => "All",
-            Self::History => "History",
-            Self::Scripts => "Scripts",
+            Self::Active => crate::ui::tr("Active", "Активные"),
+            Self::Triggered => crate::ui::tr("Triggered", "Сработавшие"),
+            Self::Paused => crate::ui::tr("Paused", "На паузе"),
+            Self::All => crate::ui::tr("All", "Все"),
+            Self::History => crate::ui::tr("History", "История"),
+            Self::Scripts => crate::ui::tr("Scripts", "Скрипты"),
         }
     }
 
@@ -181,7 +181,7 @@ pub fn summary(alerts: &[PriceAlert]) -> String {
     })
     .collect();
     if parts.is_empty() {
-        "No price alerts yet".to_owned()
+        crate::ui::tr("No price alerts yet", "Ценовых оповещений пока нет").to_owned()
     } else {
         parts.join(" · ")
     }
@@ -339,15 +339,24 @@ pub fn runtime_badge(health: &AlertRuntimeHealth) -> (&'static str, Tone, &'stat
         && health.owner == crate::model::alert::AlertRuntimeOwner::Agent
     {
         (
-            "Background agent active",
+            crate::ui::tr("Background agent active", "Фоновый агент активен"),
             Tone::Good,
-            "Alerts keep being checked when DegenView is closed.",
+            crate::ui::tr(
+                "Alerts keep being checked when DegenView is closed.",
+                "Оповещения продолжают проверяться при закрытом DegenView.",
+            ),
         )
     } else {
         (
-            "Foreground evaluation only",
+            crate::ui::tr(
+                "Foreground evaluation only",
+                "Проверка только при активном окне",
+            ),
             Tone::Warning,
-            "Alerts are only checked while DegenView is open.",
+            crate::ui::tr(
+                "Alerts are only checked while DegenView is open.",
+                "Оповещения проверяются, только пока DegenView открыт.",
+            ),
         )
     }
 }
@@ -358,32 +367,56 @@ pub fn empty_message(
     any_in_tab: bool,
 ) -> (&'static str, &'static str) {
     if searching && any_in_tab {
-        return ("No Results", "Check the spelling or try a new search.");
+        return (
+            crate::ui::tr("No Results", "Нет результатов"),
+            crate::ui::tr(
+                "Check the spelling or try a new search.",
+                "Проверьте написание или попробуйте другой поиск.",
+            ),
+        );
     }
     match tab {
         AlertTab::Active => (
-            "No Active Alerts",
-            "Click the bell on a chart to alert on a price.",
+            crate::ui::tr("No Active Alerts", "Нет активных оповещений"),
+            crate::ui::tr(
+                "Click the bell on a chart to alert on a price.",
+                "Нажмите на колокольчик на графике, чтобы создать оповещение по цене.",
+            ),
         ),
         AlertTab::Triggered => (
-            "Nothing Triggered",
-            "An alert that fires once waits here until you re-enable it.",
+            crate::ui::tr("Nothing Triggered", "Нет сработавших"),
+            crate::ui::tr(
+                "An alert that fires once waits here until you re-enable it.",
+                "Оповещение, сработавшее один раз, ожидает здесь повторной активации.",
+            ),
         ),
         AlertTab::Paused => (
-            "Nothing Paused",
-            "Paused alerts wait here until you resume them.",
+            crate::ui::tr("Nothing Paused", "Нет оповещений на паузе"),
+            crate::ui::tr(
+                "Paused alerts wait here until you resume them.",
+                "Оповещения на паузе отображаются здесь до их возобновления.",
+            ),
         ),
         AlertTab::All => (
-            "No Alerts",
-            "Click the bell on a chart to alert on a price.",
+            crate::ui::tr("No Alerts", "Нет оповещений"),
+            crate::ui::tr(
+                "Click the bell on a chart to alert on a price.",
+                "Нажмите на колокольчик на графике, чтобы создать оповещение по цене.",
+            ),
         ),
         AlertTab::History => (
-            "No Trigger History",
-            "Every time an alert fires it is logged here.",
+            crate::ui::tr("No Trigger History", "История срабатываний пуста"),
+            crate::ui::tr(
+                "Every time an alert fires it is logged here.",
+                "Каждое срабатывание оповещения записывается сюда.",
+            ),
         ),
         AlertTab::Scripts => (
-            "No Script Alerts",
-            "Alerts raised by your Pine scripts appear here.",
+            crate::ui::tr("No Script Alerts", "Нет скриптовых оповещений"),
+            crate::ui::tr(
+                "Alerts raised by your Pine scripts appear here.",
+                "Оповещения от ваших Pine-скриптов будут появляться здесь.",
+            ),
         ),
     }
 }
@@ -496,7 +529,7 @@ fn header(
             &mut field,
             Id::new(SEARCH_ID),
             &mut state.search,
-            "Search asset or name",
+            crate::ui::tr("Search asset or name", "Поиск актива или названия"),
             260.0,
         );
         let (badge_text, tone, help) = runtime_badge(input.health);
@@ -510,7 +543,7 @@ fn header(
         let width = runtime.left() - 12.0 - left;
         let title = kit::galley(
             ui,
-            "Alerts",
+            crate::ui::tr("Alerts", "Оповещения"),
             kit::size::TITLE2 + 1.0,
             kit::SEMIBOLD,
             theme::text_primary(),

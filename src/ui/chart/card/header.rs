@@ -19,9 +19,11 @@ impl ChartCard {
         watchlists: &[WatchlistMembership],
         action: &mut ChartCardAction,
         drag_id: u64,
+        multi: bool,
     ) {
         let header_width = ui.available_width();
         let price_change = self.visible_move(candles);
+        let show_close = multi || source == DataSource::CoinMarketCap;
         // The change sits beside the price now, so the right end holds the star and little else.
         let paper_price = if self.paper.trading_enabled {
             candles
@@ -31,6 +33,12 @@ impl ChartCard {
             None
         };
         let live_pills = self.live.pills_visible();
+        let buttons_width = if show_close {
+            BTN_SIZE * 2.0 + BTN_GAP
+        } else {
+            BTN_SIZE
+        };
+        let buttons_reserved = buttons_width + BUTTONS_GAP_AFTER;
         let reserved = 108.0
             + paper_price.as_deref().map_or(0.0, |price_text| {
                 chart_trading::quick_trade_width(ui, price_text) + 8.0
@@ -44,11 +52,11 @@ impl ChartCard {
             } else {
                 0.0
             }
-            // The star and the gap after it.
-            + STAR_END
-            // And what the pills need beyond the star to stay clear of the price axis.
+            // The star and close buttons and the gap after them.
+            + buttons_reserved
+            // And what the pills need beyond the buttons to stay clear of the price axis.
             + if paper_price.is_some() || live_pills {
-                (self.axis_clearance() - STAR_END).max(0.0)
+                (self.axis_clearance() - buttons_reserved).max(0.0)
             } else {
                 0.0
             };
@@ -99,12 +107,18 @@ impl ChartCard {
                             - indicator_space
                             - if show_replay_badge { 72.0 } else { 0.0 })
                         .max(20.0);
+                        let title_text = match self.timeframe {
+                            Some(tf) => {
+                                format!("{}, {}", self.display_title(symbol, source), tf.label())
+                            }
+                            None => self.display_title(symbol, source),
+                        };
                         if ui
                             .scope(|ui| {
                                 ui.set_max_width(title_max_width);
                                 ui.add(
                                     egui::Label::new(
-                                        egui::RichText::new(self.display_title(symbol, source))
+                                        egui::RichText::new(title_text)
                                             .size(13.0)
                                             .strong(),
                                     )
@@ -122,7 +136,7 @@ impl ChartCard {
                             // The size and fill of an indicator pill (chart_indicator_strip).
                             let label = crate::ui::kit::galley(
                                 ui,
-                                "Replay",
+                                crate::ui::t("Replay"),
                                 10.0,
                                 crate::ui::kit::MEDIUM,
                                 crate::ui::kit::primary(0.7),
@@ -237,18 +251,8 @@ impl ChartCard {
                 });
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if source == DataSource::CoinMarketCap
-                        && icons::button(
-                            ui,
-                            Icon::Xmark,
-                            27.0,
-                            theme::text_secondary(),
-                            "Remove Chart",
-                        )
-                        .clicked()
-                    {
-                        action.remove_requested = true;
-                    }
+                    ui.spacing_mut().item_spacing.x = BUTTONS_GAP_AFTER;
+
                     let favorite_icon = if is_favorite {
                         Icon::StarFill
                     } else {
@@ -260,22 +264,41 @@ impl ChartCard {
                         theme::text_secondary()
                     };
                     let favorite_tip = if is_favorite {
-                        "Remove from watchlist"
+                        crate::ui::tr("Remove from watchlist", "Удалить из избранного")
                     } else {
-                        "Add to watchlist"
+                        crate::ui::tr("Add to watchlist", "Добавить в избранное")
                     };
-                    ui.spacing_mut().item_spacing.x = 4.0;
-                    // At the header's top, not centred in it: the star then sits the same distance
-                    // from the card's top edge as from its right edge.
+
                     let favorite = ui
                         .allocate_ui_with_layout(
-                            Vec2::new(27.0, HEADER_HEIGHT),
+                            Vec2::new(buttons_width, HEADER_HEIGHT),
                             egui::Layout::top_down(egui::Align::Min),
                             |ui| {
-                                // The star's points sit low in its square and its sides inset
-                                // from it: lift it until the two margins read the same.
-                                ui.add_space(-3.5);
-                                icons::button(ui, favorite_icon, 27.0, favorite_color, favorite_tip)
+                                ui.add_space(-1.0);
+                                ui.horizontal(|ui| {
+                                    ui.spacing_mut().item_spacing.x = BTN_GAP;
+                                    let fav = icons::button(
+                                        ui,
+                                        favorite_icon,
+                                        BTN_SIZE,
+                                        favorite_color,
+                                        favorite_tip,
+                                    );
+                                    if show_close
+                                        && icons::button(
+                                            ui,
+                                            Icon::Xmark,
+                                            BTN_SIZE,
+                                            theme::text_secondary(),
+                                            crate::ui::tr("Remove chart", "Закрыть график"),
+                                        )
+                                        .clicked()
+                                    {
+                                        action.remove_requested = true;
+                                    }
+                                    fav
+                                })
+                                .inner
                             },
                         )
                         .inner;
@@ -342,8 +365,14 @@ impl ChartCard {
     }
 }
 
-/// How far from the header's right edge the star's own room reaches: its width and the gap after.
-const STAR_END: f32 = 27.0 + 4.0;
+/// Compact size for the header buttons (favorite star and close cross).
+const BTN_SIZE: f32 = 22.0;
+
+/// Spacing between the star and close buttons in the unified container.
+const BTN_GAP: f32 = 3.0;
+
+/// Gap after the button group before adjacent elements like trade pills.
+const BUTTONS_GAP_AFTER: f32 = 4.0;
 
 /// The gap between the trade pills and the price axis they must stay left of.
 const AXIS_GAP: f32 = 8.0;

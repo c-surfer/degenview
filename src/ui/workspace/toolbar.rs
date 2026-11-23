@@ -83,6 +83,7 @@ pub enum ToolbarAction {
     CompareSymbol,
     /// A type picked from the chart-type menu, for the focused chart.
     SetChartType(ChartType),
+    ApplyGridPreset(crate::model::GridLayoutPreset),
     SaveLayout,
     ToggleAutosave,
     CopyLayout,
@@ -113,11 +114,11 @@ pub enum ToolbarAction {
 /// The tooltip of the Replay button.
 pub fn replay_tooltip(replay_open: bool, has_market: bool) -> &'static str {
     if replay_open {
-        "Close Replay"
+        crate::ui::t("Close Replay")
     } else if has_market {
-        "Historical Replay"
+        crate::ui::t("Historical Replay")
     } else {
-        "Historical Replay — add a market chart first"
+        crate::ui::t("Historical Replay — add a market chart first")
     }
 }
 
@@ -126,6 +127,7 @@ pub fn replay_tooltip(replay_open: bool, has_market: bool) -> &'static str {
 enum Menu {
     ChartType,
     Timeframe,
+    GridPreset,
     Layout,
     Snapshot,
 }
@@ -167,6 +169,7 @@ pub fn show(ui: &mut Ui, input: &ToolbarInput) -> Vec<ToolbarAction> {
                     None => {}
                 }
             }
+            Menu::GridPreset => grid_preset_popup(ui, response, actions),
             Menu::Layout => layout_popup(ui, response, input, actions),
             Menu::Snapshot => {
                 match crate::ui::workspace::snapshot_menu::menu(ui, response, &input.snapshot) {
@@ -206,34 +209,41 @@ fn left_items(input: &ToolbarInput) -> Vec<Item> {
     // Beside the symbol, as TradingView has it: another market on this chart. The Compare page
     // of the chart settings opens the same picker.
     items.push(Item::Button(
-        Button::new("compare", "Compare or add symbol")
+        Button::new("compare", crate::ui::t("Compare or add symbol"))
             .icon(Icon::PlusCircle)
             .enabled(input.chart.is_some_and(|chart| chart.compare))
             .on_click(ToolbarAction::CompareSymbol),
     ));
     items.push(Item::Separator);
     // One button for the tab's timeframe; its popover lists the presets and the pinned ones.
-    let mut timeframe = Button::new("timeframe", "Timeframe")
+    let mut timeframe = Button::new("timeframe", crate::ui::tr("Timeframe", "Таймфрейм"))
         .label(input.timeframe.label())
         .chevron()
         .with_menu(Menu::Timeframe);
     timeframe.keep_label = true;
     timeframe.weight = SEMIBOLD;
-    timeframe.access = Some(format!(
-        "Timeframe: {}. Choose another",
-        input.timeframe.description()
-    ));
+    timeframe.access = Some(if crate::ui::is_ru() {
+        format!(
+            "Таймфрейм: {}. Выберите другой",
+            input.timeframe.description()
+        )
+    } else {
+        format!(
+            "Timeframe: {}. Choose another",
+            input.timeframe.description()
+        )
+    });
     items.push(Item::Button(timeframe));
     items.push(Item::Separator);
     let indicators_tip = if input.chart.is_some_and(|chart| !chart.indicators) {
-        "Indicators: this chart takes none"
+        crate::ui::t("Indicators: this chart takes none")
     } else {
-        "Indicators: add one to the focused chart"
+        crate::ui::t("Indicators: add one to the focused chart")
     };
     items.push(Item::Button(
         Button::new("indicators", indicators_tip)
             .icon(Icon::Waveform)
-            .label("Indicators")
+            .label(crate::ui::t("Indicators"))
             .enabled(input.chart.is_some_and(|chart| chart.indicators))
             .on_click(ToolbarAction::OpenIndicators),
     ));
@@ -241,8 +251,11 @@ fn left_items(input: &ToolbarInput) -> Vec<Item> {
     let chart_type = input
         .chart
         .map_or(ChartType::Candles, |chart| chart.chart_type);
-    let mut type_button = Button::new("chart-type", format!("Chart type: {}", chart_type.label()))
-        .enabled(input.chart.is_some_and(|chart| chart.chart_types));
+    let mut type_button = Button::new(
+        "chart-type",
+        format!("{}: {}", crate::ui::t("Chart type"), crate::ui::t(chart_type.label())),
+    )
+    .enabled(input.chart.is_some_and(|chart| chart.chart_types));
     type_button.glyph = Some(Glyph::Custom(Arc::new(move |painter, rect, color| {
         type_menu::glyph(painter, rect, chart_type, color);
     })));
@@ -261,7 +274,7 @@ fn left_items(input: &ToolbarInput) -> Vec<Item> {
     replay.tint = Some(theme::REPLAY);
     items.push(Item::Button(replay));
     items.push(Item::Button(
-        Button::new("alert", "Create price alert")
+        Button::new("alert", crate::ui::t("Create price alert"))
             .icon(Icon::BellPlus)
             .enabled(
                 input
@@ -273,16 +286,22 @@ fn left_items(input: &ToolbarInput) -> Vec<Item> {
     items.push(Item::Separator);
 
     items.push(Item::Button(
-        Button::new("undo", format!("Undo ({})", shortcut::UNDO.label()))
-            .icon(Icon::Undo)
-            .enabled(input.can_undo)
-            .on_click(ToolbarAction::Undo),
+        Button::new(
+            "undo",
+            crate::ui::tr("Undo ({})", "Отменить ({})").replace("{}", &shortcut::UNDO.label()),
+        )
+        .icon(Icon::Undo)
+        .enabled(input.can_undo)
+        .on_click(ToolbarAction::Undo),
     ));
     items.push(Item::Button(
-        Button::new("redo", format!("Redo ({})", shortcut::REDO.label()))
-            .icon(Icon::Redo)
-            .enabled(input.can_redo)
-            .on_click(ToolbarAction::Redo),
+        Button::new(
+            "redo",
+            crate::ui::tr("Redo ({})", "Повторить ({})").replace("{}", &shortcut::REDO.label()),
+        )
+        .icon(Icon::Redo)
+        .enabled(input.can_redo)
+        .on_click(ToolbarAction::Redo),
     ));
     items
 }
@@ -306,26 +325,34 @@ fn right_items(input: &ToolbarInput) -> Vec<Item> {
     layout.menu = Some(Menu::Layout);
     layout.access = Some(format!("Layout: {help}"));
 
-    let mut snapshot = Button::new("snapshot", "Take a snapshot")
+    let mut grid_preset = Button::new(
+        "grid-preset",
+        crate::ui::tr("Select grid layout", "Выбрать сетку графиков"),
+    )
+    .icon(Icon::RectLeft);
+    grid_preset.menu = Some(Menu::GridPreset);
+
+    let mut snapshot = Button::new("snapshot", crate::ui::tr("Take a snapshot", "Снимок экрана"))
         .icon(Icon::Camera)
         .enabled(input.chart.is_some())
         .busy(input.snapshot.working);
     snapshot.menu = Some(Menu::Snapshot);
 
     let watchlist_tip = if input.watchlist_visible {
-        "Hide Watchlists"
+        crate::ui::tr("Hide Watchlists", "Скрыть списки котировок")
     } else {
-        "Show Watchlists"
+        crate::ui::tr("Show Watchlists", "Список наблюдения")
     };
     let market_flow_tip = if input.market_flow_visible {
-        "Hide Market Flow"
+        crate::ui::tr("Hide Market Flow", "Скрыть рыночный поток")
     } else {
-        "Show Market Flow"
+        crate::ui::tr("Show Market Flow", "Рыночный поток")
     };
     vec![
+        Item::Button(grid_preset),
         Item::Button(layout),
         Item::Button(
-            Button::new("chart-settings", "Chart settings")
+            Button::new("chart-settings", crate::ui::tr("Chart settings", "Свойства графика"))
                 .icon(Icon::Gear)
                 .enabled(input.chart.is_some_and(|chart| chart.settings))
                 .on_click(ToolbarAction::OpenChartSettings),
@@ -333,7 +360,7 @@ fn right_items(input: &ToolbarInput) -> Vec<Item> {
         Item::Button(snapshot),
         Item::Separator,
         Item::Button(
-            Button::new("portfolio", "Portfolio Tracker")
+            Button::new("portfolio", crate::ui::tr("Portfolio Tracker", "Портфолио"))
                 .icon(Icon::Briefcase)
                 .on_click(ToolbarAction::OpenPortfolio),
         ),
@@ -358,6 +385,51 @@ fn right_items(input: &ToolbarInput) -> Vec<Item> {
     ]
 }
 
+/// The menu for picking a multi-chart grid preset in the style of TradingView.
+fn grid_preset_popup(
+    ui: &mut Ui,
+    response: &Response,
+    actions: &mut Vec<ToolbarAction>,
+) {
+    let presets = [
+        (
+            crate::model::GridLayoutPreset::Single,
+            crate::ui::tr("1 chart", "1 график"),
+        ),
+        (
+            crate::model::GridLayoutPreset::TwoColumns,
+            crate::ui::tr("2 charts", "2 графика"),
+        ),
+        (
+            crate::model::GridLayoutPreset::ThreeLeftFocus,
+            crate::ui::tr("3 charts", "3 графика"),
+        ),
+        (
+            crate::model::GridLayoutPreset::FourGrid,
+            crate::ui::tr("4 charts", "4 графика"),
+        ),
+        (
+            crate::model::GridLayoutPreset::FiveSplit,
+            crate::ui::tr("5 charts", "5 графиков"),
+        ),
+    ];
+
+    let rows: Vec<(&str, Option<&str>)> = presets
+        .iter()
+        .map(|(_, label)| (*label, None))
+        .collect();
+
+    kit::fitted_menu_rows(ui, response, egui::RectAlign::BOTTOM_END, &rows, |ui| {
+        for (preset, label) in presets {
+            let icon = Icon::RectLeft;
+            if kit::menu_item(ui, icon, label, true, false) {
+                actions.push(ToolbarAction::ApplyGridPreset(preset));
+                ui.close();
+            }
+        }
+    });
+}
+
 /// The menu under the layout button: what can be done with the layout.
 fn layout_popup(
     ui: &mut Ui,
@@ -368,11 +440,16 @@ fn layout_popup(
     // As wide as the fixed rows and the layout names need. A layout row also holds a trash button
     // at its end, which the two em spaces stand in for when measuring.
     let save_hint = shortcut::SAVE.label();
+    let save_str = crate::ui::tr("Save layout", "Сохранить слой");
+    let autosave_str = crate::ui::tr("Autosave", "Автосохранение");
+    let copy_str = crate::ui::tr("Make a copy", "Сделать копию");
+    let rename_str = crate::ui::tr("Rename", "Переименовать");
+
     let mut rows: Vec<(&str, Option<&str>)> = vec![
-        ("Save layout", Some(&save_hint)),
-        ("Autosave", None),
-        ("Make a copy", None),
-        ("Rename", None),
+        (save_str, Some(&save_hint)),
+        (autosave_str, None),
+        (copy_str, None),
+        (rename_str, None),
     ];
     rows.extend(
         input
@@ -384,7 +461,7 @@ fn layout_popup(
         if kit::menu_item_with_shortcut(
             ui,
             Icon::Download,
-            "Save layout",
+            save_str,
             Some(&shortcut::SAVE.label()),
             true,
             false,
@@ -400,7 +477,7 @@ fn layout_popup(
         if kit::menu_item(
             ui,
             Icon::CopyDoc,
-            "Make a copy",
+            copy_str,
             input.active_layout.is_some(),
             false,
         ) {
@@ -410,7 +487,7 @@ fn layout_popup(
         if kit::menu_item(
             ui,
             Icon::Pencil,
-            "Rename",
+            rename_str,
             input.active_layout.is_some(),
             false,
         ) {
@@ -423,7 +500,7 @@ fn layout_popup(
             ui.horizontal(|ui| {
                 ui.add_space(10.0);
                 ui.label(kit::text(
-                    "Layouts",
+                    crate::ui::tr("Layouts", "Слои"),
                     size::CAPTION + 0.5,
                     SEMIBOLD,
                     theme::text_tertiary(),
@@ -475,7 +552,7 @@ fn autosave_row(ui: &mut Ui, state: AutosaveState) -> bool {
             color,
         );
     }
-    let label = kit::galley(ui, "Autosave", size::BODY, REGULAR, color, width - 70.0);
+    let label = kit::galley(ui, crate::ui::tr("Autosave", "Автосохранение"), size::BODY, REGULAR, color, width - 70.0);
     let label_width = label.size().x;
     painter.galley(
         pos2(rect.left() + 32.0, rect.center().y - label.size().y / 2.0),
@@ -496,19 +573,19 @@ fn autosave_row(ui: &mut Ui, state: AutosaveState) -> bool {
     let response = crate::ui::accessibility::label(
         response,
         if state.on {
-            "Autosave, on"
+            crate::ui::t("Autosave, on")
         } else {
-            "Autosave, off"
+            crate::ui::t("Autosave, off")
         },
     );
     let response = if state.available {
         response.on_hover_text(if state.failed {
-            "The last autosave could not be written. Choose Save layout."
+            crate::ui::t("The last autosave could not be written. Choose Save layout.")
         } else {
-            "Write changes to this layout a moment after you make them."
+            crate::ui::t("Write changes to this layout a moment after you make them.")
         })
     } else {
-        response.on_hover_text("Save the layout first, then Autosave can keep it up to date.")
+        response.on_hover_text(crate::ui::t("Save the layout first, then Autosave can keep it up to date."))
     };
     state.available && response.clicked()
 }
@@ -533,7 +610,7 @@ fn layout_row(ui: &mut Ui, id: u64, name: &str, current: bool) -> Option<LayoutR
             Id::new(("toolbar-layout-delete", id)),
             Sense::click(),
         )
-        .on_hover_text("Delete this layout");
+        .on_hover_text(crate::ui::t("Delete this layout"));
     let hovered = row.hovered() || delete.hovered();
     let painter = ui.painter();
     if hovered {

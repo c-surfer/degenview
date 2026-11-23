@@ -156,6 +156,79 @@ impl ChartWorkspace {
         }
     }
 
+    /// Adds a chart for `instrument` creating a new chart even if the same market is already charted.
+    pub fn force_add_chart_for(
+        &mut self,
+        instrument: &InstrumentId,
+        ctx: &egui::Context,
+    ) -> AddChartOutcome {
+        self.add_chart_with_symbol(&instrument.symbol, instrument.source, ctx);
+        let chart_id = self.charts.last().map_or(0, |chart| chart.id);
+        AddChartOutcome {
+            chart_id,
+            created: true,
+        }
+    }
+
+    /// Duplicates an existing chart by id into the grid.
+    pub fn duplicate_chart(&mut self, chart_id: u64, ctx: &egui::Context) -> Option<u64> {
+        let chart = self.charts.iter().find(|c| c.id == chart_id)?;
+        if let Some(card) = chart.card.clone() {
+            let id = self.fresh_id();
+            self.charts.push(Chart::portfolio_card(id, card));
+            self.place_in_grid(id);
+            self.focused = Some(id);
+            return Some(id);
+        }
+        let (instrument, title, image_url, scale_mode, indicators, appearance, timeframe) = (
+            InstrumentId::new(chart.source, &chart.symbol),
+            chart.chart.title().map(str::to_owned),
+            chart.image_url.clone(),
+            chart.scale_mode,
+            chart.indicators.clone(),
+            chart.chart.appearance(),
+            chart.timeframe,
+        );
+        let outcome = self.force_add_chart_for(&instrument, ctx);
+        let new_id = outcome.chart_id;
+        if let Some(new_chart) = self.charts.iter_mut().find(|c| c.id == new_id) {
+            if let Some(title) = title {
+                new_chart.chart.set_title(Some(title));
+            }
+            new_chart.image_url = image_url;
+            new_chart.scale_mode = scale_mode;
+            new_chart.indicators = indicators;
+            new_chart.chart.set_appearance(appearance);
+            new_chart.timeframe = timeframe;
+            if timeframe != self.timeframe {
+                new_chart.fetch(timeframe, ctx);
+            }
+        }
+        Some(new_id)
+    }
+
+    /// Sets a single market chart's timeframe and reloads its candles.
+    pub fn set_chart_timeframe(
+        &mut self,
+        chart_id: u64,
+        timeframe: Timeframe,
+        ctx: &egui::Context,
+    ) {
+        let Some(chart) = self
+            .charts
+            .iter_mut()
+            .find(|chart| chart.id == chart_id && chart.is_market())
+        else {
+            return;
+        };
+        chart.timeframe = timeframe;
+        chart.chart.reset_view();
+        chart.candles.clear();
+        chart.reset_history();
+        chart.forget_live();
+        chart.fetch(timeframe, ctx);
+    }
+
     /// Adds a portfolio card to the grid, or focuses the one already showing the same kind for
     /// the same portfolio. Cards have no market, so nothing is fetched.
     pub fn add_card(&mut self, card: PortfolioCard) -> AddChartOutcome {
@@ -280,10 +353,10 @@ impl ChartWorkspace {
         result: &SearchResult,
         ctx: &egui::Context,
     ) {
-        let timeframe = self.timeframe;
         let Some(chart) = self.charts.iter_mut().find(|chart| chart.id == chart_id) else {
             return;
         };
+        let timeframe = chart.timeframe;
         let (title, series) = match &result.event {
             Some(event) if !event.title.is_empty() => (event.title.clone(), event.series.clone()),
             Some(event) => (result.symbol.clone(), event.series.clone()),
@@ -303,15 +376,18 @@ impl ChartWorkspace {
             self.removing_chart = None;
             return;
         };
-        let title = format!("Remove {}?", chart.display_title());
+        let title = format!("{} {}?", crate::ui::tr("Remove", "Удалить"), chart.display_title());
         let result = crate::ui::kit::confirm(
             ctx,
             egui::Id::new("remove-chart"),
             &crate::ui::kit::Confirm {
                 icon: crate::ui::icons::Icon::Trash,
                 title: &title,
-                message: "The chart leaves this tab. You can add it again from the symbol search.",
-                destructive: "Remove",
+                message: crate::ui::tr(
+                    "The chart leaves this tab. You can add it again from the symbol search.",
+                    "График будет удален из этой вкладки. Вы можете снова добавить его через поиск символов.",
+                ),
+                destructive: crate::ui::tr("Remove", "Удалить"),
             },
         );
         if result == Some(crate::ui::kit::ConfirmOutcome::Confirmed) {
@@ -335,6 +411,7 @@ impl ChartWorkspace {
         self.forget_views(None);
         self.link_state.series_changed();
         for chart in &mut self.charts {
+            chart.timeframe = timeframe;
             chart.chart.reset_view();
             chart.candles.clear();
             chart.reset_history();
@@ -439,8 +516,8 @@ impl ChartWorkspace {
     /// The chart shows another market than its candles: loads them, and forgets what refers to
     /// the old ones (the views a zoom could go back to, the series Tab Linking compares).
     pub(in crate::workspace) fn market_changed(&mut self, chart_id: u64, ctx: &egui::Context) {
-        let timeframe = self.timeframe;
         if let Some(chart) = self.charts.iter_mut().find(|chart| chart.id == chart_id) {
+            let timeframe = chart.timeframe;
             chart.chart.reset_view();
             chart.chart.abort_drawing();
             chart.fetch(timeframe, ctx);
@@ -630,6 +707,51 @@ mod tests {
         assert_eq!(focused[0].id, eth.chart_id);
         assert_eq!(focused[0].display_symbol, "ETH-USD");
         assert!(!focused[0].is_line_chart);
+    }
+
+    #[test]
+    fn force_add_chart_for_creates_duplicate_chart() {
+        let ctx = egui::Context::default();
+        let mut workspace = empty_workspace(8);
+        let btc = InstrumentId::new(DataSource::Binance, "BTCUSDT");
+        let first = workspace.add_chart_for(&btc, &ctx);
+        assert!(first.created);
+        assert_eq!(workspace.chart_count(), 1);
+
+        let second = workspace.force_add_chart_for(&btc, &ctx);
+        assert!(second.created);
+        assert_ne!(first.chart_id, second.chart_id);
+        assert_eq!(workspace.chart_count(), 2);
+    }
+
+    #[test]
+    fn duplicate_chart_copies_chart_into_grid() {
+        let ctx = egui::Context::default();
+        let mut workspace = empty_workspace(9);
+        let btc = InstrumentId::new(DataSource::Binance, "BTCUSDT");
+        let first = workspace.add_chart_for(&btc, &ctx);
+        assert_eq!(workspace.chart_count(), 1);
+
+        let duplicated = workspace.duplicate_chart(first.chart_id, &ctx);
+        assert!(duplicated.is_some());
+        let new_id = duplicated.unwrap();
+        assert_ne!(new_id, first.chart_id);
+        assert_eq!(workspace.chart_count(), 2);
+        assert_eq!(workspace.focused, Some(new_id));
+    }
+
+    #[test]
+    fn add_chart_from_instrument_duplicates_when_already_open() {
+        let ctx = egui::Context::default();
+        let mut workspace = empty_workspace(10);
+        let btc = InstrumentId::new(DataSource::Binance, "BTCUSDT");
+        let item = WatchlistInstrument::new(btc.clone(), "BTCUSDT", "Bitcoin");
+        workspace.add_chart_from_instrument(&item, &ctx);
+        assert_eq!(workspace.chart_count(), 1);
+
+        // Explicit action from watchlist context menu adds duplicate chart
+        workspace.add_chart_from_instrument(&item, &ctx);
+        assert_eq!(workspace.chart_count(), 2);
     }
 
     #[test]

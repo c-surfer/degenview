@@ -46,11 +46,11 @@ pub(crate) fn recents_card(
     let mut clear = false;
     card(ui, |ui| {
         ui.horizontal(|ui| {
-            caption_label(ui, Icon::ClockArrow, "Recent");
+            caption_label(ui, Icon::ClockArrow, crate::ui::tr("Recent", "Недавние"));
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 let clear_button = ui.add(
                     egui::Label::new(text(
-                        "Clear",
+                        crate::ui::tr("Clear", "Очистить"),
                         size::CAPTION + 0.5,
                         400.0,
                         theme::text_secondary(),
@@ -78,7 +78,7 @@ pub(crate) fn recents_card(
                     let is_selected = selected.is_some_and(|picked| same_market(picked, &result));
                     let response = result_row(ui, &result, is_selected, true, column);
                     response.context_menu(|ui| {
-                        if ui.button("Remove from Recent").clicked() {
+                        if ui.button(crate::ui::tr("Remove from Recent", "Удалить из недавних")).clicked() {
                             remove = Some(row * RECENT_COLUMNS as usize + offset);
                             ui.close();
                         }

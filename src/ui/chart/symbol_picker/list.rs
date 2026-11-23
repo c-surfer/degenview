@@ -45,9 +45,9 @@ impl RowState {
     /// What the plus (and the menu's last item) does to the market.
     fn add_label(self) -> &'static str {
         if self.watchlist {
-            "Add to watchlist"
+            crate::ui::t("Add to watchlist")
         } else {
-            ADD_LABEL
+            crate::ui::t(ADD_LABEL)
         }
     }
 
@@ -253,7 +253,7 @@ pub fn marks(
     if state.highlighted && state.offers_overlay() {
         let compare = ui.interact(compare_mark, row_id(ui, result, "compare"), Sense::click());
         let compare = compare
-            .on_hover_text("Compare on this chart")
+            .on_hover_text(crate::ui::t("Compare on this chart"))
             .on_hover_cursor(egui::CursorIcon::PointingHand);
         let hot = compare.hovered();
         if hot {
@@ -320,7 +320,7 @@ pub fn venue_block(ui: &Ui, rect: Rect, right: f32, source: DataSource) -> f32 {
     );
     let kind = kit::galley(
         ui,
-        market_kind(source),
+        crate::ui::t(market_kind(source)),
         SUBTITLE_SIZE,
         REGULAR,
         theme::text_secondary(),
@@ -370,10 +370,22 @@ fn context_menu(
 ) {
     let replace = replacing
         .filter(|_| !state.comparing && !state.watchlist)
-        .map(|current| format!("Replace {current}"));
+        .map(|current| {
+            if crate::ui::is_ru() {
+                format!("Заменить {current}")
+            } else {
+                format!("Replace {current}")
+            }
+        });
     let compare = state.offers_overlay().then(|| match replacing {
-        Some(current) => format!("Compare with {current}"),
-        None => COMPARE_LABEL.to_owned(),
+        Some(current) => {
+            if crate::ui::is_ru() {
+                format!("Сравнить с {current}")
+            } else {
+                format!("Compare with {current}")
+            }
+        }
+        None => crate::ui::t(COMPARE_LABEL).to_owned(),
     });
     let compare_key = if state.comparing {
         REPLACE_KEY
@@ -484,7 +496,7 @@ pub fn related_row(ui: &mut Ui, result: &SearchResult, width: f32) -> bool {
     source_logo::paint(ui, result.source, logo);
     let kind = kit::galley(
         ui,
-        trading_kind(result.source),
+        crate::ui::t(trading_kind(result.source)),
         SUBTITLE_SIZE + 1.0,
         REGULAR,
         theme::text_secondary(),

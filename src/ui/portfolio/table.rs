@@ -58,11 +58,50 @@ pub fn paint_asset_icon(ui: &egui::Ui, rect: egui::Rect, asset: &PortfolioAsset)
 
 /// `noun` is `(singular, plural)`.
 pub fn count_text(shown: usize, total: usize, noun: (&str, &str)) -> String {
-    let word = |n: usize| if n == 1 { noun.0 } else { noun.1 };
-    if shown == total {
-        format!("{total} {}", word(total))
+    if crate::ui::is_ru() {
+        let ru_word = |n: usize| {
+            let rem10 = n % 10;
+            let rem100 = n % 100;
+            match noun.0 {
+                "asset" => {
+                    if rem10 == 1 && rem100 != 11 {
+                        "актив"
+                    } else if (2..=4).contains(&rem10) && !(12..=14).contains(&rem100) {
+                        "актива"
+                    } else {
+                        "активов"
+                    }
+                }
+                "transaction" => {
+                    if rem10 == 1 && rem100 != 11 {
+                        "сделка"
+                    } else if (2..=4).contains(&rem10) && !(12..=14).contains(&rem100) {
+                        "сделки"
+                    } else {
+                        "сделок"
+                    }
+                }
+                _ => {
+                    if rem10 == 1 && rem100 != 11 {
+                        crate::ui::t(noun.0)
+                    } else {
+                        crate::ui::t(noun.1)
+                    }
+                }
+            }
+        };
+        if shown == total {
+            format!("{total} {}", ru_word(total))
+        } else {
+            format!("{shown} из {total} {}", ru_word(total))
+        }
     } else {
-        format!("{shown} of {total} {}", word(total))
+        let word = |n: usize| if n == 1 { noun.0 } else { noun.1 };
+        if shown == total {
+            format!("{total} {}", word(total))
+        } else {
+            format!("{shown} of {total} {}", word(total))
+        }
     }
 }
 
@@ -91,6 +130,23 @@ mod tests {
             count_text(1, 1, ("transaction", "transactions")),
             "1 transaction"
         );
+    }
+
+    #[test]
+    fn counts_read_naturally_ru() {
+        crate::ui::i18n::set_lang(crate::ui::i18n::LANG_RU);
+        let assets = ("asset", "assets");
+        assert_eq!(count_text(1, 1, assets), "1 актив");
+        assert_eq!(count_text(2, 2, assets), "2 актива");
+        assert_eq!(count_text(5, 5, assets), "5 активов");
+        assert_eq!(count_text(2, 5, assets), "2 из 5 активов");
+
+        let txs = ("transaction", "transactions");
+        assert_eq!(count_text(1, 1, txs), "1 сделка");
+        assert_eq!(count_text(2, 2, txs), "2 сделки");
+        assert_eq!(count_text(5, 5, txs), "5 сделок");
+        assert_eq!(count_text(3, 10, txs), "3 из 10 сделок");
+        crate::ui::i18n::set_lang(crate::ui::i18n::LANG_EN);
     }
 
     #[test]

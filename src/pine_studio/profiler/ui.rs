@@ -84,7 +84,7 @@ pub fn describe(status: &Status) -> Description {
     };
     match status {
         Status::Off => Description {
-            label: "Profiler off".to_owned(),
+            label: crate::ui::tr("Profiler off", "Профайлер выкл").to_owned(),
             tone: Tone::Quiet,
             action: None,
             button: "",
@@ -131,12 +131,15 @@ pub fn toolbar_button<A, M>(status: &Status, on_click: A) -> bar::Button<A, M> {
     let tip = if on {
         format!(
             "{}\n{}",
-            shortcut::PROFILER_TOGGLE.hint("Turn the profiler off"),
+            shortcut::PROFILER_TOGGLE.hint(crate::ui::tr("Turn the profiler off", "Выключить профилировщик")),
             description.label
         )
     } else {
         shortcut::PROFILER_TOGGLE
-            .hint("Turn the profiler on: see which lines of the script take the time")
+            .hint(crate::ui::tr(
+                "Turn the profiler on: see which lines of the script take the time",
+                "Включить профилировщик: узнать, какие строки скрипта занимают больше всего времени",
+            ))
     };
     let mut button = bar::Button::new("profiler", tip)
         .icon(Icon::Gauge)
@@ -267,24 +270,24 @@ fn introduction(ui: &mut Ui, actions: &mut Vec<Action>) {
     centered(ui, |ui| {
         intro(
             ui,
-            "Find what makes a script slow",
-            "See where its time goes, line by line.",
+            crate::ui::tr("Find what makes a script slow", "Узнайте, что замедляет работу скрипта"),
+            crate::ui::tr("See where its time goes, line by line.", "Смотрите расход времени строка за строкой."),
             |ui| {
                 step(ui, 1, |ui| {
-                    ui.label(muted("Turn the profiler on with the stopwatch."));
+                    ui.label(muted(crate::ui::tr("Turn the profiler on with the stopwatch.", "Включите профайлер кнопкой секундомера.")));
                 });
                 step(ui, 2, |ui| {
-                    ui.label(muted("It runs the script on the preview chart's bars."));
+                    ui.label(muted(crate::ui::tr("It runs the script on the preview chart's bars.", "Он выполнит скрипт на барах графика предпросмотра.")));
                 });
                 step(ui, 3, |ui| {
-                    ui.label(muted("Bars and shares appear beside the code."));
+                    ui.label(muted(crate::ui::tr("Bars and shares appear beside the code.", "Бары и доли времени появятся рядом с кодом.")));
                 });
             },
             example,
             illustration,
             |ui| {
                 ui.add_space(14.0);
-                if kit::push_button(ui, Some(Icon::Gauge), "Start profiling", true).clicked() {
+                if kit::push_button(ui, Some(Icon::Gauge), crate::ui::tr("Start profiling", "Начать профилирование"), true).clicked() {
                     actions.push(Action::Toggle);
                 }
             },
@@ -342,9 +345,14 @@ fn running(ui: &mut Ui, done: u64, total: u64, actions: &mut Vec<Action>) {
             kit::ACCENT,
         );
         ui.add_space(6.0);
-        ui.label(muted(&format!("{} of {} bars", count(done), count(total))));
+        let bars_text = if crate::ui::is_ru() {
+            format!("{} из {} баров", count(done), count(total))
+        } else {
+            format!("{} of {} bars", count(done), count(total))
+        };
+        ui.label(muted(&bars_text));
         ui.add_space(10.0);
-        if kit::push_button(ui, Some(Icon::Xmark), "Cancel", true).clicked() {
+        if kit::push_button(ui, Some(Icon::Xmark), crate::ui::tr("Cancel", "Отмена"), true).clicked() {
             actions.push(Action::Cancel);
         }
     });
@@ -372,7 +380,7 @@ fn result(ui: &mut Ui, view: &TabView<'_>, profile: &Profile, actions: &mut Vec<
         totals(ui, &profile.marks, fresh);
         ui.add_space(16.0);
         let hottest_lines = |ui: &mut Ui, actions: &mut Vec<Action>| {
-            caption(ui, "Hottest lines");
+            caption(ui, crate::ui::tr("Hottest lines", "Самые долгие строки"));
             hottest(ui, profile, fresh, actions);
         };
         let groups = |ui: &mut Ui, actions: &mut Vec<Action>, first: bool| {
@@ -437,12 +445,22 @@ fn totals(ui: &mut Ui, marks: &ProfileMarks, fresh: Freshness) {
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = gap;
         for (icon, tint, label, value) in [
-            (Icon::Clock, kit::ACCENT, "Total time", &marks.totals.time),
-            (Icon::BarChart, kit::GREEN, "Bars", &marks.totals.bars),
+            (
+                Icon::Clock,
+                kit::ACCENT,
+                crate::ui::tr("Total time", "Общее время"),
+                &marks.totals.time,
+            ),
+            (
+                Icon::BarChart,
+                kit::GREEN,
+                crate::ui::tr("Bars", "Бары"),
+                &marks.totals.bars,
+            ),
             (
                 Icon::Repeat,
                 kit::ORANGE,
-                "Executions",
+                crate::ui::tr("Executions", "Выполнения"),
                 &marks.totals.executions,
             ),
         ] {

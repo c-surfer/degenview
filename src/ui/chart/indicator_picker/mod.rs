@@ -395,7 +395,7 @@ impl IndicatorPicker {
         let bar = Rect::from_min_size(full.min, vec2(full.width(), HEADER));
         let title = kit::galley(
             ui,
-            "Indicators",
+            crate::ui::t("Indicators"),
             size::TITLE2,
             SEMIBOLD,
             theme::text_primary(),
@@ -412,7 +412,11 @@ impl IndicatorPicker {
         );
         let mut field_ui = ui.new_child(egui::UiBuilder::new().max_rect(field));
         let before = self.query.clone();
-        let prompt = format!("Search {total} indicators, concepts or aliases");
+        let prompt = if crate::ui::is_ru() {
+            format!("Поиск {total} индикаторов, концепций или синонимов…")
+        } else {
+            format!("Search {total} indicators, concepts or aliases")
+        };
         let response = kit::search_field(
             &mut field_ui,
             search_id,
@@ -460,12 +464,12 @@ impl IndicatorPicker {
                         }
                     }
                 };
-                group(ui, "Yours", &sections::YOURS);
+                group(ui, crate::ui::t("Yours"), &sections::YOURS);
                 if sidebar_row(
                     ui,
                     width,
                     Icon::AngleBrackets,
-                    "Open Pine Studio",
+                    crate::ui::t("Open Pine Studio"),
                     None,
                     false,
                 )
@@ -473,10 +477,10 @@ impl IndicatorPicker {
                 {
                     *output = Some(Output::OpenPineStudio);
                 }
-                group(ui, "Built-in", &sections::BUILT_IN);
-                group(ui, "Library", &sections::LIBRARY);
+                group(ui, crate::ui::t("Built-in"), &sections::BUILT_IN);
+                group(ui, crate::ui::t("Library"), &sections::LIBRARY);
                 let families: Vec<Section> = Family::ALL.into_iter().map(Section::Family).collect();
-                group(ui, "Families", &families);
+                group(ui, crate::ui::t("Families"), &families);
             });
     }
 
@@ -506,6 +510,8 @@ impl IndicatorPicker {
                 if flat.is_empty() {
                     let message = if self.query.trim().is_empty() {
                         self.section.empty_message().to_owned()
+                    } else if crate::ui::is_ru() {
+                        format!("Нет индикаторов по запросу \u{201c}{}\u{201d}.", self.query.trim())
                     } else {
                         format!("No indicators match \u{201c}{}\u{201d}.", self.query.trim())
                     };
@@ -606,7 +612,7 @@ impl IndicatorPicker {
         let Some(entry) = entry else {
             let text = kit::galley(
                 ui,
-                "Select an indicator",
+                crate::ui::t("Select an indicator"),
                 size::BODY,
                 kit::REGULAR,
                 theme::text_tertiary(),
@@ -678,8 +684,13 @@ impl IndicatorPicker {
                 );
                 if entry.origin != Origin::Script {
                     ui.add_space(10.0);
+                    let author_line = if crate::ui::is_ru() {
+                        format!("Автор: {} \u{b7} {}", entry.author, entry.license)
+                    } else {
+                        format!("By {} \u{b7} {}", entry.author, entry.license)
+                    };
                     ui.label(kit::text(
-                        format!("By {} \u{b7} {}", entry.author, entry.license),
+                        author_line,
                         size::CAPTION + 0.5,
                         kit::REGULAR,
                         theme::text_tertiary(),
@@ -708,9 +719,9 @@ impl IndicatorPicker {
         button_ui.spacing_mut().item_spacing.x = 8.0;
         let blocked = matches!(status, Availability::Blocked(_));
         let label = match status {
-            Availability::Remove => "Remove from chart",
-            Availability::AddAnother => "Add another copy",
-            _ => "Add to chart",
+            Availability::Remove => crate::ui::t("Remove from chart"),
+            Availability::AddAnother => crate::ui::t("Add another copy"),
+            _ => crate::ui::t("Add to chart"),
         };
         if kit::large_prominent_button(&mut button_ui, label, !blocked, buttons.width() - 40.0)
             .clicked()
@@ -746,17 +757,22 @@ impl IndicatorPicker {
             ));
             ui.add_space(10.0);
         };
-        hint(&mut footer, &["\u{2191}", "\u{2193}"], "Browse");
-        hint(&mut footer, &["\u{21b5}"], "Add");
-        hint(&mut footer, &["\u{21e7}", "\u{21b5}"], "Add, keep open");
-        hint(&mut footer, &["F"], "Favorite");
-        hint(&mut footer, &["Esc"], "Close");
+        hint(&mut footer, &["\u{2191}", "\u{2193}"], crate::ui::t("Browse"));
+        hint(&mut footer, &["\u{21b5}"], crate::ui::t("Add"));
+        hint(&mut footer, &["\u{21e7}", "\u{21b5}"], crate::ui::t("Add, keep open"));
+        hint(&mut footer, &["F"], crate::ui::t("Favorite"));
+        hint(&mut footer, &["Esc"], crate::ui::t("Close"));
         let mut done = false;
         footer.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            done = kit::sheet_button(ui, "Done", true, true).clicked();
+            done = kit::sheet_button(ui, crate::ui::t("Done"), true, true).clicked();
             ui.add_space(8.0);
+            let shown_text = if crate::ui::is_ru() {
+                format!("{shown} показано")
+            } else {
+                format!("{shown} shown")
+            };
             ui.label(kit::text(
-                format!("{shown} shown"),
+                shown_text,
                 size::SUBHEADLINE,
                 kit::REGULAR,
                 theme::text_tertiary(),
@@ -809,13 +825,13 @@ fn glyph_for(entry: &CatalogEntry) -> Icon {
 /// `Momentum · Separate pane`, `Trend · Overlay`, `Your script`.
 fn meta_line(entry: &CatalogEntry) -> String {
     let placement = if entry.overlay {
-        "Overlay"
+        crate::ui::tr("Overlay", "На графике")
     } else {
-        "Separate pane"
+        crate::ui::tr("Separate pane", "В подвале")
     };
     match entry.family {
-        Some(family) => format!("{} \u{b7} {placement}", family.title()),
-        None => "Your script".to_owned(),
+        Some(family) => format!("{} \u{b7} {placement}", crate::ui::t(family.title())),
+        None => crate::ui::tr("Your script", "Ваш скрипт").to_owned(),
     }
 }
 
@@ -915,7 +931,7 @@ fn card_ui(
     if look.on_chart {
         let tag = kit::galley(
             ui,
-            "On chart",
+            crate::ui::tr("On chart", "На графике"),
             size::CAPTION,
             MEDIUM,
             theme::text_secondary(),
@@ -978,18 +994,19 @@ fn star_button(ui: &mut Ui, favorite: bool) -> egui::Response {
         theme::text_primary(),
     );
     response.on_hover_text(if favorite {
-        "Remove from favorites"
+        crate::ui::t("Remove from favorites")
     } else {
-        "Add to favorites"
+        crate::ui::t("Add to favorites")
     })
 }
 
 fn sidebar_heading(ui: &mut Ui, text: &str) {
     ui.add_space(10.0);
     let (rect, _) = ui.allocate_exact_size(vec2(ui.available_width(), 18.0), Sense::hover());
+    let translated = crate::ui::t(text);
     let label = kit::galley(
         ui,
-        &text.to_uppercase(),
+        &translated.to_uppercase(),
         size::CAPTION,
         SEMIBOLD,
         theme::text_tertiary(),
@@ -1066,7 +1083,7 @@ fn block_heading(ui: &mut Ui, text: &str) -> HeadingRow {
     let (rect, _) = ui.allocate_exact_size(vec2(ui.available_width(), 24.0), Sense::hover());
     let label = kit::galley(
         ui,
-        text,
+        crate::ui::t(text),
         size::HEADLINE + 1.0,
         SEMIBOLD,
         theme::text_primary(),
@@ -1095,7 +1112,7 @@ fn block_heading(ui: &mut Ui, text: &str) -> HeadingRow {
             Icon::Repeat,
             color,
         );
-        let label = kit::galley(ui, "Shuffle", size::BODY, kit::REGULAR, color, 60.0);
+        let label = kit::galley(ui, crate::ui::t("Shuffle"), size::BODY, kit::REGULAR, color, 60.0);
         ui.painter().galley(
             pos2(
                 button.left() + 22.0,

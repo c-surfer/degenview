@@ -1007,7 +1007,7 @@ impl SymbolPicker {
             return Some(FilterMenu {
                 label,
                 active: current.is_some(),
-                tip: "Filter by portfolio",
+                tip: crate::ui::t("Filter by portfolio"),
                 entries,
                 current: Filter::Portfolio(current),
             });
@@ -1018,7 +1018,7 @@ impl SymbolPicker {
         }
         // A venue typed as a prefix wins over the pull-down, so the pull-down says what is searched.
         let venue = self.lookup().venue;
-        let mut entries = vec![(Filter::Venue(None), "All venues".to_owned())];
+        let mut entries = vec![(Filter::Venue(None), crate::ui::t("All venues").to_owned())];
         entries.extend(
             venues
                 .iter()
@@ -1026,10 +1026,10 @@ impl SymbolPicker {
         );
         Some(FilterMenu {
             label: venue
-                .map_or("All venues", |venue| venue.display_name())
+                .map_or(crate::ui::t("All venues"), |venue| venue.display_name())
                 .to_owned(),
             active: venue.is_some(),
-            tip: "Filter by exchange",
+            tip: crate::ui::t("Filter by exchange"),
             entries,
             current: Filter::Venue(venue),
         })
@@ -1421,7 +1421,7 @@ impl SymbolPicker {
     fn footer(&self, ui: &mut Ui, area: Rect, env: &Env) -> Option<(Pick, PickKind)> {
         let mut hit = None;
         let mut hints = vec![
-            Hint::new(&["↑", "↓"], "Navigate"),
+            Hint::new(&["↑", "↓"], crate::ui::t("Navigate")),
             Hint::new(&["↵"], self.return_hint(env)),
         ];
         let market = self.highlighted.as_ref().and_then(Item::market);
@@ -1429,13 +1429,13 @@ impl SymbolPicker {
             && env.replacing.is_some()
             && !matches!(self.highlighted, Some(Item::Event(_)))
         {
-            hints.push(Hint::new(&["⇧", "↵"], "Add as new chart"));
+            hints.push(Hint::new(&["⇧", "↵"], crate::ui::t("Add as new chart")));
         }
         if self.mode == PickMode::Chart && env.can_overlay && market.is_some_and(Self::comparable) {
-            hints.push(Hint::new(&["⌥", "↵"], "Compare"));
+            hints.push(Hint::new(&["⌥", "↵"], crate::ui::t("Compare")));
         }
-        hints.push(Hint::new(&["Tab"], "Switch tab"));
-        hints.push(Hint::new(&["Esc"], "Close"));
+        hints.push(Hint::new(&["Tab"], crate::ui::t("Switch tab")));
+        hints.push(Hint::new(&["Esc"], crate::ui::t("Close")));
 
         // What sits at the right edge: the button for ticked choices, else what was just added.
         let together = self
@@ -1549,11 +1549,21 @@ impl SymbolPicker {
         }
         match (self.mode, self.replacing(env)) {
             (PickMode::Compare, _) if env.replacing.is_some() => {
-                format!("Compare with {}", env.replacing.unwrap_or_default())
+                if crate::ui::is_ru() {
+                    format!("Сравнить с {}", env.replacing.unwrap_or_default())
+                } else {
+                    format!("Compare with {}", env.replacing.unwrap_or_default())
+                }
             }
-            (PickMode::Compare, _) => "Compare".to_owned(),
-            (PickMode::Chart, Some(current)) => format!("Replace {current}"),
-            (PickMode::Chart | PickMode::Add, _) => "Add chart".to_owned(),
+            (PickMode::Compare, _) => crate::ui::t("Compare").to_owned(),
+            (PickMode::Chart, Some(current)) => {
+                if crate::ui::is_ru() {
+                    format!("Заменить {current}")
+                } else {
+                    format!("Replace {current}")
+                }
+            }
+            (PickMode::Chart | PickMode::Add, _) => crate::ui::t("Add chart").to_owned(),
             (PickMode::Watchlist, _) => {
                 to_watchlist(self.highlighted.as_ref().and_then(Item::market))
             }
@@ -1773,9 +1783,10 @@ fn show_notice(ui: &mut Ui, card: Rect, notice: &Notice) -> bool {
 /// A small capitalised caption above a group of rows.
 fn section_heading(ui: &mut Ui, title: &str) {
     let (rect, _) = ui.allocate_exact_size(vec2(ui.available_width(), 28.0), Sense::hover());
+    let translated = crate::ui::t(title);
     let galley = kit::galley(
         ui,
-        &title.to_uppercase(),
+        &translated.to_uppercase(),
         11.5,
         SEMIBOLD,
         theme::text_tertiary(),
