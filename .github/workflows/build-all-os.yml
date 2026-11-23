@@ -35,14 +35,14 @@ jobs:
         run: |
           cargo build --release --locked --bin degenview
           mkdir -p dist
-          7z a "dist/DegenView-v0.6.0-rc.33-windows-x64.zip" ./target/release/degenview.exe \
+          7z a "dist/DegenView-v0.6.0-rc.34-windows-x64.zip" ./target/release/degenview.exe \
             ./assets/fonts/OFL-JetBrainsMono.txt ./assets/fonts/OFL-NotoSansSymbols2.txt ./assets/fonts/OFL-Inter.txt ./assets/fonts/README.md
 
       - name: Build Windows Installer (Setup Exe)
         shell: bash
         run: |
           choco install innosetup --version "6.7.1" -y --no-progress
-          ./tools/windows-installer.sh v0.6.0-rc.33 target/release/degenview.exe x64
+          ./tools/windows-installer.sh v0.6.0-rc.34 target/release/degenview.exe x64
 
       - name: Upload Windows Artifacts
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
@@ -84,7 +84,7 @@ jobs:
           cp packaging/degenview.desktop pkg/
           cp assets/fonts/OFL-JetBrainsMono.txt assets/fonts/OFL-NotoSansSymbols2.txt assets/fonts/OFL-Inter.txt pkg/licenses/
           cp assets/fonts/README.md pkg/licenses/FONTS.md
-          tar -czf "dist/DegenView-v0.6.0-rc.33-linux-x64.tar.gz" -C pkg .
+          tar -czf "dist/DegenView-v0.6.0-rc.34-linux-x64.tar.gz" -C pkg .
 
       - name: Upload Linux Artifacts
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
@@ -128,8 +128,8 @@ jobs:
       - name: Build macOS DMG and ZIP
         run: |
           mkdir -p dist
-          ./tools/make-dmg.sh target/DegenView.app "dist/DegenView-v0.6.0-rc.33-macos-arm64.dmg"
-          ditto -c -k --sequesterRsrc --keepParent target/DegenView.app "dist/DegenView-v0.6.0-rc.33-macos-arm64.zip"
+          ./tools/make-dmg.sh target/DegenView.app "dist/DegenView-v0.6.0-rc.34-macos-arm64.dmg"
+          ditto -c -k --sequesterRsrc --keepParent target/DegenView.app "dist/DegenView-v0.6.0-rc.34-macos-arm64.zip"
 
       - name: Upload macOS Artifacts
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
@@ -162,7 +162,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create v0.6.0-rc.33-ru dist/* \
-            --title "DegenView v0.6.0-rc.33 (Russian Localization)" \
-            --notes "Релиз DegenView v0.6.0-rc.33 с полной локализацией на русский язык." || \
-          gh release upload v0.6.0-rc.33-ru dist/* --clobber
+          gh release create v0.6.0-rc.34-ru dist/* \
+            --title "DegenView v0.6.0-rc.34 (Russian Localization)" \
+            --notes "Релиз DegenView v0.6.0-rc.34 с полной локализацией на русский язык и мультичарт-сеткой." || \
+          gh release upload v0.6.0-rc.34-ru dist/* --clobber
