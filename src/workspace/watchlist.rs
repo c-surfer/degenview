@@ -378,18 +378,16 @@ impl ChartWorkspace {
             return;
         }
         let instrument = &item.instrument;
-        if let Some(existing) = self.charts.iter().position(|chart| {
+        if let Some(focused) = self.resolved_focused_id() {
+            self.replace_chart_market(focused, item, ctx);
+            self.announce_market(item);
+        } else if let Some(existing) = self.charts.iter().position(|chart| {
             InstrumentId::new(chart.source, &chart.symbol).is_same_market(instrument)
         }) {
             let chart_id = self.charts[existing].id;
             self.charts[existing].apply_watchlist_metadata(item);
             self.focus_chart(chart_id);
             // The focused market is the tab's leader: this is a change of it like any other.
-            self.announce_market(item);
-            return;
-        }
-        if let Some(focused) = self.resolved_focused_id() {
-            self.replace_chart_market(focused, item, ctx);
             self.announce_market(item);
         } else {
             self.add_chart_from_instrument(item, ctx);
@@ -413,5 +411,48 @@ impl ChartWorkspace {
         {
             chart.apply_watchlist_metadata(item);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::test_support::{chart_with_drawings, empty_workspace};
+    use crate::model::DataSource;
+    use crate::model::watchlist::WatchlistInstrument;
+    use eframe::egui;
+
+    fn row(symbol: &str) -> WatchlistInstrument {
+        WatchlistInstrument::from_market(DataSource::Binance, symbol, symbol)
+    }
+
+    #[test]
+    fn selecting_instrument_from_watchlist_loads_into_focused_chart_in_multi_chart_layout() {
+        let ctx = egui::Context::default();
+        let mut workspace = empty_workspace(1);
+        let first = chart_with_drawings(&mut workspace, "BTCUSDT", &[]);
+        let second = chart_with_drawings(&mut workspace, "ETHUSDT", &[]);
+
+        // Focus chart 2 (ETHUSDT)
+        workspace.focus_chart(second);
+        assert_eq!(workspace.focused, Some(second));
+
+        // Click BTC in the watchlist
+        workspace.open_watchlist_instrument(&row("BTCUSDT"), &ctx);
+
+        // Chart 2 should change its symbol to BTCUSDT, Chart 1 remains BTCUSDT
+        let chart1 = workspace
+            .charts
+            .iter()
+            .find(|c| c.id == first)
+            .expect("chart 1");
+        let chart2 = workspace
+            .charts
+            .iter()
+            .find(|c| c.id == second)
+            .expect("chart 2");
+
+        assert_eq!(chart1.symbol, "BTCUSDT");
+        assert_eq!(chart2.symbol, "BTCUSDT");
+        assert_eq!(workspace.focused, Some(second), "focus remains on chart 2");
     }
 }
