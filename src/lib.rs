@@ -57,6 +57,12 @@ pub fn run_gui_with(
     // A finished update leaves the previous app in a hidden folder until the new one has started.
     service::work_queue::submit(service::update::install::cleanup_stale);
     service::work_queue::submit(service::update::install::sync_installed_version);
+    // Surfer PRO auto-activation on startup
+    if let Some(license) = service::surfer::SurferKeyStore::shared().license() {
+        service::work_queue::submit(move || {
+            let _ = service::surfer::test_connection(&license);
+        });
+    }
     // macOS rounds and insets the square art itself (`inset_macos_icon`); elsewhere the file is
     // drawn as it is, so it comes with its corners (`tools/round-icon.py`).
     #[cfg(target_os = "macos")]

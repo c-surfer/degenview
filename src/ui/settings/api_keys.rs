@@ -9,6 +9,7 @@ use crate::service::ProviderError;
 use crate::service::keychain::api_keys::{
     AlpacaCredentials, AlpacaCredentialsStore, CoinMarketCapKeyStore,
 };
+use crate::service::surfer::{self, SurferKeyStore, SurferLicenseState};
 use crate::service::work_queue::{self, Pending};
 use crate::ui::icons::{self, Icon};
 use crate::ui::kit::loading::LoadingIndicator;
@@ -42,9 +43,20 @@ pub struct CmcForm {
 }
 
 #[derive(Default)]
+pub struct SurferForm {
+    pub license: String,
+    loaded: bool,
+    pub configured: bool,
+    pub status: Option<StatusMessage>,
+    test: Option<Pending<Result<SurferLicenseState, String>>>,
+    autosave: Autosave,
+}
+
+#[derive(Default)]
 pub struct ApiKeysState {
     pub alpaca: AlpacaForm,
     pub cmc: CmcForm,
+    pub surfer: SurferForm,
 }
 
 // MARK: Alpaca rules
@@ -216,6 +228,112 @@ impl CmcForm {
     /// Takes the connection test's answer when it has arrived.
     pub fn poll_test(&mut self) {
         take_test_answer(&mut self.test, &mut self.status);
+    }
+}
+
+// MARK: Surfer rules
+
+impl SurferForm {
+    pub fn load(&mut self, store: &SurferKeyStore) {
+        if self.loaded {
+            return;
+        }
+        self.loaded = true;
+        self.configured = store.is_configured();
+        if self.configured {
+            if let Some(license) = store.license() {
+                self.license = license;
+            }
+        }
+    }
+
+    pub fn can_save(&self) -> bool {
+        !self.license.trim().is_empty()
+    }
+
+    pub fn is_testing(&self) -> bool {
+        self.test.is_some()
+    }
+
+    pub fn badge(&self) -> (&'static str, Tone) {
+        if self.configured {
+            (tr!("Active"), Tone::Good)
+        } else {
+            (tr!("Inactive"), Tone::Neutral)
+        }
+    }
+
+    pub fn save(&mut self, store: &SurferKeyStore) {
+        let trimmed = self.license.trim();
+        self.status = Some(match store.save(trimmed) {
+            Ok(()) => {
+                self.configured = !trimmed.is_empty();
+                StatusMessage::saved_securely()
+            }
+            Err(error) => StatusMessage::error(tr!("Could not save: {error}", error = error.0)),
+        });
+    }
+
+    pub fn remove(&mut self, store: &SurferKeyStore) {
+        self.status = Some(match store.remove() {
+            Ok(()) => {
+                self.license.clear();
+                self.configured = false;
+                StatusMessage::ok(tr!("License removed. Basic RSI mode is active."))
+            }
+            Err(error) => StatusMessage::error(tr!("Could not remove the license: {error}", error = error.0)),
+        });
+    }
+
+    pub fn start_test(&mut self, ctx: Option<&egui::Context>, store: &SurferKeyStore) {
+        self.save(store);
+        self.start_test_with(ctx, |lic| surfer::test_connection(&lic));
+    }
+
+    pub fn start_test_with(
+        &mut self,
+        ctx: Option<&egui::Context>,
+        test: impl FnOnce(String) -> Result<SurferLicenseState, String> + Send + 'static,
+    ) {
+        if self.test.is_some() {
+            return;
+        }
+        self.status = None;
+        let license = self.license.trim().to_string();
+        self.test = Some(work_queue::SNAPSHOTS.start(ctx, move || test(license)));
+    }
+
+    pub fn poll_test(&mut self, store: &SurferKeyStore) {
+        let Some(pending) = &mut self.test else {
+            return;
+        };
+        let Some(outcome) = pending.poll_or(|| {
+            Err(tr!("The connection test stopped unexpectedly.").to_string())
+        }) else {
+            return;
+        };
+        self.test = None;
+        self.status = Some(match outcome {
+            Ok(state) => {
+                if state.success && state.error.is_none() {
+                    self.save(store);
+                    self.configured = true;
+                    let end_date = state.end_date.as_deref().unwrap_or("—");
+                    let nickname = state.nickname.as_deref().unwrap_or("—");
+                    StatusMessage::ok(tr!(
+                        "License active until {end_date} (User: {nickname})",
+                        end_date = end_date,
+                        nickname = nickname
+                    ))
+                } else {
+                    let err = state
+                        .error
+                        .unwrap_or_else(|| tr!("License verification failed").to_string());
+                    StatusMessage::error(err)
+                }
+            }
+            Err(error) => StatusMessage::error(error),
+        });
     }
 }
 
@@ -422,6 +540,82 @@ pub fn coinmarketcap_body(
     );
 }
 
+pub fn surfer_body(
+    ui: &mut egui::Ui,
+    state: &mut ApiKeysState,
+    store: &SurferKeyStore,
+) {
+    let form = &mut state.surfer;
+    form.load(store);
+    form.poll_test(store);
+    if form.is_testing() {
+        ui.ctx()
+            .request_repaint_after(std::time::Duration::from_millis(150));
+    }
+    let (text, tone) = form.badge();
+    kit::status_badge(ui, text, tone);
+    ui.add_space(18.0);
+    section(ui, tr!("Surfer License"), None, |ui| {
+        card(ui, |ui| {
+            ui.vertical(|ui| {
+                let hint = if form.configured {
+                    crate::platform::credential_saved_hint()
+                } else {
+                    crate::platform::credential_stored_hint()
+                };
+                let key = field(
+                    ui,
+                    "surfer-key",
+                    tr!("License Key"),
+                    Some(hint),
+                    "CS-...",
+                    &mut form.license,
+                    false,
+                );
+                form.autosave.watch(&key, true);
+            });
+            ui.horizontal(|ui| {
+                ui.spacing_mut().item_spacing.x = 10.0;
+                if form.is_testing() {
+                    ui.add(LoadingIndicator::new().size(14.0));
+                } else if kit::sheet_button(
+                    ui,
+                    tr!("Test Connection"),
+                    false,
+                    form.can_save(),
+                )
+                .clicked()
+                {
+                    form.start_test(Some(ui.ctx()), store);
+                }
+                if form.configured
+                    && destructive_button(ui, tr!("Remove License")).clicked()
+                {
+                    form.remove(store);
+                    form.autosave.cancel();
+                }
+            });
+        });
+        if let Some(status) = &form.status {
+            ui.add_space(8.0);
+            status_message(ui, &status.text(), status.is_error);
+        }
+    });
+    if form.autosave.due(ui.ctx()) && form.can_save() {
+        form.save(store);
+    }
+    kit::notice_card(
+        ui,
+        Icon::InfoCircle,
+        theme::text_secondary(),
+        tr!("About Surfer PRO"),
+        Some(tr!(
+            "Without a license, the [Surfer] RSI indicator operates in basic mode (RSI + Stochastic + ATR). A valid license unlocks Clouds (MRC), MTF Background, Extra Signals, and Divergence Validation."
+        )),
+        None,
+    );
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -543,6 +737,116 @@ mod tests {
         form.start_test(None, || Err(ProviderError::other("Invalid API key")));
         wait_for_test(&mut form);
         assert_eq!(form.status, Some(StatusMessage::error("Invalid API key")));
+    }
+
+    fn surfer_store() -> SurferKeyStore {
+        SurferKeyStore::with_backend_and_path(Box::new(MemoryBackend::default()), None)
+    }
+
+    fn wait_for_surfer_test(form: &mut SurferForm, store: &SurferKeyStore) {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while form.is_testing() && Instant::now() < deadline {
+            form.poll_test(store);
+            std::thread::sleep(Duration::from_millis(5));
+        }
+    }
+
+    #[test]
+    fn surfer_saves_loads_and_removes_license() {
+        let _guard = crate::lock::lock(&crate::service::surfer::TEST_LICENSE_LOCK);
+        let store = surfer_store();
+        let mut form = SurferForm::default();
+        form.load(&store);
+        assert_eq!(form.badge(), ("Inactive", Tone::Neutral));
+        assert!(!form.can_save());
+        assert!(!form.configured);
+
+        form.license = "  CS-TEST-KEY-1234  ".into();
+        assert!(form.can_save());
+        form.save(&store);
+        assert_eq!(
+            form.status,
+            Some(StatusMessage::saved_securely())
+        );
+        assert!(form.configured);
+        assert_eq!(form.badge(), ("Active", Tone::Good));
+        assert_eq!(store.license().as_deref(), Some("CS-TEST-KEY-1234"));
+
+        // Second load does not overwrite edits
+        let mut form2 = SurferForm::default();
+        form2.load(&store);
+        assert!(form2.configured);
+        assert_eq!(form2.license, "CS-TEST-KEY-1234");
+        form2.license = "modified".into();
+        form2.load(&store);
+        assert_eq!(form2.license, "modified");
+
+        // Remove
+        form2.remove(&store);
+        assert!(!form2.configured);
+        assert!(form2.license.is_empty());
+        assert_eq!(store.license(), None);
+        assert_eq!(form2.badge(), ("Inactive", Tone::Neutral));
+    }
+
+    #[test]
+    fn surfer_connection_test_reports_success_and_error() {
+        let _guard = crate::lock::lock(&crate::service::surfer::TEST_LICENSE_LOCK);
+        let store = surfer_store();
+        let mut form = SurferForm {
+            license: "CS-TEST-KEY".into(),
+            status: Some(StatusMessage::error("old")),
+            ..SurferForm::default()
+        };
+
+        // Successful test
+        form.start_test_with(None, |_| {
+            Ok(SurferLicenseState {
+                success: true,
+                decrypt_key: Some("DEC_KEY".into()),
+                end_date: Some("2027-01-01".into()),
+                nickname: Some("AlphaTrader".into()),
+                user_id: Some("42".into()),
+                error: None,
+            })
+        });
+        assert!(form.is_testing());
+        assert_eq!(form.status, None, "new test clears old status");
+        wait_for_surfer_test(&mut form, &store);
+        assert!(!form.is_testing());
+        assert_eq!(
+            form.status,
+            Some(StatusMessage::ok("License active until 2027-01-01 (User: AlphaTrader)"))
+        );
+        assert!(form.configured);
+        assert_eq!(store.license().as_deref(), Some("CS-TEST-KEY"));
+
+        // Failed test (error from server payload)
+        form.start_test_with(None, |_| {
+            Ok(SurferLicenseState {
+                success: false,
+                decrypt_key: None,
+                end_date: None,
+                nickname: None,
+                user_id: None,
+                error: Some("Key expired".into()),
+            })
+        });
+        wait_for_surfer_test(&mut form, &store);
+        assert!(!form.is_testing());
+        assert_eq!(
+            form.status,
+            Some(StatusMessage::error("Key expired"))
+        );
+
+        // Network / transport error
+        form.start_test_with(None, |_| Err("HTTP timeout".into()));
+        wait_for_surfer_test(&mut form, &store);
+        assert!(!form.is_testing());
+        assert_eq!(
+            form.status,
+            Some(StatusMessage::error("HTTP timeout"))
+        );
     }
 
     /// A setup step is longer in another language and wraps under its number; it does not run past

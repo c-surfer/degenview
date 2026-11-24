@@ -35,12 +35,18 @@ struct Language {
 }
 
 /// Every language, English first. Add a language here, with its catalog (`docs/localization.md`).
-const LANGUAGES: [Language; 2] = [
+const LANGUAGES: [Language; 3] = [
     Language {
         tag: "en",
         native_name: "English",
         kind: Kind::Source,
         catalog: None,
+    },
+    Language {
+        tag: "ru",
+        native_name: "Русский",
+        kind: Kind::Natural,
+        catalog: Some(include_str!("../../assets/locales/ru.po")),
     },
     Language {
         tag: "en-XA",
@@ -57,11 +63,14 @@ pub struct Locale(u8);
 impl Locale {
     /// The language the source is written in.
     pub const ENGLISH: Locale = Locale(0);
+    /// Russian.
+    #[allow(dead_code)]
+    pub const RUSSIAN: Locale = Locale(1);
     /// Accented, longer English with every message wrapped in brackets: a language for developers
     /// and tests, which shows clipped text, fixed widths and text that was never put through
     /// `tr!`. `en-XA` is the standard tag for it.
     #[cfg(test)]
-    pub const PSEUDO: Locale = Locale(1);
+    pub const PSEUDO: Locale = Locale(2);
 
     /// How many languages there are.
     pub(super) const COUNT: usize = LANGUAGES.len();
@@ -332,6 +341,7 @@ mod tests {
     fn the_picker_lists_natural_languages_and_the_pseudo_locale_only_in_debug() {
         let selectable = Locale::selectable();
         assert!(selectable.contains(&Locale::ENGLISH));
+        assert!(selectable.contains(&Locale::RUSSIAN));
         assert_eq!(selectable.contains(&Locale::PSEUDO), cfg!(debug_assertions));
     }
 
@@ -343,7 +353,8 @@ mod tests {
 
     #[test]
     fn an_index_past_the_table_is_english() {
-        assert_eq!(Locale::from_index(1), Locale::PSEUDO);
+        assert_eq!(Locale::from_index(1), Locale::RUSSIAN);
+        assert_eq!(Locale::from_index(2), Locale::PSEUDO);
         assert_eq!(Locale::from_index(200), Locale::ENGLISH);
     }
 }

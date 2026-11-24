@@ -434,9 +434,11 @@ fn choosing_an_already_open_market_in_the_watchlist_is_announced() {
     workspace.set_link(Some(LinkColor::Orange));
     assert!(workspace.take_link_signals().is_empty());
 
-    // The user clicks ETH in the watchlist: it is already on the tab, so its chart takes the focus.
+    // The user clicks ETH in the watchlist: it replaces the market on the focused chart and announces it.
     workspace.open_watchlist_instrument(&row("ETHUSDT"), &ctx);
-    assert_eq!(workspace.focused, Some(second), "focus moved");
+    assert_eq!(workspace.focused, Some(first), "focus stays on active chart");
+    assert_eq!(shown(&workspace, first), "ETHUSDT");
+    assert_eq!(shown(&workspace, second), "ETHUSDT");
     let signals = workspace.take_link_signals();
     assert_eq!(signals.len(), 1, "{signals:?}");
     assert!(matches!(&signals[0], LinkSignal::Market(m) if m.instrument.symbol == "ETHUSDT"));

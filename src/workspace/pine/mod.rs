@@ -221,7 +221,7 @@ impl ChartWorkspace {
                     chart_id,
                     script_id,
                     indicator.name,
-                    indicator.source,
+                    &indicator.effective_source(),
                     &HashMap::new(),
                     true,
                 )
@@ -373,7 +373,7 @@ impl ChartWorkspace {
                     chart_id,
                     crate::model::pine::bundled::script_id(indicator),
                     indicator.name,
-                    indicator.source,
+                    &indicator.effective_source(),
                     &HashMap::new(),
                     true,
                 )

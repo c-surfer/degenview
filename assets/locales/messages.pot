@@ -389,6 +389,10 @@ msgstr ""
 msgid "About"
 msgstr ""
 
+#: src/ui/settings/api_keys.rs
+msgid "About Surfer PRO"
+msgstr ""
+
 #: src/ui/settings/brokers.rs
 msgid "About this key"
 msgstr ""
@@ -443,6 +447,7 @@ msgstr ""
 
 #: src/ui/alert/center.rs
 #: src/ui/alert/script_list.rs
+#: src/ui/settings/api_keys.rs
 #: src/ui/settings/provider_card.rs
 msgid "Active"
 msgstr ""
@@ -3190,6 +3195,10 @@ msgstr ""
 
 #: src/ui/settings/api_keys.rs
 msgid "Could not remove the keys: {error}"
+msgstr ""
+
+#: src/ui/settings/api_keys.rs
+msgid "Could not remove the license: {error}"
 msgstr ""
 
 #: src/host/sync/mod.rs
@@ -6099,6 +6108,10 @@ msgstr ""
 msgid "In-App Banners"
 msgstr ""
 
+#: src/ui/settings/api_keys.rs
+msgid "Inactive"
+msgstr ""
+
 #: src/ui/snapshot_studio/window/tests.rs
 #: src/ui/snapshot_studio/window/toolbar.rs
 msgid "Include"
@@ -6631,6 +6644,22 @@ msgstr ""
 
 #: src/ui/settings/about.rs
 msgid "License"
+msgstr ""
+
+#: src/ui/settings/api_keys.rs
+msgid "License Key"
+msgstr ""
+
+#: src/ui/settings/api_keys.rs
+msgid "License active until {end_date} (User: {nickname})"
+msgstr ""
+
+#: src/ui/settings/api_keys.rs
+msgid "License removed. Basic RSI mode is active."
+msgstr ""
+
+#: src/ui/settings/api_keys.rs
+msgid "License verification failed"
 msgstr ""
 
 #: src/ui/theme/mod.rs
@@ -10026,6 +10055,10 @@ msgstr ""
 msgid "Remove Keys"
 msgstr ""
 
+#: src/ui/settings/api_keys.rs
+msgid "Remove License"
+msgstr ""
+
 #: src/ui/chart/settings/compare.rs
 msgid "Remove all"
 msgstr ""
@@ -12132,6 +12165,14 @@ msgstr ""
 
 #: src/ui/window/tab_bar/mod.rs
 msgid "Support this project by buying me a coffee"
+msgstr ""
+
+#: src/ui/settings/api_keys.rs
+msgid "Surfer License"
+msgstr ""
+
+#: src/ui/settings/window.rs
+msgid "Surfer PRO indicators license & cloud authentication."
 msgstr ""
 
 #: src/model/alert/mod.rs
@@ -14941,6 +14982,13 @@ msgstr ""
 
 #: src/ui/pine/report.rs
 msgid "Win rate"
+msgstr ""
+
+#: src/ui/settings/api_keys.rs
+msgid ""
+"Without a license, the [Surfer] RSI indicator operates in basic mode (RSI + "
+"Stochastic + ATR). A valid license unlocks Clouds (MRC), MTF Background, Extra"
+" Signals, and Divergence Validation."
 msgstr ""
 
 #: src/ui/portfolio/cmc_import.rs

@@ -19,6 +19,7 @@ pub mod update;
 pub mod watchlist_quotes;
 pub mod webhook;
 pub mod work_queue;
+pub mod surfer;
 
 pub use market::alpaca::test_connection as alpaca_test_connection;
 pub use market::error::ProviderError;
