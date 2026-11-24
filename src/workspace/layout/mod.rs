@@ -28,6 +28,7 @@ impl ChartWorkspace {
                     id: chart.id,
                     symbol: chart.symbol.clone(),
                     source: chart.source,
+                    timeframe: Some(chart.timeframe),
                     log_scale: chart.scale_mode.is_logarithmic(),
                     scale_mode: Some(chart.scale_mode),
                     y_zoom: chart.chart.y_zoom(),

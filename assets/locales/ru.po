@@ -93,6 +93,10 @@ msgstr ""
 msgid "1 bar"
 msgstr ""
 
+#: src/ui/workspace/toolbar.rs
+msgid "1 chart"
+msgstr "1 график"
+
 #: src/ui/mcp/confirmation.rs
 msgid "1 of {waiting} waiting. Expires in {time}."
 msgstr ""
@@ -100,6 +104,10 @@ msgstr ""
 #: src/model/portfolio/statistics.rs
 msgid "1 year"
 msgstr ""
+
+#: src/ui/workspace/toolbar.rs
+msgid "2 charts"
+msgstr "2 графика"
 
 #: src/ui/portfolio/overview/hero.rs src/ui/portfolio/statistics/hero.rs
 msgid "24h"
@@ -113,6 +121,10 @@ msgstr "24ч %"
 msgid "24h volume"
 msgstr ""
 
+#: src/ui/workspace/toolbar.rs
+msgid "3 charts"
+msgstr "3 графика"
+
 #: src/model/portfolio/statistics.rs
 msgid "30 days"
 msgstr ""
@@ -120,6 +132,14 @@ msgstr ""
 #: src/ui/chart/cmc_gauge.rs
 msgid "30D Range"
 msgstr ""
+
+#: src/ui/workspace/toolbar.rs
+msgid "4 charts"
+msgstr "4 графика"
+
+#: src/ui/workspace/toolbar.rs
+msgid "5 charts"
+msgstr "5 графиков"
 
 #: src/model/portfolio/statistics.rs
 msgid "7 days"
@@ -2517,6 +2537,10 @@ msgstr ""
 msgid "Close at market"
 msgstr ""
 
+#: src/model/chart/context/mod.rs
+msgid "Close chart"
+msgstr "Закрыть график"
+
 #: src/ui/paper/header.rs
 msgid "Close every open position at market"
 msgstr ""
@@ -4066,7 +4090,7 @@ msgstr ""
 
 #: src/ui/chart/card/header.rs src/ui/portfolio/cards/mod.rs
 msgid "Drag to reorder charts"
-msgstr ""
+msgstr "Перетащите для изменения порядка графиков"
 
 #: src/ui/workspace/portion_overlay.rs
 msgid "Drag to select an area · Esc to cancel"
@@ -4178,6 +4202,10 @@ msgstr "Дублировать и настроить"
 #: src/ui/portfolio/transaction_editor.rs
 msgid "Duplicate Transaction"
 msgstr ""
+
+#: src/model/chart/context/mod.rs
+msgid "Duplicate chart"
+msgstr "Дублировать график"
 
 #: src/ui/chart/settings/templates/mod.rs
 msgid "Duplicate template"
@@ -10832,6 +10860,10 @@ msgstr "Выберите индикатор"
 #: src/ui/replay/bar.rs
 msgid "Select bar on chart"
 msgstr "Выбрать свечу на графике"
+
+#: src/ui/workspace/toolbar.rs
+msgid "Select grid layout"
+msgstr "Выбрать сетку графиков"
 
 #: src/ui/workspace/snapshot_menu.rs
 msgid "Select portion"

@@ -187,6 +187,28 @@ fn a_missing_price_disables_what_needs_one() {
     // Settings and the panels do not need a price.
     assert!(find(&menu, &Command::OpenSettings).unwrap().is_enabled());
     assert!(find(&menu, &Command::ToggleTable).unwrap().is_enabled());
+    assert!(find(&menu, &Command::DuplicateChart).unwrap().is_enabled());
+    assert_eq!(
+        find(&menu, &Command::DuplicateChart).unwrap().label,
+        "Duplicate chart"
+    );
+}
+
+#[test]
+fn close_chart_is_offered_when_can_close() {
+    let mut facts = facts();
+    facts.can_close = true;
+    let menu = menu(&context(None), &facts);
+    let item = find(&menu, &Command::CloseChart).unwrap();
+    assert!(item.is_enabled());
+    assert_eq!(item.label, "Close chart");
+}
+
+#[test]
+fn close_chart_is_not_offered_for_single_chart() {
+    let facts = facts();
+    let menu = menu(&context(None), &facts);
+    assert!(find(&menu, &Command::CloseChart).is_none());
 }
 
 #[test]

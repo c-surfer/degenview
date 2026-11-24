@@ -223,7 +223,7 @@ impl ChartWorkspace {
             chart_id: chart.id,
             symbol: chart.symbol.clone(),
             source: chart.source,
-            timeframe: self.timeframe,
+            timeframe: chart.timeframe,
             title: chart.display_title(),
             candles: displayed_candles(&chart.candles, replay_ms).to_vec(),
             images: snapshot_images(ctx, &drawings),
@@ -326,7 +326,7 @@ impl ChartWorkspace {
             return;
         };
         let chart = &self.charts[index];
-        let timeframe = self.timeframe.label().to_owned();
+        let timeframe = chart.timeframe.label().to_owned();
         let title = chart.display_title();
         let now = now_ms();
         let name = snapshot::file_name(

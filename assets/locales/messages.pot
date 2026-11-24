@@ -86,12 +86,20 @@ msgstr ""
 msgid "1 bar"
 msgstr ""
 
+#: src/ui/workspace/toolbar.rs
+msgid "1 chart"
+msgstr ""
+
 #: src/ui/mcp/confirmation.rs
 msgid "1 of {waiting} waiting. Expires in {time}."
 msgstr ""
 
 #: src/model/portfolio/statistics.rs
 msgid "1 year"
+msgstr ""
+
+#: src/ui/workspace/toolbar.rs
+msgid "2 charts"
 msgstr ""
 
 #: src/ui/portfolio/overview/hero.rs
@@ -107,12 +115,24 @@ msgstr ""
 msgid "24h volume"
 msgstr ""
 
+#: src/ui/workspace/toolbar.rs
+msgid "3 charts"
+msgstr ""
+
 #: src/model/portfolio/statistics.rs
 msgid "30 days"
 msgstr ""
 
 #: src/ui/chart/cmc_gauge.rs
 msgid "30D Range"
+msgstr ""
+
+#: src/ui/workspace/toolbar.rs
+msgid "4 charts"
+msgstr ""
+
+#: src/ui/workspace/toolbar.rs
+msgid "5 charts"
 msgstr ""
 
 #: src/model/portfolio/statistics.rs
@@ -2606,6 +2626,10 @@ msgstr ""
 msgid "Close at market"
 msgstr ""
 
+#: src/model/chart/context/mod.rs
+msgid "Close chart"
+msgstr ""
+
 #: src/ui/paper/header.rs
 msgid "Close every open position at market"
 msgstr ""
@@ -4321,6 +4345,10 @@ msgstr ""
 
 #: src/ui/portfolio/transaction_editor.rs
 msgid "Duplicate Transaction"
+msgstr ""
+
+#: src/model/chart/context/mod.rs
+msgid "Duplicate chart"
 msgstr ""
 
 #: src/ui/chart/settings/templates/mod.rs
@@ -11202,6 +11230,10 @@ msgstr ""
 
 #: src/ui/replay/bar.rs
 msgid "Select bar on chart"
+msgstr ""
+
+#: src/ui/workspace/toolbar.rs
+msgid "Select grid layout"
 msgstr ""
 
 #: src/ui/workspace/snapshot_menu.rs

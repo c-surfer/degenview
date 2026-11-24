@@ -161,6 +161,7 @@ fn icon_for(item: &Item) -> Option<Icon> {
     Some(match item.command.as_ref()? {
         Command::CopyPrice => Icon::CopyDoc,
         Command::Paste => Icon::Clipboard,
+        Command::DuplicateChart => Icon::CopyDoc,
         Command::AddAlert => Icon::Bell,
         Command::QuickOrder(order) => match order.side {
             PaperOrderSide::Sell => Icon::ArrowDown,
@@ -182,7 +183,7 @@ fn icon_for(item: &Item) -> Option<Icon> {
         Command::OpenSettings | Command::PaneSettings(_) => Icon::Sliders,
         Command::EditAlert(_) => Icon::Pencil,
         Command::PineLogs(_) => Icon::DocText,
-        Command::CancelOrder(_) | Command::ClosePosition(_) => Icon::Xmark,
+        Command::CancelOrder(_) | Command::ClosePosition(_) | Command::CloseChart => Icon::Xmark,
         _ => return None,
     })
 }

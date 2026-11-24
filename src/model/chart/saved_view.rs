@@ -47,6 +47,7 @@ mod tests {
                 id: 1,
                 symbol: "BTCUSDT".into(),
                 source: DataSource::Binance,
+                timeframe: None,
                 log_scale: false,
                 scale_mode: None,
                 y_zoom: 1.0,

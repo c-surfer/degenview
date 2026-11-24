@@ -55,7 +55,10 @@ impl ChartWorkspace {
             .map(|chart| chart.source)
             .collect();
         let input = toolbar::ToolbarInput {
-            timeframe: self.timeframe,
+            timeframe: self
+                .focused_market_chart()
+                .map(|c| c.timeframe)
+                .unwrap_or(self.timeframe),
             pinned: &pinned,
             sources: &sources,
             layout_name: self.layout.active_view_name().unwrap_or(tr!("Unnamed")),
@@ -123,6 +126,9 @@ impl ChartWorkspace {
                 ToolbarAction::SetChartType(chart_type) => {
                     self.set_focused_chart_type(chart_type);
                 }
+                ToolbarAction::ApplyGridPreset(preset) => {
+                    self.apply_grid_preset(preset, ctx);
+                }
                 ToolbarAction::OpenChartSettings => self.open_focused_chart_settings(),
                 ToolbarAction::ToggleReplay => self.toggle_replay(),
                 ToolbarAction::CreateAlert => self.create_alert_for_focused_chart(),
@@ -162,11 +168,20 @@ impl ChartWorkspace {
         actions
     }
 
-    /// Puts the tab on `timeframe`, as the timeframe picker does, and tells the tabs linked to it.
-    /// Picking the timeframe it is on reloads the charts and announces nothing.
+    /// Puts the active chart (or all charts if none is focused) on `timeframe`, as the timeframe
+    /// picker does, and tells the tabs linked to it.
+    /// Picking the timeframe it is on reloads the chart and announces nothing.
     fn set_timeframe(&mut self, timeframe: Timeframe, ctx: &egui::Context) {
-        let changed = self.timeframe != timeframe;
-        self.reload_for_timeframe(timeframe, ctx);
+        let changed = self
+            .focused_market_chart()
+            .is_some_and(|c| c.timeframe != timeframe)
+            || self.timeframe != timeframe;
+        if let Some(chart_id) = self.focused_market_chart().map(|c| c.id) {
+            self.set_chart_timeframe(chart_id, timeframe, ctx);
+        } else {
+            self.reload_for_timeframe(timeframe, ctx);
+        }
+        self.timeframe = timeframe;
         if changed {
             self.announce_timeframe();
         }
@@ -218,7 +233,8 @@ impl ChartWorkspace {
 #[cfg(test)]
 mod tests {
     use super::super::test_support::{chart_with_drawings, empty_workspace};
-    use crate::model::ChartType;
+    use crate::model::{ChartType, Timeframe};
+    use eframe::egui;
 
     #[test]
     fn the_toolbar_chart_type_changes_the_focused_chart_alone() {
@@ -295,5 +311,106 @@ mod tests {
         workspace.create_alert_for_focused_chart();
         let request = workspace.alerts.take_request().expect("a request");
         assert_eq!(request.asset.instrument.symbol, "ETHUSDT");
+    }
+
+    #[test]
+    fn switching_timeframe_changes_focused_chart_alone() {
+        let mut workspace = empty_workspace(1);
+        let first = chart_with_drawings(&mut workspace, "BTCUSDT", &[]);
+        let second = chart_with_drawings(&mut workspace, "ETHUSDT", &[]);
+        let ctx = egui::Context::default();
+        workspace.set_chart_timeframe(first, Timeframe::MINUTE_15, &ctx);
+        workspace.set_chart_timeframe(second, Timeframe::HOUR_1, &ctx);
+
+        let tf_of = |workspace: &super::ChartWorkspace, id: u64| {
+            workspace.charts.iter().find(|c| c.id == id).unwrap().timeframe
+        };
+        assert_eq!(tf_of(&workspace, first), Timeframe::MINUTE_15);
+        assert_eq!(tf_of(&workspace, second), Timeframe::HOUR_1);
+
+        workspace.focused = Some(first);
+        workspace.set_timeframe(Timeframe::HOUR_4, &ctx);
+
+        assert_eq!(tf_of(&workspace, first), Timeframe::HOUR_4);
+        assert_eq!(tf_of(&workspace, second), Timeframe::HOUR_1);
+    }
+
+    #[test]
+    fn duplicate_chart_inherits_source_timeframe() {
+        let mut workspace = empty_workspace(1);
+        let first = chart_with_drawings(&mut workspace, "BTCUSDT", &[]);
+        let ctx = egui::Context::default();
+        workspace.set_chart_timeframe(first, Timeframe::MINUTE_15, &ctx);
+
+        let dup_id = workspace.duplicate_chart(first, &ctx).expect("duplicated");
+        let dup_tf = workspace.charts.iter().find(|c| c.id == dup_id).unwrap().timeframe;
+        assert_eq!(dup_tf, Timeframe::MINUTE_15);
+    }
+
+    #[test]
+    fn apply_grid_preset_duplicates_focused_chart_when_needed() {
+        let mut workspace = empty_workspace(1);
+        let first = chart_with_drawings(&mut workspace, "BTCUSDT", &[]);
+        let ctx = egui::Context::default();
+        workspace.focused = Some(first);
+
+        assert_eq!(workspace.charts.len(), 1);
+        assert_eq!(workspace.columns.len(), 1);
+
+        workspace.apply_grid_preset(crate::model::GridLayoutPreset::ThreeLeftFocus, &ctx);
+
+        assert_eq!(workspace.charts.len(), 3);
+        assert_eq!(workspace.columns.len(), 2);
+        assert_eq!(workspace.columns[0].chart_ids.len(), 1);
+        assert_eq!(workspace.columns[1].chart_ids.len(), 2);
+        assert_eq!(workspace.columns[0].chart_ids[0], first);
+    }
+
+    #[test]
+    fn apply_grid_preset_four_grid_creates_two_by_two() {
+        let mut workspace = empty_workspace(1);
+        let first = chart_with_drawings(&mut workspace, "BTCUSDT", &[]);
+        let ctx = egui::Context::default();
+        workspace.focused = Some(first);
+
+        workspace.apply_grid_preset(crate::model::GridLayoutPreset::FourGrid, &ctx);
+
+        assert_eq!(workspace.charts.len(), 4);
+        assert_eq!(workspace.columns.len(), 2);
+        assert_eq!(workspace.columns[0].chart_ids.len(), 2);
+        assert_eq!(workspace.columns[1].chart_ids.len(), 2);
+    }
+
+    #[test]
+    fn apply_grid_preset_preserves_focus_or_falls_back_to_first() {
+        let mut workspace = empty_workspace(1);
+        let _first = chart_with_drawings(&mut workspace, "BTCUSDT", &[]);
+        let ctx = egui::Context::default();
+        workspace.focused = None;
+
+        workspace.apply_grid_preset(crate::model::GridLayoutPreset::TwoColumns, &ctx);
+        assert!(workspace.focused.is_some());
+    }
+
+    #[test]
+    fn apply_grid_preset_single_removes_other_charts_and_restores_single_column() {
+        let mut workspace = empty_workspace(1);
+        let first = chart_with_drawings(&mut workspace, "BTCUSDT", &[]);
+        let ctx = egui::Context::default();
+        workspace.focused = Some(first);
+
+        workspace.apply_grid_preset(crate::model::GridLayoutPreset::FourGrid, &ctx);
+        assert_eq!(workspace.charts.len(), 4);
+        assert_eq!(workspace.columns.len(), 2);
+
+        let second = workspace.charts[1].id;
+        workspace.focused = Some(second);
+
+        workspace.apply_grid_preset(crate::model::GridLayoutPreset::Single, &ctx);
+        assert_eq!(workspace.charts.len(), 1);
+        assert_eq!(workspace.charts[0].id, second);
+        assert_eq!(workspace.columns.len(), 1);
+        assert_eq!(workspace.columns[0].chart_ids, vec![second]);
+        assert_eq!(workspace.focused, Some(second));
     }
 }
