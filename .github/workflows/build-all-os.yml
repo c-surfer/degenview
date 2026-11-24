@@ -226,29 +226,29 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cat << 'EOF' > release-notes.md
-## Что нового и исправлено / Custom Improvements
-* **Базовое обновление**: переход на официальный релиз DegenView `v0.6.0-rc.35`.
-* **Русская локализация**: полноценный нативный перевод интерфейса через gettext-каталог.
-* **Мультичарт-сетка**: поддержка 1..5 графиков с интерактивными разделителями (drag splitters) и перетаскиванием (drag-and-drop).
-* **Независимые таймфреймы**: возможность открывать один и тот же тикер на разных ТФ в разных чартах.
-* **Индикатор [Surfer] RSI v1**: встроенный индикатор с поддержкой PRO-лицензирования и шифрованием.
-* **Надёжное хранение лицензии**: двухконтурное сохранение (Keyring + локальный файл с правами 0600) с сохранением состояния при перезапусках.
-* **Пунктирная линия цены**: мягкое контрастное отображение уровня текущей цены с привязкой к цвету свечи (зелёный / красный).
-* **Таймер закрытия свечи**: обратный отсчёт времени до закрытия текущего бара на ценовой шкале в реальном времени.
+          ## Что нового и исправлено / Custom Improvements
+          * **Базовое обновление**: переход на официальный релиз DegenView `v0.6.0-rc.35`.
+          * **Русская локализация**: полноценный нативный перевод интерфейса через gettext-каталог.
+          * **Мультичарт-сетка**: поддержка 1..5 графиков с интерактивными разделителями (drag splitters) и перетаскиванием (drag-and-drop).
+          * **Независимые таймфреймы**: возможность открывать один и тот же тикер на разных ТФ в разных чартах.
+          * **Индикатор [Surfer] RSI v1**: встроенный индикатор с поддержкой PRO-лицензирования и шифрованием.
+          * **Надёжное хранение лицензии**: двухконтурное сохранение (Keyring + локальный файл с правами 0600) с сохранением состояния при перезапусках.
+          * **Пунктирная линия цены**: мягкое контрастное отображение уровня текущей цены с привязкой к цвету свечи (зелёный / красный).
+          * **Таймер закрытия свечи**: обратный отсчёт времени до закрытия текущего бара на ценовой шкале в реальном времени.
 
-### Downloads
+          ### Downloads
 
-| Platform | Arch | Link |
-| --- | --- | --- |
-| macOS (dmg) | arm64 | [DegenView-v0.6.0-rc.35-ru-macos-arm64.dmg](https://github.com/c-surfer/degenview/releases/download/v0.6.0-rc.35-ru/DegenView-v0.6.0-rc.35-ru-macos-arm64.dmg) |
-| macOS (dmg) | x64 | [DegenView-v0.6.0-rc.35-ru-macos-x64.dmg](https://github.com/c-surfer/degenview/releases/download/v0.6.0-rc.35-ru/DegenView-v0.6.0-rc.35-ru-macos-x64.dmg) |
-| macOS (zip) | arm64 | [DegenView-v0.6.0-rc.35-ru-macos-arm64.zip](https://github.com/c-surfer/degenview/releases/download/v0.6.0-rc.35-ru/DegenView-v0.6.0-rc.35-ru-macos-arm64.zip) |
-| macOS (zip) | x64 | [DegenView-v0.6.0-rc.35-ru-macos-x64.zip](https://github.com/c-surfer/degenview/releases/download/v0.6.0-rc.35-ru/DegenView-v0.6.0-rc.35-ru-macos-x64.zip) |
-| Windows (installer) | x64 | [DegenView-v0.6.0-rc.35-ru-windows-x64-setup.exe](https://github.com/c-surfer/degenview/releases/download/v0.6.0-rc.35-ru/DegenView-v0.6.0-rc.35-ru-windows-x64-setup.exe) |
-| Windows (portable) | x64 | [DegenView-v0.6.0-rc.35-ru-windows-x64.zip](https://github.com/c-surfer/degenview/releases/download/v0.6.0-rc.35-ru/DegenView-v0.6.0-rc.35-ru-windows-x64.zip) |
-| Linux (tar.gz) | x64 | [DegenView-v0.6.0-rc.35-ru-linux-x64.tar.gz](https://github.com/c-surfer/degenview/releases/download/v0.6.0-rc.35-ru/DegenView-v0.6.0-rc.35-ru-linux-x64.tar.gz) |
-| Linux (Flatpak) | x64 | [DegenView-v0.6.0-rc.35-ru-linux-x64.flatpak](https://github.com/c-surfer/degenview/releases/download/v0.6.0-rc.35-ru/DegenView-v0.6.0-rc.35-ru-linux-x64.flatpak) |
-EOF
+          | Platform | Arch | Link |
+          | --- | --- | --- |
+          | macOS (dmg) | arm64 | [DegenView-v0.6.0-rc.35-ru-macos-arm64.dmg](https://github.com/c-surfer/degenview/releases/download/v0.6.0-rc.35-ru/DegenView-v0.6.0-rc.35-ru-macos-arm64.dmg) |
+          | macOS (dmg) | x64 | [DegenView-v0.6.0-rc.35-ru-macos-x64.dmg](https://github.com/c-surfer/degenview/releases/download/v0.6.0-rc.35-ru/DegenView-v0.6.0-rc.35-ru-macos-x64.dmg) |
+          | macOS (zip) | arm64 | [DegenView-v0.6.0-rc.35-ru-macos-arm64.zip](https://github.com/c-surfer/degenview/releases/download/v0.6.0-rc.35-ru/DegenView-v0.6.0-rc.35-ru-macos-arm64.zip) |
+          | macOS (zip) | x64 | [DegenView-v0.6.0-rc.35-ru-macos-x64.zip](https://github.com/c-surfer/degenview/releases/download/v0.6.0-rc.35-ru/DegenView-v0.6.0-rc.35-ru-macos-x64.zip) |
+          | Windows (installer) | x64 | [DegenView-v0.6.0-rc.35-ru-windows-x64-setup.exe](https://github.com/c-surfer/degenview/releases/download/v0.6.0-rc.35-ru/DegenView-v0.6.0-rc.35-ru-windows-x64-setup.exe) |
+          | Windows (portable) | x64 | [DegenView-v0.6.0-rc.35-ru-windows-x64.zip](https://github.com/c-surfer/degenview/releases/download/v0.6.0-rc.35-ru/DegenView-v0.6.0-rc.35-ru-windows-x64.zip) |
+          | Linux (tar.gz) | x64 | [DegenView-v0.6.0-rc.35-ru-linux-x64.tar.gz](https://github.com/c-surfer/degenview/releases/download/v0.6.0-rc.35-ru/DegenView-v0.6.0-rc.35-ru-linux-x64.tar.gz) |
+          | Linux (Flatpak) | x64 | [DegenView-v0.6.0-rc.35-ru-linux-x64.flatpak](https://github.com/c-surfer/degenview/releases/download/v0.6.0-rc.35-ru/DegenView-v0.6.0-rc.35-ru-linux-x64.flatpak) |
+          EOF
 
           gh release create ${{ env.TAG }} release-assets/* \
             --title "DegenView ${{ env.TAG }} (Russian Localization & Multi-Chart)" \
