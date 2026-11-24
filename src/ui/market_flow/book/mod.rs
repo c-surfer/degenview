@@ -19,7 +19,6 @@ use crate::model::depth::{DepthSnapshot, Link};
 use crate::ui::icons::Icon;
 use crate::ui::kit;
 use crate::ui::kit::time_text::clock_time_seconds;
-use crate::ui::tr;
 use eframe::egui::Ui;
 
 /// The share of the free height the ladder takes; the tape has the rest.
@@ -48,47 +47,24 @@ pub(super) fn show(ui: &mut Ui, state: &mut BookViewState, body: &BookBody<'_>) 
             ui,
             area,
             Icon::List,
-            tr("No order book", "Нет биржевого стакана"),
-            tr(
-                "The order book follows the focused chart when it is on Binance or Bybit.",
-                "Биржевой стакан следует за активным графиком, если он на Binance или Bybit.",
-            ),
+            "No order book",
+            "The order book follows the focused chart when it is on Binance or Bybit.",
         );
         return;
     };
     let waiting = match feed.snapshot.link {
         Link::Live => None,
         Link::Connecting => Some((
-            if crate::ui::i18n::is_ru() {
-                format!("Подключение к {}", feed.exchange)
-            } else {
-                format!("Connecting to {}", feed.exchange)
-            },
-            if crate::ui::i18n::is_ru() {
-                format!("Ожидание стакана {}.", feed.symbol)
-            } else {
-                format!("Waiting for the {} book.", feed.symbol)
-            },
+            format!("Connecting to {}", feed.exchange),
+            format!("Waiting for the {} book.", feed.symbol),
         )),
         Link::Reconnecting => Some((
-            if crate::ui::i18n::is_ru() {
-                format!("Переподключение к {}", feed.exchange)
-            } else {
-                format!("Reconnecting to {}", feed.exchange)
-            },
-            tr(
-                "The book is shown again as soon as it is back.",
-                "Стакан отобразится снова, как только связь восстановится.",
-            )
-            .to_owned(),
+            format!("Reconnecting to {}", feed.exchange),
+            "The book is shown again as soon as it is back.".to_owned(),
         )),
         Link::Unlisted => Some((
-            tr("No order book", "Нет биржевого стакана").to_owned(),
-            if crate::ui::i18n::is_ru() {
-                format!("{} не поддерживает {}.", feed.exchange, feed.symbol)
-            } else {
-                format!("{} does not list {}.", feed.exchange, feed.symbol)
-            },
+            "No order book".to_owned(),
+            format!("{} does not list {}.", feed.exchange, feed.symbol),
         )),
     };
     if let Some((title, detail)) = waiting {
@@ -112,25 +88,14 @@ fn live(ui: &mut Ui, state: &mut BookViewState, feed: BookFeed<'_>) {
 }
 
 fn footnote_text(feed: BookFeed<'_>) -> String {
-    if crate::ui::i18n::is_ru() {
-        let since = feed.snapshot.tape.since_ms.map_or_else(
-            || "Сделок пока нет.".to_owned(),
-            |since| format!("Сделки с {}.", clock_time_seconds(Some(since))),
-        );
-        format!(
-            "{} спот, {}. Объемы в базовой валюте. {since} Накопление/снятие — объем, добавленный или снятый за последние 10 секунд.",
-            feed.symbol, feed.exchange
-        )
-    } else {
-        let since = feed.snapshot.tape.since_ms.map_or_else(
-            || "No trades yet.".to_owned(),
-            |since| format!("Traded since {}.", clock_time_seconds(Some(since))),
-        );
-        format!(
-            "{} spot, {}. Sizes are in the base coin. {since} Stack is size added or taken away over the last 10 seconds.",
-            feed.symbol, feed.exchange
-        )
-    }
+    let since = feed.snapshot.tape.since_ms.map_or_else(
+        || "No trades yet.".to_owned(),
+        |since| format!("Traded since {}.", clock_time_seconds(Some(since))),
+    );
+    format!(
+        "{} spot, {}. Sizes are in the base coin. {since} Stack is size added or taken away over the last 10 seconds.",
+        feed.symbol, feed.exchange
+    )
 }
 
 /// A size in the base coin with as few characters as keep it readable: `1.2K`, `340`, `12.3`,

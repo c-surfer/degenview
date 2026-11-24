@@ -14,6 +14,7 @@ mod parts;
 mod result;
 mod text;
 
+use crate::i18n::tr;
 use crate::model::Kline;
 use crate::model::session_stats::{
     self, Filter, MarketHours, Outcome, Side, Stats, Unavailable, WeekdaySet,
@@ -36,16 +37,6 @@ const DAY_HEIGHT: f32 = 28.0;
 const FIELD_TEXT: f32 = kit::size::SUBHEADLINE + 1.0;
 /// How long the copy button says "copied".
 const COPIED_FOR: f64 = 1.6;
-
-const WEEKDAYS: [&str; 7] = [
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-    "Sunday",
-];
 
 /// What the panel asks for.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -230,7 +221,7 @@ fn toolbar(
             ui.spacing_mut().item_spacing = vec2(8.0, 0.0);
             ui.add_space(MARGIN);
             ui.label(kit::text(
-                "Session statistics",
+                tr!("Session statistics"),
                 kit::size::HEADLINE,
                 kit::SEMIBOLD,
                 theme::text_primary(),
@@ -242,7 +233,7 @@ fn toolbar(
                     Icon::Xmark,
                     26.0,
                     theme::text_secondary(),
-                    "Close session statistics",
+                    tr!("Close session statistics"),
                 );
                 if close.clicked() {
                     *action = Some(Action::Close);
@@ -282,9 +273,9 @@ fn copy_button(ui: &mut Ui, state: &mut StatsViewState, title: &str, stats: &Sta
         state.copied_at = None;
     }
     let (icon, tip) = if copied {
-        (Icon::Check, "Copied")
+        (Icon::Check, tr!("Copied"))
     } else {
-        (Icon::CopyDoc, "Copy the answer")
+        (Icon::CopyDoc, tr!("Copy the answer"))
     };
     if icons::button(ui, icon, 26.0, theme::text_secondary(), tip).clicked() {
         ui.ctx().copy_text(text::summary(title, stats, bar_ms));
@@ -295,7 +286,7 @@ fn copy_button(ui: &mut Ui, state: &mut StatsViewState, title: &str, stats: &Sta
 // MARK: Question
 
 fn question(ui: &mut Ui, state: &mut StatsViewState) {
-    section_label(ui, "Question");
+    section_label(ui, tr!("Question"));
     let labels: Vec<String> = Outcome::ALL
         .iter()
         .map(|outcome| outcome.label().to_owned())
@@ -321,8 +312,8 @@ fn question(ui: &mut Ui, state: &mut StatsViewState) {
 
 fn conditions(ui: &mut Ui, state: &mut StatsViewState) {
     let active = state.filter.active_count();
-    section_header(ui, "Only count days that…", |ui| {
-        if active > 0 && link(ui, "Clear").clicked() {
+    section_header(ui, tr!("Only count days that…"), |ui| {
+        if active > 0 && link(ui, tr!("Clear")).clicked() {
             state.clear_conditions();
         }
     });
@@ -330,23 +321,27 @@ fn conditions(ui: &mut Ui, state: &mut StatsViewState) {
     if state.filter.weekdays.is_empty() {
         paragraph(
             ui,
-            "No weekday is on, so no day qualifies.",
+            tr!("No weekday is on, so no day qualifies."),
             kit::size::SUBHEADLINE,
             kit::REGULAR,
             theme::text_tertiary(),
         );
     }
 
-    control_row(ui, "Gap", |ui, width| {
+    control_row(ui, tr!("Gap"), |ui, width| {
         kit::segmented_filling(
             ui,
             egui::Id::new("session-stats-gap"),
-            &[(Side::Any, "Any"), (Side::Up, "Up"), (Side::Down, "Down")],
+            &[
+                (Side::Any, tr!("Any")),
+                (Side::Up, tr!("Up")),
+                (Side::Down, tr!("Down")),
+            ],
             &mut state.filter.gap,
             width,
         );
     });
-    control_row(ui, "Gap size", |ui, width| {
+    control_row(ui, tr!("Gap size"), |ui, width| {
         // The dash and the spacing round it come out of the width before it is shared.
         let dash = kit::galley(
             ui,
@@ -362,7 +357,7 @@ fn conditions(ui: &mut Ui, state: &mut StatsViewState) {
             ui,
             "session-stats-gap-min",
             &mut state.gap_min,
-            "min",
+            (tr!("min"), tr!("Gap min percent")),
             field,
         );
         ui.label(kit::text(
@@ -375,7 +370,7 @@ fn conditions(ui: &mut Ui, state: &mut StatsViewState) {
             ui,
             "session-stats-gap-max",
             &mut state.gap_max,
-            "max",
+            (tr!("max"), tr!("Gap max percent")),
             field,
         );
     });
@@ -386,17 +381,21 @@ fn conditions(ui: &mut Ui, state: &mut StatsViewState) {
     {
         paragraph(
             ui,
-            "The smallest gap is above the largest, so no gap qualifies.",
+            tr!("The smallest gap is above the largest, so no gap qualifies."),
             kit::size::SUBHEADLINE,
             kit::REGULAR,
             kit::Tone::Warning.text(),
         );
     }
-    control_row(ui, "Prior day", |ui, width| {
+    control_row(ui, tr!("Prior day"), |ui, width| {
         kit::segmented_filling(
             ui,
             egui::Id::new("session-stats-prior"),
-            &[(Side::Any, "Any"), (Side::Up, "Up"), (Side::Down, "Down")],
+            &[
+                (Side::Any, tr!("Any")),
+                (Side::Up, tr!("Up")),
+                (Side::Down, tr!("Down")),
+            ],
             &mut state.filter.prior_day,
             width,
         );
@@ -432,7 +431,8 @@ fn weekday_strip(ui: &mut Ui, set: &mut WeekdaySet) {
     let width = ui.available_width();
     let cell = (width - GAP * 6.0) / 7.0;
     let (strip, _) = ui.allocate_exact_size(vec2(width, DAY_HEIGHT), Sense::hover());
-    for (day, name) in WEEKDAYS.iter().enumerate() {
+    for day in 0..7 {
+        let name = crate::i18n::datetime::weekday_name(day);
         let rect = Rect::from_min_size(
             pos2(strip.left() + day as f32 * (cell + GAP), strip.top()),
             vec2(cell, DAY_HEIGHT),
@@ -445,8 +445,8 @@ fn weekday_strip(ui: &mut Ui, set: &mut WeekdaySet) {
                 Sense::click(),
             )
             .on_hover_cursor(egui::CursorIcon::PointingHand)
-            .on_hover_text(*name);
-        response.widget_info(|| WidgetInfo::selected(WidgetType::Checkbox, true, on, name));
+            .on_hover_text(&name);
+        response.widget_info(|| WidgetInfo::selected(WidgetType::Checkbox, true, on, &name));
         let painter = ui.painter();
         let fill = if on {
             theme::selected_tint(response.hovered())
@@ -471,7 +471,7 @@ fn weekday_strip(ui: &mut Ui, set: &mut WeekdaySet) {
         };
         let galley = kit::galley(
             ui,
-            WeekdaySet::NAMES[day],
+            &crate::i18n::datetime::weekday_short(day),
             kit::size::SUBHEADLINE,
             weight,
             color,
@@ -486,7 +486,14 @@ fn weekday_strip(ui: &mut Ui, set: &mut WeekdaySet) {
 }
 
 /// A percent field with its unit; a red outline and a tooltip when the text is not a number.
-fn percent_field(ui: &mut Ui, id: &str, value: &mut String, hint: &str, width: f32) {
+/// `(hint, accessible name)` say what the field is for.
+fn percent_field(
+    ui: &mut Ui,
+    id: &str,
+    value: &mut String,
+    (hint, name): (&str, &str),
+    width: f32,
+) {
     let field_id = egui::Id::new(id);
     let focused = ui.memory(|memory| memory.has_focus(field_id));
     let invalid = StatsViewState::gap_text_invalid(value);
@@ -512,9 +519,9 @@ fn percent_field(ui: &mut Ui, id: &str, value: &mut String, hint: &str, width: f
                 kit::REGULAR,
                 (inner - 16.0).max(10.0),
             );
-            accessibility::label(response.clone(), format!("Gap {hint} percent"));
+            accessibility::label(response.clone(), name);
             if invalid {
-                response.on_hover_text("Enter a percent, for example 0.5");
+                response.on_hover_text(tr!("Enter a percent, for example 0.5"));
             }
             ui.label(kit::text(
                 "%",

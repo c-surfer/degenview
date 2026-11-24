@@ -16,7 +16,7 @@ pub(in crate::pine_studio) struct ViewState {
 
 pub(super) fn entries(state: &ViewState) -> Vec<Entry> {
     let panels = &state.panels;
-    let toggle = |label: &str, on: bool, command: Cmd| Item::new(crate::ui::t(label), command).checked(on);
+    let toggle = |label: &str, on: bool, command: Cmd| Item::new(label, command).checked(on);
     let (chart_label, drawer_label) = (
         if panels.chart_visible {
             "Hide Preview Chart"
@@ -43,7 +43,7 @@ pub(super) fn entries(state: &ViewState) -> Vec<Entry> {
         ],
         vec![
             Submenu::new(
-                crate::ui::tr("Preview Chart", "График предпросмотра"),
+                "Preview Chart",
                 ChartPosition::ALL
                     .into_iter()
                     .map(|position| {
@@ -57,14 +57,14 @@ pub(super) fn entries(state: &ViewState) -> Vec<Entry> {
                     .collect(),
             )
             .into(),
-            Item::new(crate::ui::t(chart_label), Cmd::ToggleChart)
+            Item::new(chart_label, Cmd::ToggleChart)
                 .shortcut(&shortcut::TOGGLE_PREVIEW_CHART)
                 .into(),
         ],
         vec![
-            Item::new(crate::ui::t(drawer_label), Cmd::ToggleDrawer).into(),
+            Item::new(drawer_label, Cmd::ToggleDrawer).into(),
             Submenu::new(
-                crate::ui::tr("Drawer Tab", "Вкладка панели"),
+                "Drawer Tab",
                 DrawerTab::ALL
                     .into_iter()
                     .map(|tab| {

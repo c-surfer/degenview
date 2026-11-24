@@ -6,6 +6,7 @@
 //! sit in the page. A pure view over [`McpSettingsInput`]: it returns [`McpAction`]s and never
 //! touches the server, the store or the Keychain itself.
 
+use crate::i18n::{tr, tr_n};
 use crate::mcp::state::McpStatus;
 use crate::model::mcp::{
     BindMode, McpAction, McpAuditEntry, McpClient, McpSettings, Permission, PermissionSet,
@@ -139,6 +140,8 @@ struct AccessOverview {
     detail: String,
     /// It can change DegenView, not only look.
     writes: bool,
+    /// It can do nothing at all.
+    none: bool,
 }
 
 /// At most this many areas are named before "+ N more".
@@ -148,16 +151,12 @@ fn named(areas: &[&str]) -> String {
     let shown = areas
         .iter()
         .take(NAMED_AREAS)
-        .map(|a| crate::ui::t(a))
+        .copied()
         .collect::<Vec<_>>()
         .join(", ");
     match areas.len().saturating_sub(NAMED_AREAS) {
         0 => shown,
-        more => if crate::ui::is_ru() {
-            format!("{shown} +ещё {more}")
-        } else {
-            format!("{shown} +{more} more")
-        },
+        more => tr!("{areas} +{more} more", areas = shown, more = more),
     }
 }
 
@@ -174,47 +173,40 @@ fn access_overview(set: &PermissionSet) -> AccessOverview {
     }
     if reads.is_empty() && writes.is_empty() {
         return AccessOverview {
-            headline: "No access",
+            headline: tr!("No access"),
             detail: String::new(),
             writes: false,
+            none: true,
         };
     }
     if writes.is_empty() {
         let detail = if reads.len() == total {
-            if crate::ui::is_ru() {
-                format!("Все {total} разделов")
-            } else {
-                format!("All {total} areas")
-            }
+            tr_n!(total, "All {count} area", "All {count} areas")
         } else {
             named(&reads)
         };
         return AccessOverview {
-            headline: "Read only",
+            headline: tr!("Read only"),
             detail,
             writes: false,
+            none: false,
         };
     }
-    let mut detail = if crate::ui::is_ru() {
-        format!("Изменяет {}", named(&writes))
+    let detail = if reads.is_empty() {
+        tr!("Changes {areas}", areas = named(&writes))
     } else {
-        format!("Changes {}", named(&writes))
+        tr_n!(
+            reads.len(),
+            "Changes {areas} · reads {count} more area",
+            "Changes {areas} · reads {count} more areas",
+            areas = named(&writes)
+        )
     };
-    if !reads.is_empty() {
-        if crate::ui::is_ru() {
-            detail.push_str(&format!(" · читает ещё {}", reads.len()));
-        } else {
-            detail.push_str(&format!(
-                " · reads {} more area{}",
-                reads.len(),
-                if reads.len() == 1 { "" } else { "s" }
-            ));
-        }
-    }
     AccessOverview {
-        headline: "Read & write",
+        headline: tr!("Read & write"),
         detail,
         writes: true,
+        none: false,
     }
 }
 
@@ -264,19 +256,20 @@ fn reset_row(ui: &mut Ui, state: &mut McpSettingsState, actions: &mut Vec<McpAct
         ui.spacing_mut().item_spacing.x = 10.0;
         if state.confirm_reset {
             ui.label(kit::text(
-                "Revoke every credential and turn the server off?",
+                tr!("Revoke every credential and turn the server off?"),
                 kit::size::BODY,
                 kit::MEDIUM,
                 theme::text_primary(),
             ));
-            if kit::destructive_sheet_button(ui, Icon::Xmark, "Reset").clicked() {
+            if kit::destructive_sheet_button(ui, Icon::Xmark, tr!("Reset")).clicked() {
                 actions.push(McpAction::ResetAccess);
                 state.confirm_reset = false;
             }
-            if kit::sheet_button(ui, "Cancel", false, true).clicked() {
+            if kit::sheet_button(ui, tr!("Cancel"), false, true).clicked() {
                 state.confirm_reset = false;
             }
-        } else if kit::destructive_sheet_button(ui, Icon::Xmark, "Reset MCP Access…").clicked() {
+        } else if kit::destructive_sheet_button(ui, Icon::Xmark, tr!("Reset MCP Access…")).clicked()
+        {
             state.confirm_reset = true;
         }
     });

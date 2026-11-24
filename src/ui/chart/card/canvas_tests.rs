@@ -233,6 +233,7 @@ pub(super) fn axis_texts(drawn: &Drawn) -> Vec<String> {
         .texts
         .iter()
         .filter(|(pos, ..)| pos.x > SIZE.x - 90.0)
+        .filter(|(_, text, _)| !text.contains(':'))
         .collect();
     pieces.sort_by(|a, b| a.0.y.total_cmp(&b.0.y));
     // Labels are many points apart; the pieces of one are within a few.
@@ -298,6 +299,24 @@ fn a_tiny_price_counts_its_zeros_on_the_axis_by_default() {
         );
         assert!(!label.contains("0.00"), "{label} writes no run of zeros");
     }
+}
+
+#[test]
+fn the_last_price_draws_a_bar_countdown_timer() {
+    let mut harness = Harness::new(ChartCanvas::default());
+    let (drawn, _) = harness.draw();
+    let timer_texts: Vec<&String> = drawn
+        .texts
+        .iter()
+        .filter(|(pos, ..)| pos.x > SIZE.x - 90.0)
+        .map(|(_, text, _)| text)
+        .filter(|text| text.contains(':'))
+        .collect();
+    assert!(
+        !timer_texts.is_empty(),
+        "expected countdown timer on price axis, got texts: {:?}",
+        drawn.texts
+    );
 }
 
 #[test]
@@ -1406,6 +1425,21 @@ pub(super) fn wait_for_run(harness: &mut Harness, id: u64) {
 }
 
 #[test]
+fn a_chart_runs_scripts_only_while_one_is_visible() {
+    let mut harness = Harness::new(ChartCanvas::default());
+    assert!(!harness.card.runs_scripts());
+    let id = harness
+        .card
+        .add_pine_instance(None, "Overlay", OVERLAY_SCRIPT);
+    assert!(harness.card.runs_scripts());
+    harness.card.set_pine_visible(id, false);
+    assert!(
+        !harness.card.runs_scripts(),
+        "a hidden script does not run, so it asks for no history"
+    );
+}
+
+#[test]
 fn a_new_overlay_script_never_claims_a_pane_while_it_evaluates() {
     let mut harness = Harness::new(ChartCanvas::default());
     let id = harness
@@ -1658,6 +1692,84 @@ fn panes_get_their_separators_and_the_canvas_grid() {
         tops(&without),
         tops(&drawn)
     );
+}
+
+/// Applies the bundled indicator `id` to the harness's chart and draws until its run has arrived.
+pub(super) fn add_bundled(harness: &mut Harness, id: &str) {
+    let indicator = crate::model::pine::bundled::find(id).expect("a bundled indicator");
+    let instance = harness.card.add_pine_instance(
+        Some(crate::model::pine::bundled::script_id(indicator)),
+        indicator.name,
+        indicator.source,
+    );
+    let ran = |harness: &Harness| {
+        harness
+            .card
+            .pine_status(instance)
+            .is_some_and(|status| status.error.is_none())
+    };
+    for _ in 0..300 {
+        harness.frame();
+        if ran(harness) {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
+    assert!(ran(harness), "{id} ran");
+}
+
+/// A chart with one bundled indicator on it, drawn until its run has arrived.
+fn with_bundled(id: &str) -> Harness {
+    let mut harness = Harness::new(ChartCanvas::default());
+    add_bundled(&mut harness, id);
+    harness
+}
+
+/// The numbers a chart prints on its price axis below `top`: what its panes' scales say.
+fn axis_values_below(drawn: &Drawn, top: f32) -> Vec<f64> {
+    drawn
+        .texts
+        .iter()
+        .filter(|(pos, ..)| pos.x > SIZE.x - 90.0 && pos.y > top)
+        .filter_map(|(_, text, _)| text.parse::<f64>().ok())
+        .collect()
+}
+
+#[test]
+fn rsi_gets_a_pane_of_its_own_with_its_own_scale() {
+    let mut harness = with_bundled("rsi");
+    let (drawn, _) = harness.draw();
+    assert_eq!(harness.card.pane_count(), 1, "RSI is a pane like MACD");
+    // The price axis keeps its prices: the candles are not squeezed or overdrawn by the RSI.
+    let prices = axis_values_below(&drawn, 0.0);
+    assert!(
+        prices.iter().any(|value| *value > 200.0),
+        "the price axis is still there: {prices:?}"
+    );
+    // The pane has an axis of its own, in the RSI's own units.
+    let pane_scale = axis_values_below(&drawn, SIZE.y * 0.7);
+    assert!(
+        pane_scale.len() >= 2 && pane_scale.iter().all(|value| (0.0..=100.0).contains(value)),
+        "an RSI scale of its own: {pane_scale:?}"
+    );
+}
+
+#[test]
+fn a_bundled_indicator_gets_the_placement_it_declares() {
+    for indicator in &crate::model::pine::bundled::ALL {
+        let harness = with_bundled(indicator.id);
+        assert_eq!(
+            harness.card.pane_count(),
+            usize::from(!indicator.overlay),
+            "{}: {}",
+            indicator.name,
+            if indicator.overlay {
+                "an overlay stays on the price pane"
+            } else {
+                "declared a pane of its own"
+            }
+        );
+    }
 }
 
 #[test]

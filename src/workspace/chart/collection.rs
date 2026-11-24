@@ -3,7 +3,9 @@
 use super::{Chart, displayed_candles};
 use crate::host::portfolio::card::PortfolioCardEnv;
 use crate::host::trading::TradingHub;
+use crate::i18n::tr;
 use crate::model::chart::price_scale::PriceScaleMode;
+use crate::model::pine::bundled;
 use crate::model::portfolio::card::PortfolioCard;
 use crate::model::watchlist::WatchlistInstrument;
 use crate::model::{
@@ -37,6 +39,8 @@ pub struct ChartSummary {
     pub indicators: IndicatorConfig,
     /// `(instance id, script name)` of each applied Pine script.
     pub pine_instances: Vec<(u64, String)>,
+    /// The ids of the bundled indicators drawn on the chart: applied, with their eye on.
+    pub bundled_shown: Vec<&'static str>,
 }
 
 /// What the MCP candle and drawing tools read off one market chart. Borrowed from the workspace,
@@ -96,6 +100,19 @@ impl ChartWorkspace {
                     .pine_instances()
                     .iter()
                     .map(|instance| (instance.id, instance.name.clone()))
+                    .collect(),
+                bundled_shown: chart
+                    .chart
+                    .pine_instances()
+                    .iter()
+                    .filter(|instance| instance.visible)
+                    .filter_map(|instance| {
+                        let id = instance
+                            .script_id
+                            .as_deref()?
+                            .strip_prefix(bundled::SCRIPT_ID_PREFIX)?;
+                        bundled::find(id).map(|indicator| indicator.id)
+                    })
                     .collect(),
             })
             .collect()
@@ -227,6 +244,19 @@ impl ChartWorkspace {
         chart.reset_history();
         chart.forget_live();
         chart.fetch(timeframe, ctx);
+    }
+
+    /// Closes a chart and focuses an adjacent chart.
+    pub fn close_chart(&mut self, chart_id: u64) {
+        if self.charts.len() <= 1 {
+            return;
+        }
+        let focused_before = self.focused;
+        self.remove_chart(chart_id);
+        if focused_before == Some(chart_id) || self.focused.is_none() {
+            self.focused = self.charts.first().map(|c| c.id);
+        }
+        self.validate_grid_weights();
     }
 
     /// Adds a portfolio card to the grid, or focuses the one already showing the same kind for
@@ -376,18 +406,17 @@ impl ChartWorkspace {
             self.removing_chart = None;
             return;
         };
-        let title = format!("{} {}?", crate::ui::tr("Remove", "Удалить"), chart.display_title());
+        let title = tr!("Remove {chart}?", chart = chart.display_title());
         let result = crate::ui::kit::confirm(
             ctx,
             egui::Id::new("remove-chart"),
             &crate::ui::kit::Confirm {
                 icon: crate::ui::icons::Icon::Trash,
                 title: &title,
-                message: crate::ui::tr(
-                    "The chart leaves this tab. You can add it again from the symbol search.",
-                    "График будет удален из этой вкладки. Вы можете снова добавить его через поиск символов.",
+                message: tr!(
+                    "The chart leaves this tab. You can add it again from the symbol search."
                 ),
-                destructive: crate::ui::tr("Remove", "Удалить"),
+                destructive: tr!("Remove"),
             },
         );
         if result == Some(crate::ui::kit::ConfirmOutcome::Confirmed) {
@@ -478,6 +507,7 @@ impl ChartWorkspace {
             column.chart_ids.retain(|id| *id != chart_id);
         }
         self.columns.retain(|column| !column.chart_ids.is_empty());
+        self.validate_grid_weights();
     }
 
     pub(in crate::workspace) fn focus_chart(&mut self, chart_id: u64) {
@@ -707,51 +737,6 @@ mod tests {
         assert_eq!(focused[0].id, eth.chart_id);
         assert_eq!(focused[0].display_symbol, "ETH-USD");
         assert!(!focused[0].is_line_chart);
-    }
-
-    #[test]
-    fn force_add_chart_for_creates_duplicate_chart() {
-        let ctx = egui::Context::default();
-        let mut workspace = empty_workspace(8);
-        let btc = InstrumentId::new(DataSource::Binance, "BTCUSDT");
-        let first = workspace.add_chart_for(&btc, &ctx);
-        assert!(first.created);
-        assert_eq!(workspace.chart_count(), 1);
-
-        let second = workspace.force_add_chart_for(&btc, &ctx);
-        assert!(second.created);
-        assert_ne!(first.chart_id, second.chart_id);
-        assert_eq!(workspace.chart_count(), 2);
-    }
-
-    #[test]
-    fn duplicate_chart_copies_chart_into_grid() {
-        let ctx = egui::Context::default();
-        let mut workspace = empty_workspace(9);
-        let btc = InstrumentId::new(DataSource::Binance, "BTCUSDT");
-        let first = workspace.add_chart_for(&btc, &ctx);
-        assert_eq!(workspace.chart_count(), 1);
-
-        let duplicated = workspace.duplicate_chart(first.chart_id, &ctx);
-        assert!(duplicated.is_some());
-        let new_id = duplicated.unwrap();
-        assert_ne!(new_id, first.chart_id);
-        assert_eq!(workspace.chart_count(), 2);
-        assert_eq!(workspace.focused, Some(new_id));
-    }
-
-    #[test]
-    fn add_chart_from_instrument_duplicates_when_already_open() {
-        let ctx = egui::Context::default();
-        let mut workspace = empty_workspace(10);
-        let btc = InstrumentId::new(DataSource::Binance, "BTCUSDT");
-        let item = WatchlistInstrument::new(btc.clone(), "BTCUSDT", "Bitcoin");
-        workspace.add_chart_from_instrument(&item, &ctx);
-        assert_eq!(workspace.chart_count(), 1);
-
-        // Explicit action from watchlist context menu adds duplicate chart
-        workspace.add_chart_from_instrument(&item, &ctx);
-        assert_eq!(workspace.chart_count(), 2);
     }
 
     #[test]
@@ -1104,5 +1089,50 @@ mod tests {
             read.series[0].values.last().copied().flatten(),
             last_rsi(&cut)
         );
+    }
+
+    #[test]
+    fn force_add_chart_for_creates_duplicate_chart() {
+        let ctx = egui::Context::default();
+        let mut workspace = empty_workspace(8);
+        let btc = InstrumentId::new(DataSource::Binance, "BTCUSDT");
+        let first = workspace.add_chart_for(&btc, &ctx);
+        assert!(first.created);
+        assert_eq!(workspace.chart_count(), 1);
+
+        let second = workspace.force_add_chart_for(&btc, &ctx);
+        assert!(second.created);
+        assert_ne!(first.chart_id, second.chart_id);
+        assert_eq!(workspace.chart_count(), 2);
+    }
+
+    #[test]
+    fn duplicate_chart_copies_chart_into_grid() {
+        let ctx = egui::Context::default();
+        let mut workspace = empty_workspace(9);
+        let btc = InstrumentId::new(DataSource::Binance, "BTCUSDT");
+        let first = workspace.add_chart_for(&btc, &ctx);
+        assert_eq!(workspace.chart_count(), 1);
+
+        let duplicated = workspace.duplicate_chart(first.chart_id, &ctx);
+        assert!(duplicated.is_some());
+        let new_id = duplicated.unwrap();
+        assert_ne!(new_id, first.chart_id);
+        assert_eq!(workspace.chart_count(), 2);
+        assert_eq!(workspace.focused, Some(new_id));
+    }
+
+    #[test]
+    fn add_chart_from_instrument_duplicates_when_already_open() {
+        let ctx = egui::Context::default();
+        let mut workspace = empty_workspace(10);
+        let btc = InstrumentId::new(DataSource::Binance, "BTCUSDT");
+        let item = WatchlistInstrument::new(btc.clone(), "BTCUSDT", "Bitcoin");
+        workspace.add_chart_from_instrument(&item, &ctx);
+        assert_eq!(workspace.chart_count(), 1);
+
+        // Explicit action from watchlist context menu adds duplicate chart
+        workspace.add_chart_from_instrument(&item, &ctx);
+        assert_eq!(workspace.chart_count(), 2);
     }
 }

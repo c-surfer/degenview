@@ -53,17 +53,6 @@ fn asset_counts_pluralise() {
 }
 
 #[test]
-fn asset_counts_pluralise_ru() {
-    crate::ui::i18n::set_lang(crate::ui::i18n::LANG_RU);
-    assert_eq!(asset_count_text(1), "1 актив");
-    assert_eq!(asset_count_text(2), "2 актива");
-    assert_eq!(asset_count_text(5), "5 активов");
-    assert_eq!(asset_count_text(11), "11 активов");
-    assert_eq!(asset_count_text(21), "21 актив");
-    crate::ui::i18n::set_lang(crate::ui::i18n::LANG_EN);
-}
-
-#[test]
 fn the_default_range_is_a_month() {
     assert_eq!(
         OverviewState::default().range,

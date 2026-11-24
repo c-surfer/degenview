@@ -3,13 +3,14 @@
 //! sources or the stock source as you type (debounced, off the UI thread) and hands back the
 //! chosen `SearchResult`; the host turns it into a `PortfolioAsset`.
 
+use crate::i18n::tr;
 use crate::model::DataSource;
 use crate::service::work_queue::{self, PendingAll};
 use crate::service::{ProviderError, SearchResult};
 use crate::store::SharedStore;
 use crate::ui::chart::picker_kit::recents::{self, RecentMarket};
 use crate::ui::chart::picker_kit::suggestions::{
-    self, CRYPTO_SUGGESTIONS, Chip, PREDICTION_TOPICS, STOCK_SUGGESTIONS,
+    self, CRYPTO_SUGGESTIONS, Chip, STOCK_SUGGESTIONS, prediction_topics,
 };
 use crate::ui::chart::picker_kit::{self, art, results, widgets};
 use crate::ui::icons::Icon;
@@ -51,9 +52,9 @@ impl PickerTab {
 
     pub fn title(self) -> &'static str {
         match self {
-            Self::Crypto => crate::ui::tr("Crypto", "Криптовалюта"),
-            Self::Stocks => crate::ui::tr("Stocks", "Акции"),
-            Self::Predictions => crate::ui::tr("Predictions", "Прогнозы"),
+            Self::Crypto => tr!("Crypto"),
+            Self::Stocks => tr!("Stocks"),
+            Self::Predictions => tr!("Predictions"),
         }
     }
 
@@ -76,18 +77,9 @@ impl PickerTab {
 
     pub fn placeholder(self) -> &'static str {
         match self {
-            Self::Crypto => crate::ui::tr(
-                "Ticker symbol (e.g. BTC or PEPE)",
-                "Тикер актива (напр. BTC или PEPE)",
-            ),
-            Self::Stocks => crate::ui::tr(
-                "US stock symbol or company name (e.g. AAPL)",
-                "Тикер или название компании (напр. AAPL)",
-            ),
-            Self::Predictions => crate::ui::tr(
-                "Search markets (e.g. Bitcoin, Fed, election)",
-                "Поиск рынков (напр. Bitcoin, ФРС, выборы)",
-            ),
+            Self::Crypto => tr!("Ticker symbol (e.g. BTC or PEPE)"),
+            Self::Stocks => tr!("US stock symbol or company name (e.g. AAPL)"),
+            Self::Predictions => tr!("Search markets (e.g. Bitcoin, Fed, election)"),
         }
     }
 }
@@ -389,7 +381,7 @@ fn show_body(
     search_id: Id,
     outcome: &mut Option<AssetPickerOutcome>,
 ) {
-    widgets::header(ui, state.tab.scene(), crate::ui::t(&state.title), crate::ui::t(&state.subtitle));
+    widgets::header(ui, state.tab.scene(), &state.title, &state.subtitle);
     ui.add_space(16.0);
     let items = PickerTab::ALL.map(|tab| (tab, tab.title(), tab.icon()));
     if let Some(tab) = kit::icon_tabs::icon_tabs(ui, &items, state.tab) {
@@ -459,13 +451,13 @@ fn show_body(
         }
     } else if !searching && state.has_answer() {
         if let Some(error) = state.first_error() {
-            widgets::no_results(ui, "Search Failed", &error);
+            widgets::no_results(ui, tr!("Search Failed"), &error);
         } else {
             let query = state.query.trim().to_owned();
             widgets::no_results(
                 ui,
-                &format!("No Results for “{query}”"),
-                "Check the spelling or try a new search.",
+                &tr!("No Results for “{query}”", query = query),
+                tr!("Check the spelling or try a new search."),
             );
         }
     }
@@ -482,7 +474,9 @@ fn idle(ui: &mut Ui, state: &mut AssetPickerState, outcome: &mut Option<AssetPic
                 PickerTab::Crypto => {
                     let items =
                         CRYPTO_SUGGESTIONS.map(|ticker| Chip::Logo(ticker, DataSource::Binance));
-                    if let Some(index) = suggestions::suggestion_grid(ui, crate::ui::tr("Suggestions", "Рекомендации"), &items) {
+                    if let Some(index) =
+                        suggestions::suggestion_grid(ui, tr!("Suggestions"), &items)
+                    {
                         search = Some(CRYPTO_SUGGESTIONS[index]);
                     }
                 }
@@ -491,17 +485,19 @@ fn idle(ui: &mut Ui, state: &mut AssetPickerState, outcome: &mut Option<AssetPic
                         STOCK_SUGGESTIONS.map(|ticker| Chip::Logo(ticker, DataSource::Alpaca));
                     if let Some(index) = suggestions::suggestion_grid(
                         ui,
-                        "Popular US stocks and ETFs · free IEX feed",
+                        tr!("Popular US stocks and ETFs · free IEX feed"),
                         &items,
                     ) {
                         search = Some(STOCK_SUGGESTIONS[index]);
                     }
                 }
                 PickerTab::Predictions => {
-                    let items = PREDICTION_TOPICS.map(|(title, _, icon)| Chip::Symbol(title, icon));
-                    if let Some(index) = suggestions::suggestion_grid(ui, "Popular topics", &items)
+                    let items =
+                        prediction_topics().map(|(title, _, icon)| Chip::Symbol(title, icon));
+                    if let Some(index) =
+                        suggestions::suggestion_grid(ui, tr!("Popular topics"), &items)
                     {
-                        search = Some(PREDICTION_TOPICS[index].1);
+                        search = Some(prediction_topics()[index].1);
                     }
                 }
             }
@@ -536,13 +532,13 @@ fn show_footer(
     }
     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
         ui.spacing_mut().item_spacing.x = 12.0;
-        let label = crate::ui::t(&state.action_label);
-        if widgets::sheet_button(ui, label, true, state.selected.is_some()).clicked()
+        let label = state.action_label.clone();
+        if widgets::sheet_button(ui, &label, true, state.selected.is_some()).clicked()
             && let Some(selected) = state.selected.clone()
         {
             *outcome = Some(AssetPickerOutcome::Choose(Box::new(selected)));
         }
-        if widgets::sheet_button(ui, crate::ui::tr("Cancel", "Отмена"), false, true).clicked() {
+        if widgets::sheet_button(ui, tr!("Cancel"), false, true).clicked() {
             *outcome = Some(AssetPickerOutcome::Cancel);
         }
     });

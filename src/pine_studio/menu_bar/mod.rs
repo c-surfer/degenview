@@ -54,10 +54,10 @@ impl Menu {
 
     fn title(self) -> &'static str {
         match self {
-            Self::File => crate::ui::tr("File", "Файл"),
-            Self::Edit => crate::ui::tr("Edit", "Правка"),
-            Self::View => crate::ui::tr("View", "Вид"),
-            Self::Theme => crate::ui::tr("Theme", "Тема"),
+            Self::File => "File",
+            Self::Edit => "Edit",
+            Self::View => "View",
+            Self::Theme => "Theme",
         }
     }
 }
@@ -176,10 +176,9 @@ fn place_titles(ui: &mut Ui) -> Vec<(Menu, Response)> {
     Menu::ALL
         .into_iter()
         .map(|menu| {
-            let label = crate::ui::t(menu.title());
             let text = kit::galley(
                 ui,
-                label,
+                menu.title(),
                 size::BODY,
                 kit::REGULAR,
                 theme::text_primary(),
@@ -193,7 +192,7 @@ fn place_titles(ui: &mut Ui) -> Vec<(Menu, Response)> {
             let response = ui.interact(rect, title_id(ui, menu), Sense::click());
             (
                 menu,
-                crate::ui::accessibility::label(response, label),
+                crate::ui::accessibility::label(response, menu.title()),
             )
         })
         .collect()
@@ -252,7 +251,7 @@ fn paint_title(ui: &Ui, menu: Menu, response: &Response) {
     };
     let text = kit::galley(
         ui,
-        crate::ui::t(menu.title()),
+        menu.title(),
         size::BODY,
         kit::REGULAR,
         color,

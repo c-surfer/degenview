@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 
-use super::{Arg, CHART_POINT_TYPE, runtime_error};
+use super::{Arg, CHART_POINT_TYPE, bind_slots, parameters, runtime_error};
 use crate::model::Kline;
 use crate::pine::outputs::{MISSING_INDEX, index_is_known, price_is_known};
 use crate::pine::runtime::state::RuntimeState;
@@ -18,10 +18,25 @@ pub(super) fn x_index(
     bar_seconds: f64,
     state: &RuntimeState,
 ) -> RuntimeValue {
-    if anchored_to_time && let Some(millis) = value.int_value() {
-        return RuntimeValue::Int(bar_index_for_time(millis, bar, bar_seconds, state));
-    }
-    value
+    x_coordinate(&value, anchored_to_time, bar, bar_seconds, state).map_or(value, RuntimeValue::Int)
+}
+
+/// The bar index a horizontal-coordinate argument stands for: a whole number as given, or, when the
+/// drawing is anchored to time, the bar index of that time. `None` when it is not a whole number.
+/// Only a setter that writes an x coordinate calls this, so no other argument is read as a time.
+pub(super) fn x_coordinate(
+    value: &RuntimeValue,
+    anchored_to_time: bool,
+    bar: &Kline,
+    bar_seconds: f64,
+    state: &RuntimeState,
+) -> Option<i64> {
+    let whole = value.int_value()?;
+    Some(if anchored_to_time {
+        bar_index_for_time(whole, bar, bar_seconds, state)
+    } else {
+        whole
+    })
 }
 
 pub(super) fn is_time_anchored(bound: &HashMap<String, RuntimeValue>) -> bool {
@@ -127,10 +142,11 @@ pub(super) fn line_price(
     state: &RuntimeState,
     range: SourceRange,
 ) -> Result<RuntimeValue, Diagnostic> {
-    let Some(RuntimeValue::Ref(RefKind::Line, id)) = args.first().map(|arg| &arg.value) else {
+    let [target, x] = bind_slots(args, parameters("line.get_price"));
+    let RuntimeValue::Ref(RefKind::Line, id) = target else {
         return Ok(RuntimeValue::Na);
     };
-    let Some(line) = state.lines.get(id) else {
+    let Some(line) = state.lines.get(&id) else {
         return Ok(RuntimeValue::Na);
     };
     if line.time_anchored {
@@ -140,7 +156,7 @@ pub(super) fn line_price(
             range,
         ));
     }
-    let Some(x) = args.get(1).and_then(|arg| arg.value.number()) else {
+    let Some(x) = x.number() else {
         return Ok(RuntimeValue::Na);
     };
     if !line.is_complete() || line.x1 == line.x2 {
@@ -160,17 +176,14 @@ pub(super) fn set_xloc(
     bar: &Kline,
     bar_seconds: f64,
 ) -> Result<RuntimeValue, Diagnostic> {
-    let value = |position: usize| {
-        args.get(position)
-            .map_or(RuntimeValue::Na, |arg| arg.value.clone())
-    };
-    let target = value(0);
-    let has_two_x = name != "label.set_xloc";
-    let xloc = value(if has_two_x { 3 } else { 2 });
+    let parameters = parameters(name);
+    let slots: [RuntimeValue; 4] = bind_slots(args, parameters);
+    let xloc = slots[parameters.len().saturating_sub(1)].clone();
+    let [target, first, second, _] = slots;
     let timed = xloc.text_value() == Some("xloc.bar_time");
     let resolve =
         |state: &RuntimeState, x: RuntimeValue| x_index(x, timed, bar, bar_seconds, state);
-    let (first, second) = (resolve(state, value(1)), resolve(state, value(2)));
+    let (first, second) = (resolve(state, first), resolve(state, second));
     match target {
         RuntimeValue::Ref(RefKind::Line, id) => {
             if let Some(line) = state.lines.get_mut(&id) {

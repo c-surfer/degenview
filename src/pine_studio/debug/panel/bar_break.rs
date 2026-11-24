@@ -65,16 +65,13 @@ pub(super) fn show(ui: &mut Ui, context: &mut Context<'_>) {
         .show(ui, |ui| {
             ui.spacing_mut().item_spacing = vec2(6.0, 6.0);
             ui.label(kit::text(
-                crate::ui::tr("Stop at bar", "Остановка на баре"),
+                "Stop at bar",
                 kit::size::SUBHEADLINE,
                 kit::SEMIBOLD,
                 theme::text_secondary(),
             ));
             ui.label(kit::text(
-                crate::ui::tr(
-                    "Pauses at the start of a bar, wherever the script is in it.",
-                    "Пауза в начале бара независимо от того, где находится скрипт.",
-                ),
+                "Pauses at the start of a bar, wherever the script is in it.",
                 kit::size::SUBHEADLINE,
                 kit::REGULAR,
                 theme::text_tertiary(),

@@ -212,7 +212,7 @@ fn rows(ui: &mut egui::Ui, entries: &[Entry], focus: Option<usize>) -> Rows {
         match entry {
             Entry::Heading(text) => {
                 let before = ui.cursor().top();
-                kit::menu_heading(ui, crate::ui::t(text));
+                kit::menu_heading(ui, text);
                 out.rects.push(Rect::from_min_size(
                     pos2(ui.min_rect().left(), before),
                     vec2(0.0, HEADING),
@@ -240,7 +240,7 @@ fn rows(ui: &mut egui::Ui, entries: &[Entry], focus: Option<usize>) -> Rows {
                         chevron: !item.children.is_empty(),
                         destructive: item.destructive,
                         focused: focus == Some(index),
-                        ..kit::MenuRow::new(crate::ui::t(&item.label))
+                        ..kit::MenuRow::new(&item.label)
                     },
                 );
                 if let Some(reason) = item.disabled {
@@ -281,7 +281,7 @@ fn measure(ui: &egui::Ui, entries: &[Entry]) -> f32 {
         .map(|item| {
             let label = kit::galley(
                 ui,
-                crate::ui::t(&item.label),
+                &item.label,
                 kit::size::BODY,
                 kit::REGULAR,
                 egui::Color32::WHITE,

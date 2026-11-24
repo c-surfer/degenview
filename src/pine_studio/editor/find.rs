@@ -93,7 +93,7 @@ pub fn show(ui: &mut Ui, rect: Rect, state: &mut FindState, count: usize) -> Fin
     let field = inner.add(
         egui::TextEdit::singleline(&mut state.query)
             .id(id)
-            .hint_text(crate::ui::tr("Find", "Поиск"))
+            .hint_text("Find")
             .desired_width(220.0)
             .margin(Margin::symmetric(6, 3)),
     );
@@ -115,9 +115,7 @@ pub fn show(ui: &mut Ui, rect: Rect, state: &mut FindState, count: usize) -> Fin
     let summary = if state.query.is_empty() {
         String::new()
     } else if count == 0 {
-        crate::ui::tr("No results", "Нет совпадений").to_owned()
-    } else if crate::ui::is_ru() {
-        format!("{} из {count}", state.current.min(count - 1) + 1)
+        "No results".to_owned()
     } else {
         format!("{} of {count}", state.current.min(count - 1) + 1)
     };
@@ -126,32 +124,30 @@ pub fn show(ui: &mut Ui, rect: Rect, state: &mut FindState, count: usize) -> Fin
             .size(10.0)
             .color(theme::text_secondary()),
     );
-    let prev_hint = shortcut::FIND_PREVIOUS.hint(crate::ui::tr("Previous match", "Предыдущее совпадение"));
     if icons::button(
         &mut inner,
         Icon::ChevronUp,
         24.0,
         theme::text_primary(),
-        &prev_hint,
+        &shortcut::FIND_PREVIOUS.hint("Previous match"),
     )
     .clicked()
     {
         event = FindEvent::Previous;
     }
-    let next_hint = shortcut::FIND_NEXT.hint(crate::ui::tr("Next match", "Следующее совпадение"));
     if icons::button(
         &mut inner,
         Icon::ChevronDown,
         24.0,
         theme::text_primary(),
-        &next_hint,
+        &shortcut::FIND_NEXT.hint("Next match"),
     )
     .clicked()
     {
         event = FindEvent::Next;
     }
     inner.with_layout(Layout::right_to_left(Align::Center), |ui| {
-        if icons::button(ui, Icon::Xmark, 24.0, theme::text_secondary(), crate::ui::tr("Close", "Закрыть")).clicked() {
+        if icons::button(ui, Icon::Xmark, 24.0, theme::text_secondary(), "Close").clicked() {
             event = FindEvent::Close;
         }
     });

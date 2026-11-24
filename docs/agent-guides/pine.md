@@ -98,9 +98,35 @@
   editor offers these names. Drawings store bar indexes and `time_anchored`; `set_xloc` re-reads
   coordinates and flips it. Label `yloc` stored with its price, ignored (may be `na`) above/below the
   bar; `PineLayer::label_y` resolves it against the candle, price scale unaffected.
-- `table.cell_set_*` creates a blank cell if undefined (inferred). Numeric text size is
-  `Size::Points(n)` (`font_size` scales TradingView's 14 points to our 12). Undrawable properties
-  (font family, bold/italic) warned via `ignored_features`, never silently dropped.
+- `table.cell_set_*` creates a blank cell if undefined (inferred). `text_font_family`
+  (`font.family_default` / `font.family_monospace`) is stored as `FontFamily` on labels, boxes and
+  cells and drawn through `chart_render::font_id` (egui's monospace face), measured in the same face.
+  Bold/italic are not drawn and are warned via `ignored_features`, never silently dropped.
+- Drawing calls bind through `drawings::parameters(name)` (`parameters.rs`, TradingView's order,
+  handle first; `point_parameters` for the `chart.point` form of `line/label/box.new`): constructors,
+  setters, getters, `copy` and `delete` all take their arguments positionally or by name, in any
+  order. A new drawing function gets its entry there (a test fails for a member without one); never
+  read `args[n]`. `pine::compiler::signatures` is the one lookup of a builtin's parameter names
+  (its table, `ta`, collections, drawings): the editor's signature help and `ignored_features` both
+  read it, so a positional argument (`label.new(…, text.format_bold)`) is warned like a named one.
+  A method-style call (`lbl.set_text_formatting(…)`, also on `f()`) is warned under the builtin the
+  checker resolved it to (`Checked::builtin_methods`, by call site); a receiver of unknown type
+  (an untyped parameter) and a `chart.point` held in a variable (so the point form is not seen)
+  are not.
+- Text sizes are measured on TradingView (a probe of every size, drawn there and here with
+  `gallery_of_a_script`, `ui::chart::card::snapshot_tests`), in `ui::pine::geometry`, never inline.
+  Table and box text (`block_font_size`) is its named size in pixels: 8, 10, 14, 20, 36; a cell is
+  1.68 font sizes high and 0.58 wider than its text (`cell_padding`), a table sits 10 points from
+  the plot's edge. Label text (`label_font_size`) is 7, 9, 12, 18, 24, a bubble 2.1 font sizes high
+  and 1.55 wider than its text (`label_padding`, `label_pointer`): the same names are smaller on a
+  label. A numeric size (`Size::Points(n)`) is `n` for a table or box and `n * 12 / 14` for a label.
+  A `plotshape` label shape (`shape_label`) keeps its text at the normal label size; its bubble and
+  its tip's distance from the bar (11, 23, 38, 56, 75 points) grow with `size`. Measured heights
+  match to a pixel at every size; widths differ by a few percent because the font does.
+  A box's text is clipped to its top and bottom but runs past its sides, as on TradingView (a
+  `size.huge` `0123` is wider than a narrow box).
+  Unmeasured: the text a `plotshape` puts beside a non-label shape (reads the label scale) and the
+  size of `plotchar` glyphs (always 12 points).
 - Hover tooltips (`tooltip=`, `label.set_tooltip`, `table.cell_set_tooltip`):
   `hover_targets_in_order` gives drawn rectangles in paint order across scripts (behind-chart labels,
   other labels, then all tables; filled bubble includes pointer) and must keep sharing
@@ -120,6 +146,24 @@
   uses the running period. Classic published formulas (reference lists none); Woodie's uses the
   setting bar's open. Unchecked against TradingView output. `ta.rci` = Spearman
   (Pearson on mid-ranks) x 100.
+- `timeframe.change(tf)` is per call site, like `ta.change`: `ta::State::bar_times` (in
+  `RuntimeState::ta_states`, key `site_key`) holds the open time of the bar the site last ran on
+  and of the one before (`ta::previous_bar_time`), and the call compares the current bar with the
+  second. The first run of a site is false (no earlier run to compare with), a site that a branch,
+  a short-circuit, a `switch` arm or a conditionally called function skips keeps the last bar it ran
+  on, the runs of one bar (a loop) all see the same earlier bar, and two call sites, or one
+  function reached from two sites, never share it. Inside `request.security` the site's state is
+  the request's own. It does not read the chart's previous bar (`last_committed_open_time` is only
+  the guard against a repeated bar). Measured on TradingView (probe R2, BINANCE:BTCUSDT 4h, 84
+  fixed bars, 2026-11-01..11-15, the call counted per day): global every bar 14; `if` over the
+  window 13; `if inw and hour == 4` 13 (the chart-bar rule gives 0); `if hour == 4` that also runs
+  before the window 14; the two sides of an `if`/`else` 13 and 13; ternary, `and`, `switch` arm 13;
+  a function called conditionally 13, from two sites 13 and 13; two sites on every bar 13 and 13;
+  `"D"` and `"W"` at `hour == 4` 14 and 2; a `for i = 0 to 2` loop 39 (13 days x 3 runs, not
+  13); inside `request.security("240", ...)` 14 (`hour == 4`) and 13 (window). DegenView gives
+  the same 22 values on the same candles. Not measured: a series-string timeframe that changes between runs of
+  one site (the previous bar is compared under the current timeframe). `ta.*` in a `for` loop
+  still pushes one history entry per run (audit items 20/21), which `timeframe.change` does not.
 - `session.*` reads `trading_session::MarketSessions` by `syminfo.type`: crypto 24x7 UTC (session =
   UTC day); `stock` New York 09:30-16:00 weekdays, pre- from 04:00, post- to 20:00. Charts show the
   regular session, so `isfirstbar`/`islastbar` equal their `_regular` forms; a bar of a day or more
@@ -131,6 +175,20 @@
   for alert subscriptions). `timeframe.main_period` uses `Session::chart_bar_seconds`, set by the
   security evaluator while `bar_seconds` is the requested timeframe's. `weekofyear`: Sunday–Saturday,
   week 1 holds January 1 (inferred; reference only says "week number of the year").
+- The chart's bar length (`timeframe.in_seconds()`, the window of a bar's intrabars) is told, not read off
+  the gap between bars: a bucket cut short by midnight (the last of a `59s` day lasts 24 s) or a
+  session's first bar after a night would give a length the chart does not have. The hosts pass the
+  timeframe the chart is set to (`ExecutionController::with_timeframe_seconds`, `time::bucket::seconds_of`,
+  Pine's 30-day month); a price-based chart's candle length (`with_bar_seconds`, which also turns the
+  footprint's intrabars off) comes first; only a caller that passes neither (tests) infers the length.
+  `bar_seconds` is a length (`timeframe.in_seconds()`, comparisons between timeframes), never an extent: where a
+  time-based bar ends is its own close (`Session::bar_end`: `close_time + 1`), which `time_close`, a bar's
+  intrabar window and the completion of a higher-timeframe bar all use. Pine's month is 30 days and a real one
+  has up to 31, and a `59s` day ends in a 24 s bucket. A price-based chart's bars have no close of their own, so
+  they use the length.
+  What the provider could not give for a series (`Session::security_series`, `SeriesAnswer`) is only how things
+  stood: it is asked for again after `security_retry_after` (15 s) and at once after a rebuild, while what it did
+  give (even an empty list) is kept for the session.
 - `strategy.*` statistics: `strategy_builtins::statistic`, computed from the broker per read (trade
   lists) except equity extremes, kept by `Broker` as bars arrive (`EquityExtremes`, rolled back with
   state) and merged with the running bar. Losses negative in averages (`avg_losing_trade`), positive
@@ -258,7 +316,7 @@ functions and statements change), `reads.rs`, `locate.rs` (the blocks around a r
   - Theme and font owned by `host::editor_theme` (saved after a pause, never while Settings
     draws); change through it so all windows repaint. See [Editor themes](../editor-themes.md).
 - Completion never compiles, runs, re-lexes or touches network/storage. Builtins from the symbol
-  catalog, signatures from `pine_studio::editor::signature`: add new builtins to both. `array.*`/`map.*`
+  catalog, signatures from `pine::compiler::signatures`: add new builtins to both. `array.*`/`map.*`
   come from `array_builtins::KNOWN` / `map_builtins::NAMES` (signatures `parameters()`), no editor
   edit needed. List shows `COMPLETION_ROWS` (10) and scrolls to the highlight on ↑/↓;
   `completion_keys` consumes keys before drawing, so set `CompletionView::scroll_to_selected`, don't

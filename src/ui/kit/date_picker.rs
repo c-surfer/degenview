@@ -7,6 +7,7 @@
 //! tested; only `show` paints.
 
 use crate::format::{civil_from_days, days_from_civil};
+use crate::i18n::tr;
 use crate::model::portfolio::editor::{date_text, parse_date_text};
 use crate::ui::accessibility;
 use crate::ui::icons::{self, Icon};
@@ -16,22 +17,6 @@ use eframe::egui::{
     self, Align2, Color32, CursorIcon, Id, PopupCloseBehavior, Pos2, Rect, Sense, Stroke,
     StrokeKind, Ui, Vec2, pos2, vec2,
 };
-
-const MONTHS: [&str; 12] = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-];
-const WEEKDAYS: [&str; 7] = ["M", "T", "W", "T", "F", "S", "S"];
 
 const CELL: Vec2 = Vec2::new(34.0, 28.0);
 const POPOVER_WIDTH: f32 = 7.0 * CELL.x;
@@ -205,7 +190,7 @@ pub fn show(
         Icon::Calendar,
         theme::text_secondary(),
     );
-    let response = accessibility::label(response, format!("Date and time, {label}"));
+    let response = accessibility::label(response, tr!("Date and time, {label}", label = label));
     show_popover(ui, id, &response, text, utc_offset_secs)
 }
 
@@ -272,7 +257,7 @@ fn popover(
     let (header, _) = ui.allocate_exact_size(vec2(POPOVER_WIDTH, 26.0), Sense::hover());
     let title = kit::galley(
         ui,
-        &format!("{} {year}", MONTHS[(month - 1) as usize]),
+        &crate::i18n::datetime::month_year(year, month),
         kit::size::BODY,
         SEMIBOLD,
         theme::text_primary(),
@@ -309,10 +294,11 @@ fn popover(
 
     // Weekday initials.
     let (weekdays, _) = ui.allocate_exact_size(vec2(POPOVER_WIDTH, 20.0), Sense::hover());
-    for (index, initial) in WEEKDAYS.iter().enumerate() {
+    for index in 0..7 {
+        let initial = crate::i18n::datetime::weekday_initial(index);
         let galley = kit::galley(
             ui,
-            initial,
+            &initial,
             kit::size::CAPTION,
             MEDIUM,
             theme::text_tertiary(),
@@ -407,7 +393,7 @@ fn popover(
     let (time_row, _) = ui.allocate_exact_size(vec2(POPOVER_WIDTH, 30.0), Sense::hover());
     let label = kit::galley(
         ui,
-        "Time",
+        tr!("Time"),
         kit::size::BODY,
         REGULAR,
         theme::text_secondary(),
@@ -461,7 +447,7 @@ fn popover(
         .on_hover_cursor(CursorIcon::PointingHand);
     let now_label = kit::galley(
         ui,
-        "Now",
+        tr!("Now"),
         kit::size::BODY,
         MEDIUM,
         theme::SYSTEM_ACCENT,

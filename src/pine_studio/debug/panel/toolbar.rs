@@ -29,12 +29,9 @@ fn button(ui: &mut Ui, icon: Icon, color: Color32, enabled: bool, tooltip: &str)
 /// The toolbar's debugger button: shows or hides the panel under the editor, lit while it shows.
 pub fn panel_button<A, M>(panel_open: bool, on_click: A) -> bar::Button<A, M> {
     let tip = if panel_open {
-        crate::ui::tr("Hide the debugger", "Скрыть отладчик")
+        "Hide the debugger"
     } else {
-        crate::ui::tr(
-            "Show the debugger: controls, breakpoints, variables, watches",
-            "Показать отладчик: управление, брейкпоинты, переменные, выражения",
-        )
+        "Show the debugger: controls, breakpoints, variables, watches"
     };
     bar::Button::new("debugger", tip)
         .icon(Icon::Bug)
@@ -47,11 +44,11 @@ pub fn transport(ui: &mut Ui, panel: &DebugPanel) -> Vec<DebugCommand> {
     let mut commands = Vec::new();
     let (continue_tip, continue_icon) = if panel.would_start() {
         (
-            shortcut::DEBUG_CONTINUE.hint(crate::ui::tr("Start debugging", "Запустить отладку")),
+            shortcut::DEBUG_CONTINUE.hint("Start debugging"),
             Icon::PlayFill,
         )
     } else {
-        (shortcut::DEBUG_CONTINUE.hint(crate::ui::tr("Continue", "Продолжить")), Icon::PlayFill)
+        (shortcut::DEBUG_CONTINUE.hint("Continue"), Icon::PlayFill)
     };
     let steps = [
         (
@@ -64,44 +61,44 @@ pub fn transport(ui: &mut Ui, panel: &DebugPanel) -> Vec<DebugCommand> {
             DebugCommand::Pause,
             Icon::PauseFill,
             theme::text_primary(),
-            shortcut::DEBUG_PAUSE.hint(crate::ui::tr("Pause at the next statement", "Пауза на следующей инструкции")),
+            shortcut::DEBUG_PAUSE.hint("Pause at the next statement"),
         ),
         (
             DebugCommand::StepOver,
             Icon::StepOver,
             theme::text_primary(),
             shortcut::DEBUG_STEP_OVER
-                .hint(crate::ui::tr("Step over: run this statement and stop at the next one", "Шаг с обходом: выполнить эту инструкцию и остановиться на следующей")),
+                .hint("Step over: run this statement and stop at the next one"),
         ),
         (
             DebugCommand::StepInto,
             Icon::StepInto,
             theme::text_primary(),
-            shortcut::DEBUG_STEP_INTO.hint(crate::ui::tr("Step into a function call", "Шаг со входом в вызов функции")),
+            shortcut::DEBUG_STEP_INTO.hint("Step into a function call"),
         ),
         (
             DebugCommand::StepOut,
             Icon::StepOut,
             theme::text_primary(),
-            shortcut::DEBUG_STEP_OUT.hint(crate::ui::tr("Step out: run until the function returns", "Шаг с выходом: выполнять до выхода из функции")),
+            shortcut::DEBUG_STEP_OUT.hint("Step out: run until the function returns"),
         ),
         (
             DebugCommand::StepBar,
             Icon::StepBar,
             theme::text_primary(),
-            shortcut::DEBUG_STEP_BAR.hint(crate::ui::tr("Step bar: run to the first statement of the next bar", "Шаг бара: перейти к первой инструкции следующего бара")),
+            shortcut::DEBUG_STEP_BAR.hint("Step bar: run to the first statement of the next bar"),
         ),
         (
             DebugCommand::Restart,
             Icon::Restart,
             theme::text_primary(),
-            shortcut::DEBUG_RESTART.hint(crate::ui::tr("Restart on the current code", "Перезапустить на текущем коде")),
+            shortcut::DEBUG_RESTART.hint("Restart on the current code"),
         ),
         (
             DebugCommand::Stop,
             Icon::StopFill,
             kit::RED,
-            shortcut::DEBUG_STOP.hint(crate::ui::tr("Stop debugging", "Остановить отладку")),
+            shortcut::DEBUG_STOP.hint("Stop debugging"),
         ),
     ];
     for (command, icon, color, tip) in steps {

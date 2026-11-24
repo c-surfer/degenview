@@ -4,6 +4,7 @@ use super::{
     OverviewAction, OverviewInput, PANEL_CONTENT_HEIGHT, TOP_COUNT, TOP_ROW_GAP, TOP_ROW_HEIGHT,
     top_holdings,
 };
+use crate::i18n::tr;
 use crate::model::portfolio::PortfolioHolding;
 use crate::model::portfolio::format::PortfolioValueFormatter;
 use crate::ui::accessibility;
@@ -26,13 +27,13 @@ pub(super) fn top_holdings_panel(
         ui,
         PANEL_CONTENT_HEIGHT,
         Icon::Layers,
-        crate::ui::tr("Top Holdings", "Крупнейшие активы"),
+        tr!("Top Holdings"),
         |header, ui| {
             if show_all {
                 let link = header
                     .add(
                         egui::Label::new(kit::text(
-                            crate::ui::tr("View All", "Смотреть все"),
+                            tr!("View All"),
                             kit::size::SUBHEADLINE,
                             MEDIUM,
                             theme::SYSTEM_ACCENT,
@@ -49,8 +50,8 @@ pub(super) fn top_holdings_panel(
                     ui,
                     ui.max_rect(),
                     empty::Scene::Holdings,
-                    crate::ui::tr("No Open Positions", "Нет открытых позиций"),
-                    crate::ui::tr("Assets you hold appear here.", "Здесь появятся ваши активы."),
+                    tr!("No Open Positions"),
+                    tr!("Assets you hold appear here."),
                 );
                 return;
             }
@@ -82,7 +83,7 @@ fn top_holding_row(
             egui::Id::new(("portfolio-top-holding", &holding.asset.key)),
             Sense::click(),
         )
-        .on_hover_text(crate::ui::tr("Shows this asset's transactions", "Показать сделки по активу"))
+        .on_hover_text(tr!("Shows this asset's transactions"))
         .on_hover_cursor(CursorIcon::PointingHand);
     if response.hovered() {
         ui.painter().rect_filled(row, 8.0, theme::ink(18));
@@ -160,11 +161,11 @@ fn top_holding_row(
     if response.clicked() {
         actions.push(OverviewAction::Select(holding.asset.key.clone()));
     }
-    let spoken = format!(
-        "{}: {} ({} of portfolio)",
-        holding.asset.display_ticker(),
-        holding.current_value.map_or("—".to_owned(), |v| f.money(v)),
-        f.percent(holding.allocation, 1),
+    let spoken = tr!(
+        "{ticker}: {value} ({share} of portfolio)",
+        ticker = holding.asset.display_ticker(),
+        value = holding.current_value.map_or("—".to_owned(), |v| f.money(v)),
+        share = f.percent(holding.allocation, 1),
     );
     accessibility::label_as(response, egui::WidgetType::Button, spoken);
 }

@@ -5,6 +5,7 @@
 //! bar under it (`replay_bar.rs`) uses the same flat style. The symbol, chart type, Indicators and
 //! chart settings act on the focused chart.
 
+use crate::i18n::tr;
 use crate::model::{ChartType, DataSource, Timeframe};
 use crate::ui::chart::type_menu;
 use crate::ui::icons::{self, Icon};
@@ -114,11 +115,11 @@ pub enum ToolbarAction {
 /// The tooltip of the Replay button.
 pub fn replay_tooltip(replay_open: bool, has_market: bool) -> &'static str {
     if replay_open {
-        crate::ui::t("Close Replay")
+        tr!("Close Replay")
     } else if has_market {
-        crate::ui::t("Historical Replay")
+        tr!("Historical Replay")
     } else {
-        crate::ui::t("Historical Replay — add a market chart first")
+        tr!("Historical Replay — add a market chart first")
     }
 }
 
@@ -194,56 +195,52 @@ fn left_items(input: &ToolbarInput) -> Vec<Item> {
     // The market on the chart, as its exchange names it; a click searches for another.
     let mut symbol = Button::new(
         "symbol",
-        format!("Search symbol ({})", shortcut::SYMBOL_SEARCH.label()),
+        tr!(
+            "Search symbol ({shortcut})",
+            shortcut = shortcut::SYMBOL_SEARCH.label()
+        ),
     )
     .icon(Icon::Magnifier)
-    .label(input.symbol.unwrap_or("Search"))
+    .label(input.symbol.unwrap_or(tr!("Search")))
     .on_click(ToolbarAction::OpenSymbolSearch);
     symbol.weight = BOLD;
     symbol.keep_label = true;
     symbol.access = Some(match input.symbol {
-        Some(symbol) => format!("Symbol: {symbol}. Search for another"),
-        None => "Search symbol".to_owned(),
+        Some(symbol) => tr!("Symbol: {symbol}. Search for another", symbol = symbol),
+        None => tr!("Search symbol").to_owned(),
     });
     items.push(Item::Button(symbol));
     // Beside the symbol, as TradingView has it: another market on this chart. The Compare page
     // of the chart settings opens the same picker.
     items.push(Item::Button(
-        Button::new("compare", crate::ui::t("Compare or add symbol"))
+        Button::new("compare", tr!("Compare or add symbol"))
             .icon(Icon::PlusCircle)
             .enabled(input.chart.is_some_and(|chart| chart.compare))
             .on_click(ToolbarAction::CompareSymbol),
     ));
     items.push(Item::Separator);
     // One button for the tab's timeframe; its popover lists the presets and the pinned ones.
-    let mut timeframe = Button::new("timeframe", crate::ui::tr("Timeframe", "Таймфрейм"))
+    let mut timeframe = Button::new("timeframe", tr!("Timeframe"))
         .label(input.timeframe.label())
         .chevron()
         .with_menu(Menu::Timeframe);
     timeframe.keep_label = true;
     timeframe.weight = SEMIBOLD;
-    timeframe.access = Some(if crate::ui::is_ru() {
-        format!(
-            "Таймфрейм: {}. Выберите другой",
-            input.timeframe.description()
-        )
-    } else {
-        format!(
-            "Timeframe: {}. Choose another",
-            input.timeframe.description()
-        )
-    });
+    timeframe.access = Some(tr!(
+        "Timeframe: {timeframe}. Choose another",
+        timeframe = input.timeframe.description()
+    ));
     items.push(Item::Button(timeframe));
     items.push(Item::Separator);
     let indicators_tip = if input.chart.is_some_and(|chart| !chart.indicators) {
-        crate::ui::t("Indicators: this chart takes none")
+        tr!("Indicators: this chart takes none")
     } else {
-        crate::ui::t("Indicators: add one to the focused chart")
+        tr!("Indicators: add one to the focused chart")
     };
     items.push(Item::Button(
         Button::new("indicators", indicators_tip)
             .icon(Icon::Waveform)
-            .label(crate::ui::t("Indicators"))
+            .label(tr!("Indicators"))
             .enabled(input.chart.is_some_and(|chart| chart.indicators))
             .on_click(ToolbarAction::OpenIndicators),
     ));
@@ -253,7 +250,7 @@ fn left_items(input: &ToolbarInput) -> Vec<Item> {
         .map_or(ChartType::Candles, |chart| chart.chart_type);
     let mut type_button = Button::new(
         "chart-type",
-        format!("{}: {}", crate::ui::t("Chart type"), crate::ui::t(chart_type.label())),
+        tr!("Chart type: {chart_type}", chart_type = chart_type.label()),
     )
     .enabled(input.chart.is_some_and(|chart| chart.chart_types));
     type_button.glyph = Some(Glyph::Custom(Arc::new(move |painter, rect, color| {
@@ -274,7 +271,7 @@ fn left_items(input: &ToolbarInput) -> Vec<Item> {
     replay.tint = Some(theme::REPLAY);
     items.push(Item::Button(replay));
     items.push(Item::Button(
-        Button::new("alert", crate::ui::t("Create price alert"))
+        Button::new("alert", tr!("Create price alert"))
             .icon(Icon::BellPlus)
             .enabled(
                 input
@@ -288,7 +285,7 @@ fn left_items(input: &ToolbarInput) -> Vec<Item> {
     items.push(Item::Button(
         Button::new(
             "undo",
-            crate::ui::tr("Undo ({})", "Отменить ({})").replace("{}", &shortcut::UNDO.label()),
+            tr!("Undo ({shortcut})", shortcut = shortcut::UNDO.label()),
         )
         .icon(Icon::Undo)
         .enabled(input.can_undo)
@@ -297,7 +294,7 @@ fn left_items(input: &ToolbarInput) -> Vec<Item> {
     items.push(Item::Button(
         Button::new(
             "redo",
-            crate::ui::tr("Redo ({})", "Повторить ({})").replace("{}", &shortcut::REDO.label()),
+            tr!("Redo ({shortcut})", shortcut = shortcut::REDO.label()),
         )
         .icon(Icon::Redo)
         .enabled(input.can_redo)
@@ -309,50 +306,50 @@ fn left_items(input: &ToolbarInput) -> Vec<Item> {
 /// In display order, left to right.
 fn right_items(input: &ToolbarInput) -> Vec<Item> {
     let help = if input.autosave.failed {
-        format!(
-            "{} — Autosave could not save; choose Save layout",
-            input.layout_name
+        tr!(
+            "{layout} — Autosave could not save; choose Save layout",
+            layout = input.layout_name
         )
     } else if input.unsaved {
-        format!("{} — unsaved changes", input.layout_name)
+        tr!("{layout} — unsaved changes", layout = input.layout_name)
     } else {
         input.layout_name.to_owned()
     };
     let mut layout = Button::new("layout", help.clone());
     layout.label = Some(input.layout_name.to_owned());
-    layout.suffix = input.unsaved.then(|| "(unsaved)".to_owned());
+    layout.suffix = input.unsaved.then(|| tr!("(unsaved)").to_owned());
     layout.chevron = true;
     layout.menu = Some(Menu::Layout);
-    layout.access = Some(format!("Layout: {help}"));
+    layout.access = Some(tr!("Layout: {help}", help = help));
 
     let mut grid_preset = Button::new(
         "grid-preset",
-        crate::ui::tr("Select grid layout", "Выбрать сетку графиков"),
+        tr!("Select grid layout"),
     )
     .icon(Icon::RectLeft);
     grid_preset.menu = Some(Menu::GridPreset);
 
-    let mut snapshot = Button::new("snapshot", crate::ui::tr("Take a snapshot", "Снимок экрана"))
+    let mut snapshot = Button::new("snapshot", tr!("Take a snapshot"))
         .icon(Icon::Camera)
         .enabled(input.chart.is_some())
         .busy(input.snapshot.working);
     snapshot.menu = Some(Menu::Snapshot);
 
     let watchlist_tip = if input.watchlist_visible {
-        crate::ui::tr("Hide Watchlists", "Скрыть списки котировок")
+        tr!("Hide Watchlists")
     } else {
-        crate::ui::tr("Show Watchlists", "Список наблюдения")
+        tr!("Show Watchlists")
     };
     let market_flow_tip = if input.market_flow_visible {
-        crate::ui::tr("Hide Market Flow", "Скрыть рыночный поток")
+        tr!("Hide Market Flow")
     } else {
-        crate::ui::tr("Show Market Flow", "Рыночный поток")
+        tr!("Show Market Flow")
     };
     vec![
         Item::Button(grid_preset),
         Item::Button(layout),
         Item::Button(
-            Button::new("chart-settings", crate::ui::tr("Chart settings", "Свойства графика"))
+            Button::new("chart-settings", tr!("Chart settings"))
                 .icon(Icon::Gear)
                 .enabled(input.chart.is_some_and(|chart| chart.settings))
                 .on_click(ToolbarAction::OpenChartSettings),
@@ -360,7 +357,7 @@ fn right_items(input: &ToolbarInput) -> Vec<Item> {
         Item::Button(snapshot),
         Item::Separator,
         Item::Button(
-            Button::new("portfolio", crate::ui::tr("Portfolio Tracker", "Портфолио"))
+            Button::new("portfolio", tr!("Portfolio Tracker"))
                 .icon(Icon::Briefcase)
                 .on_click(ToolbarAction::OpenPortfolio),
         ),
@@ -394,23 +391,23 @@ fn grid_preset_popup(
     let presets = [
         (
             crate::model::GridLayoutPreset::Single,
-            crate::ui::tr("1 chart", "1 график"),
+            tr!("1 chart"),
         ),
         (
             crate::model::GridLayoutPreset::TwoColumns,
-            crate::ui::tr("2 charts", "2 графика"),
+            tr!("2 charts"),
         ),
         (
             crate::model::GridLayoutPreset::ThreeLeftFocus,
-            crate::ui::tr("3 charts", "3 графика"),
+            tr!("3 charts"),
         ),
         (
             crate::model::GridLayoutPreset::FourGrid,
-            crate::ui::tr("4 charts", "4 графика"),
+            tr!("4 charts"),
         ),
         (
             crate::model::GridLayoutPreset::FiveSplit,
-            crate::ui::tr("5 charts", "5 графиков"),
+            tr!("5 charts"),
         ),
     ];
 
@@ -440,16 +437,11 @@ fn layout_popup(
     // As wide as the fixed rows and the layout names need. A layout row also holds a trash button
     // at its end, which the two em spaces stand in for when measuring.
     let save_hint = shortcut::SAVE.label();
-    let save_str = crate::ui::tr("Save layout", "Сохранить слой");
-    let autosave_str = crate::ui::tr("Autosave", "Автосохранение");
-    let copy_str = crate::ui::tr("Make a copy", "Сделать копию");
-    let rename_str = crate::ui::tr("Rename", "Переименовать");
-
     let mut rows: Vec<(&str, Option<&str>)> = vec![
-        (save_str, Some(&save_hint)),
-        (autosave_str, None),
-        (copy_str, None),
-        (rename_str, None),
+        (tr!("Save layout"), Some(&save_hint)),
+        (tr!("Autosave"), None),
+        (tr!("Make a copy"), None),
+        (tr!("Rename"), None),
     ];
     rows.extend(
         input
@@ -461,7 +453,7 @@ fn layout_popup(
         if kit::menu_item_with_shortcut(
             ui,
             Icon::Download,
-            save_str,
+            tr!("Save layout"),
             Some(&shortcut::SAVE.label()),
             true,
             false,
@@ -477,7 +469,7 @@ fn layout_popup(
         if kit::menu_item(
             ui,
             Icon::CopyDoc,
-            copy_str,
+            tr!("Make a copy"),
             input.active_layout.is_some(),
             false,
         ) {
@@ -487,7 +479,7 @@ fn layout_popup(
         if kit::menu_item(
             ui,
             Icon::Pencil,
-            rename_str,
+            tr!("Rename"),
             input.active_layout.is_some(),
             false,
         ) {
@@ -500,7 +492,7 @@ fn layout_popup(
             ui.horizontal(|ui| {
                 ui.add_space(10.0);
                 ui.label(kit::text(
-                    crate::ui::tr("Layouts", "Слои"),
+                    tr!("Layouts"),
                     size::CAPTION + 0.5,
                     SEMIBOLD,
                     theme::text_tertiary(),
@@ -552,7 +544,14 @@ fn autosave_row(ui: &mut Ui, state: AutosaveState) -> bool {
             color,
         );
     }
-    let label = kit::galley(ui, crate::ui::tr("Autosave", "Автосохранение"), size::BODY, REGULAR, color, width - 70.0);
+    let label = kit::galley(
+        ui,
+        tr!("Autosave"),
+        size::BODY,
+        REGULAR,
+        color,
+        width - 70.0,
+    );
     let label_width = label.size().x;
     painter.galley(
         pos2(rect.left() + 32.0, rect.center().y - label.size().y / 2.0),
@@ -573,19 +572,21 @@ fn autosave_row(ui: &mut Ui, state: AutosaveState) -> bool {
     let response = crate::ui::accessibility::label(
         response,
         if state.on {
-            crate::ui::t("Autosave, on")
+            tr!("Autosave, on")
         } else {
-            crate::ui::t("Autosave, off")
+            tr!("Autosave, off")
         },
     );
     let response = if state.available {
         response.on_hover_text(if state.failed {
-            crate::ui::t("The last autosave could not be written. Choose Save layout.")
+            tr!("The last autosave could not be written. Choose Save layout.")
         } else {
-            crate::ui::t("Write changes to this layout a moment after you make them.")
+            tr!("Write changes to this layout a moment after you make them.")
         })
     } else {
-        response.on_hover_text(crate::ui::t("Save the layout first, then Autosave can keep it up to date."))
+        response.on_hover_text(tr!(
+            "Save the layout first, then Autosave can keep it up to date."
+        ))
     };
     state.available && response.clicked()
 }
@@ -610,7 +611,7 @@ fn layout_row(ui: &mut Ui, id: u64, name: &str, current: bool) -> Option<LayoutR
             Id::new(("toolbar-layout-delete", id)),
             Sense::click(),
         )
-        .on_hover_text(crate::ui::t("Delete this layout"));
+        .on_hover_text(tr!("Delete this layout"));
     let hovered = row.hovered() || delete.hovered();
     let painter = ui.painter();
     if hovered {
@@ -810,6 +811,83 @@ mod tests {
             }
         }
         assert!(!previous_labels, "760 wide has no room for labels");
+    }
+
+    /// The longer, bracketed words of the pseudo-locale still fit: no two buttons overlap or run
+    /// past the edge, labels only go away as the bar narrows, and no word was left out of `tr!`.
+    #[test]
+    fn the_toolbar_lays_out_and_draws_in_the_pseudo_locale() {
+        use crate::i18n::{Locale, with_locale};
+        use crate::ui::render_tests::{Screen, gallery_dir};
+        let _theme = theme::RestoreDefaultTheme;
+        let layouts = vec![(1, "Morning".to_owned()), (2, "Swing trades".to_owned())];
+        let mut input = input(&layouts, true);
+        input.unsaved = true;
+        with_locale(Locale::PSEUDO, || {
+            let mut previous_labels = true;
+            for width in [1600.0_f32, 1100.0, 900.0, 760.0] {
+                let (labels, mut buttons) = layout_at(&input, width);
+                buttons.sort_by(|a, b| a.0.total_cmp(&b.0));
+                for pair in buttons.windows(2) {
+                    assert!(pair[0].1 <= pair[1].0, "overlap at {width}: {pair:?}");
+                }
+                let last = buttons.last().expect("buttons");
+                assert!(last.1 <= width - EDGE + 0.5, "past the edge at {width}");
+                assert!(
+                    previous_labels || !labels,
+                    "labels only go away as the bar narrows (at {width})"
+                );
+                previous_labels = labels;
+            }
+            assert!(!previous_labels, "760 wide has no room for labels");
+            for (name, width, light) in [
+                ("toolbar-pseudo-wide-dark", 1600.0, false),
+                ("toolbar-pseudo-narrow-dark", 760.0, false),
+                ("toolbar-pseudo-wide-light", 1600.0, true),
+                ("toolbar-pseudo-narrow-light", 760.0, true),
+            ] {
+                // The light pictures only when asked for: the theme is shared by every test.
+                if light && gallery_dir().is_none() {
+                    continue;
+                }
+                let mut screen = Screen::new(vec2(width, HEIGHT));
+                theme::apply(
+                    &screen.ctx,
+                    if light {
+                        theme::AppTheme::Light
+                    } else {
+                        theme::AppTheme::Dark
+                    },
+                );
+                let mut last = None;
+                for _ in 0..3 {
+                    last = Some(screen.run(Vec::new(), |ui| {
+                        show(ui, &input);
+                    }));
+                }
+                let frame = last.expect("a frame");
+                let texts = Screen::words(&frame);
+                // Narrow, the bar is icons and the symbol: no words to bracket.
+                assert!(
+                    width < 1000.0 || texts.iter().any(|text| text.starts_with('[')),
+                    "{name}: no bracketed text was drawn"
+                );
+                assert_eq!(
+                    Screen::untranslated(&texts, &["BTCUSDT", "Morning", "1D"]),
+                    Vec::<&str>::new(),
+                    "{name}: text that did not go through tr!"
+                );
+                assert_eq!(
+                    Screen::truncated_text(&frame),
+                    Vec::<String>::new(),
+                    "{name}: a label was cut"
+                );
+                screen.save(name, frame);
+                if light {
+                    theme::apply(&screen.ctx, theme::AppTheme::Dark);
+                }
+            }
+        });
     }
 
     /// Clicks the centre of the button that asks for `target` and returns what the bar asked for.

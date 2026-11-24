@@ -2,6 +2,7 @@
 //! the selected type only. Each type keeps its own, so a switch never loses what was set, and a
 //! setting that means nothing for the type on screen is not offered.
 
+use crate::i18n::tr;
 use crate::model::DataSource;
 use crate::model::chart::kind::{
     AreaSettings, BarSettings, BaselineSettings, CandleSettings, ChartGroup, ChartType,
@@ -13,7 +14,6 @@ use crate::ui::chart::series::{HLC_FILL_ALPHA, color as paint_color, line_defaul
 use crate::ui::icons::Icon;
 use crate::ui::kit;
 use crate::ui::settings::card;
-use crate::ui::tr;
 use eframe::egui::{self, Id, Ui, color_picker::Alpha, vec2};
 
 type Pair = (Rgba, Rgba);
@@ -32,10 +32,9 @@ pub fn show(
     let current = card.effective_chart_type(source);
     card::section_title(
         ui,
-        tr("Chart type", "Тип графика"),
-        Some(tr(
-            "How the price is drawn. Each type remembers its own settings.",
-            "Способ отображения цены. Каждый тип запоминает свои настройки.",
+        tr!("Chart type"),
+        Some(tr!(
+            "How the price is drawn. Each type remembers its own settings."
         )),
     );
     ui.spacing_mut().item_spacing.y = 8.0;
@@ -44,37 +43,20 @@ pub fn show(
         .flat_map(ChartType::in_group)
         .filter(|kind| kind.supported_by(source))
         .collect();
-    let labels: Vec<String> = types.iter().map(|kind| match kind {
-        ChartType::Candles => tr("Candles", "Свечи").to_owned(),
-        ChartType::Bars => tr("Bars", "Бары").to_owned(),
-        ChartType::HollowCandles => tr("Hollow Candles", "Пустые свечи").to_owned(),
-        ChartType::HeikinAshi => "Heikin Ashi".to_owned(),
-        ChartType::Line => tr("Line", "Линия").to_owned(),
-        ChartType::Area => tr("Area", "Область").to_owned(),
-        ChartType::Baseline => tr("Baseline", "Базовая линия").to_owned(),
-        ChartType::HlcArea => tr("HLC Area", "Область HLC").to_owned(),
-        ChartType::HighLowBars => tr("High-Low Bars", "Бары High-Low").to_owned(),
-        ChartType::VolumeCandles => tr("Volume Candles", "Свечи объёма").to_owned(),
-        ChartType::LineWithMarkers => tr("Line with Markers", "Линия с маркерами").to_owned(),
-        ChartType::StepLine => tr("Step Line", "Ступенчатая линия").to_owned(),
-        _ => kind.label().to_owned(),
-    }).collect();
+    let labels: Vec<String> = types.iter().map(|kind| kind.label().to_owned()).collect();
     let selected = types.iter().position(|kind| *kind == current).unwrap_or(0);
     let hint = match current.group() {
-        ChartGroup::Standard => tr(
-            "Draws the market's own open, high, low and close.",
-            "Отображает рыночные цены открытия, максимума, минимума и закрытия (OHLC).",
-        ),
-        ChartGroup::LinesAndAreas => tr(
-            "Draws one value of each bar. Scripts and indicators still read the real OHLC.",
-            "Отображает одно значение бара. Скрипты и индикаторы по-прежнему считывают реальный OHLC.",
-        ),
-        ChartGroup::PriceBased => tr(
-            "Builds its own bars from the market's. Scripts and indicators run over those bars.",
-            "Строит собственные бары на основе рыночных данных.",
-        ),
+        ChartGroup::Standard => tr!("Draws the market's own open, high, low and close."),
+        ChartGroup::LinesAndAreas => {
+            tr!("Draws one value of each bar. Scripts and indicators still read the real OHLC.")
+        }
+        ChartGroup::PriceBased => {
+            tr!(
+                "Builds its own bars from the market's. Scripts and indicators run over those bars."
+            )
+        }
     };
-    if let Some(index) = card::card(ui, Icon::BarChart, tr("Style", "Стиль"), Some(hint), |ui| {
+    if let Some(index) = card::card(ui, Icon::BarChart, tr!("Style"), Some(hint), |ui| {
         kit::menu_picker(ui, 170.0, &labels, selected, true)
     }) {
         card.set_chart_type(types[index]);
@@ -116,20 +98,22 @@ pub fn show(
                 ui,
                 id,
                 &mut style.renko.size,
-                "Box size",
-                "Each brick covers this much price.",
+                tr!("Box size"),
+                tr!("Each brick covers this much price."),
             );
             source_row(
                 ui,
-                "Source",
-                "The close of each bar, or its highs and lows too. Candles do not record the order prices traded in.",
+                tr!("Source"),
+                tr!(
+                    "The close of each bar, or its highs and lows too. Candles do not record the order prices traded in."
+                ),
                 &mut style.renko.source,
             );
             switch_row(
                 ui,
                 Icon::Waveform,
-                "Wicks",
-                "Show the bars' highs and lows on the bricks.",
+                tr!("Wicks"),
+                tr!("Show the bars' highs and lows on the bricks."),
                 &mut style.renko.wicks,
             );
             candle_rows(ui, &mut style.renko.candle, palette, false);
@@ -139,28 +123,28 @@ pub fn show(
                 ui,
                 id,
                 &mut style.kagi.size,
-                "Reversal amount",
-                "The move against the line that turns it.",
+                tr!("Reversal amount"),
+                tr!("The move against the line that turns it."),
             );
             source_row(
                 ui,
-                "Source",
-                "The close of each bar, or its highs and lows too.",
+                tr!("Source"),
+                tr!("The close of each bar, or its highs and lows too."),
                 &mut style.kagi.source,
             );
             color_row(
                 ui,
                 Icon::ArrowUpRight,
-                "Thick line",
-                Some("Drawn while price is breaking highs."),
+                tr!("Thick line"),
+                Some(tr!("Drawn while price is breaking highs.")),
                 &mut style.kagi.up,
                 palette.0,
             );
             color_row(
                 ui,
                 Icon::ArrowDownRight,
-                "Thin line",
-                Some("Drawn while price is breaking lows."),
+                tr!("Thin line"),
+                Some(tr!("Drawn while price is breaking lows.")),
                 &mut style.kagi.down,
                 palette.1,
             );
@@ -172,8 +156,10 @@ pub fn show(
                 ui,
                 id.with("lines"),
                 Icon::Hash,
-                "Number of lines",
-                Some("How many previous lines a close has to break to turn the trend."),
+                tr!("Number of lines"),
+                Some(tr!(
+                    "How many previous lines a close has to break to turn the trend."
+                )),
                 &mut lines,
                 1..=20,
             ) {
@@ -186,16 +172,16 @@ pub fn show(
                 ui,
                 id,
                 &mut style.point_figure.size,
-                "Box size",
-                "The price each X or O covers.",
+                tr!("Box size"),
+                tr!("The price each X or O covers."),
             );
             let mut reversal = i64::from(style.point_figure.reversal);
             if int_row(
                 ui,
                 id.with("reversal"),
                 Icon::Hash,
-                "Reversal",
-                Some("Boxes against a column that start the next one."),
+                tr!("Reversal"),
+                Some(tr!("Boxes against a column that start the next one.")),
                 &mut reversal,
                 1..=20,
             ) {
@@ -203,31 +189,31 @@ pub fn show(
             }
             source_row(
                 ui,
-                "Source",
-                "The close of each bar, or its highs and lows too.",
+                tr!("Source"),
+                tr!("The close of each bar, or its highs and lows too."),
                 &mut style.point_figure.source,
             );
             color_row(
                 ui,
                 Icon::ArrowUpRight,
-                "X columns",
-                Some("Rising columns."),
+                tr!("X columns"),
+                Some(tr!("Rising columns.")),
                 &mut style.point_figure.up,
                 palette.0,
             );
             color_row(
                 ui,
                 Icon::ArrowDownRight,
-                "O columns",
-                Some("Falling columns."),
+                tr!("O columns"),
+                Some(tr!("Falling columns.")),
                 &mut style.point_figure.down,
                 palette.1,
             );
             switch_row(
                 ui,
                 Icon::Eye,
-                "Box outlines",
-                "Draw the grid behind the symbols.",
+                tr!("Box outlines"),
+                tr!("Draw the grid behind the symbols."),
                 &mut style.point_figure.outlines,
             );
         }
@@ -236,14 +222,17 @@ pub fn show(
                 ui,
                 id,
                 &mut style.range.size,
-                "Range",
-                "A bar closes once its high-to-low span reaches this.",
+                tr!("Range"),
+                tr!("A bar closes once its high-to-low span reaches this."),
             );
-            let looks = [(RangeLook::Candles, "Candles"), (RangeLook::Bars, "Bars")];
+            let looks = [
+                (RangeLook::Candles, tr!("Candles")),
+                (RangeLook::Bars, tr!("Bars")),
+            ];
             picker_row(
                 ui,
                 Icon::BarChart,
-                "Bars as",
+                tr!("Bars as"),
                 None,
                 &looks,
                 &mut style.range.look,
@@ -257,23 +246,7 @@ pub fn show(
 
     ui.add_space(4.0);
     ui.horizontal(|ui| {
-        let en_label = format!("Reset {} settings", current.label());
-        let ru_label = match current {
-            ChartType::Candles => "Сбросить настройки свечей".to_string(),
-            ChartType::Bars => "Сбросить настройки баров".to_string(),
-            ChartType::HollowCandles => "Сбросить настройки пустых свечей".to_string(),
-            ChartType::HeikinAshi => "Сбросить настройки Heikin Ashi".to_string(),
-            ChartType::Line => "Сбросить настройки линии".to_string(),
-            ChartType::Area => "Сбросить настройки области".to_string(),
-            ChartType::Baseline => "Сбросить настройки базовой линии".to_string(),
-            ChartType::HlcArea => "Сбросить настройки области HLC".to_string(),
-            ChartType::HighLowBars => "Сбросить настройки баров High-Low".to_string(),
-            ChartType::VolumeCandles => "Сбросить настройки свечей объёма".to_string(),
-            ChartType::LineWithMarkers => "Сбросить настройки линии с маркерами".to_string(),
-            ChartType::StepLine => "Сбросить настройки ступенчатой линии".to_string(),
-            _ => format!("Сбросить настройки {}", current.label()),
-        };
-        let label = tr(&en_label, &ru_label);
+        let label = tr!("Reset {chart_type} settings", chart_type = current.label());
         if kit::push_button(ui, None, &label, true).clicked() {
             card.chart_style_mut().reset_selected();
         }
@@ -320,7 +293,7 @@ pub(in crate::ui) fn color_control(
     slot: &mut Option<Rgba>,
     default: Rgba,
 ) {
-    if slot.is_some() && kit::push_button(ui, None, "Reset", true).clicked() {
+    if slot.is_some() && kit::push_button(ui, None, tr!("Reset"), true).clicked() {
         *slot = None;
     }
     let shown = paint_color(slot.unwrap_or(default));
@@ -346,7 +319,7 @@ pub(in crate::ui) fn picker_row<T: Copy + PartialEq>(
         .position(|(option, _)| option == value)
         .unwrap_or(0);
     if let Some(index) = card::card(ui, icon, title, hint, |ui| {
-        kit::menu_picker(ui, 130.0, &labels, selected, true)
+        kit::menu_picker_fitted(ui, 130.0, &labels, selected, true)
     }) {
         *value = options[index].0;
     }
@@ -360,8 +333,10 @@ fn price_source_row(ui: &mut Ui, value: &mut PriceSource) {
     picker_row(
         ui,
         Icon::Sliders,
-        "Source",
-        Some("The value of each bar the chart follows. Scripts still read the real OHLC."),
+        tr!("Source"),
+        Some(tr!(
+            "The value of each bar the chart follows. Scripts still read the real OHLC."
+        )),
         &options,
         value,
     );
@@ -381,7 +356,7 @@ fn width_row(ui: &mut Ui, id: Id, width: &mut u8) {
         ui,
         id.with("width"),
         Icon::Sliders,
-        "Line width",
+        tr!("Line width"),
         None,
         &mut value,
         1..=4,
@@ -519,7 +494,7 @@ fn size_rows(ui: &mut Ui, id: Id, rule: &mut SizeRule, title: &str, hint: &str) 
                 ui,
                 id.with("amount"),
                 Icon::Hash,
-                "Size in price units",
+                tr!("Size in price units"),
                 None,
                 &mut rule.amount,
                 step,
@@ -533,8 +508,8 @@ fn size_rows(ui: &mut Ui, id: Id, rule: &mut SizeRule, title: &str, hint: &str) 
                 ui,
                 id.with("atr"),
                 Icon::Hash,
-                "ATR length",
-                Some("Averaged over the market's bars, as of the newest."),
+                tr!("ATR length"),
+                Some(tr!("Averaged over the market's bars, as of the newest.")),
                 &mut length,
                 1..=500,
             ) {
@@ -546,8 +521,8 @@ fn size_rows(ui: &mut Ui, id: Id, rule: &mut SizeRule, title: &str, hint: &str) 
                 ui,
                 id.with("percent"),
                 Icon::Percent,
-                "Percent of price",
-                Some("Of the newest close."),
+                tr!("Percent of price"),
+                Some(tr!("Of the newest close.")),
                 &mut rule.percent,
                 0.1,
                 0.0001..=100.0,
@@ -563,22 +538,22 @@ fn candle_rows(ui: &mut Ui, settings: &mut CandleSettings, palette: Pair, hollow
     switch_row(
         ui,
         Icon::Eye,
-        tr("Body", "Тело"),
-        tr("Show candle bodies.", "Отображать тела свечей."),
+        tr!("Body"),
+        tr!("Show candle bodies."),
         &mut settings.body,
     );
     switch_row(
         ui,
         Icon::Eye,
-        tr("Border", "Границы"),
-        tr("Outline the bodies.", "Отображать границы свечей."),
+        tr!("Border"),
+        tr!("Outline the bodies."),
         &mut settings.border,
     );
     switch_row(
         ui,
         Icon::Eye,
-        tr("Wick", "Фитили"),
-        tr("Show the high and low as wicks.", "Отображать тени свечей (максимумы и минимумы)."),
+        tr!("Wick"),
+        tr!("Show the high and low as wicks."),
         &mut settings.wick,
     );
     let up = settings.up_body.unwrap_or(palette.0);
@@ -586,23 +561,23 @@ fn candle_rows(ui: &mut Ui, settings: &mut CandleSettings, palette: Pair, hollow
     color_row(
         ui,
         Icon::ArrowUpRight,
-        tr("Up body", "Растущее тело"),
-        Some(tr("Follows the bullish colour until set.", "По умолчанию цвет растущей свечи.")),
+        tr!("Up body"),
+        Some(tr!("Follows the bullish colour until set.")),
         &mut settings.up_body,
         palette.0,
     );
     color_row(
         ui,
         Icon::ArrowDownRight,
-        tr("Down body", "Падающее тело"),
-        Some(tr("Follows the bearish colour until set.", "По умолчанию цвет падающей свечи.")),
+        tr!("Down body"),
+        Some(tr!("Follows the bearish colour until set.")),
         &mut settings.down_body,
         palette.1,
     );
     color_row(
         ui,
         Icon::ArrowUpRight,
-        tr("Up border", "Растущая граница"),
+        tr!("Up border"),
         None,
         &mut settings.up_border,
         up,
@@ -610,7 +585,7 @@ fn candle_rows(ui: &mut Ui, settings: &mut CandleSettings, palette: Pair, hollow
     color_row(
         ui,
         Icon::ArrowDownRight,
-        tr("Down border", "Падающая граница"),
+        tr!("Down border"),
         None,
         &mut settings.down_border,
         down,
@@ -618,7 +593,7 @@ fn candle_rows(ui: &mut Ui, settings: &mut CandleSettings, palette: Pair, hollow
     color_row(
         ui,
         Icon::ArrowUpRight,
-        tr("Up wick", "Растущий фитиль"),
+        tr!("Up wick"),
         None,
         &mut settings.up_wick,
         up,
@@ -626,7 +601,7 @@ fn candle_rows(ui: &mut Ui, settings: &mut CandleSettings, palette: Pair, hollow
     color_row(
         ui,
         Icon::ArrowDownRight,
-        tr("Down wick", "Падающий фитиль"),
+        tr!("Down wick"),
         None,
         &mut settings.down_wick,
         down,
@@ -635,8 +610,8 @@ fn candle_rows(ui: &mut Ui, settings: &mut CandleSettings, palette: Pair, hollow
         switch_row(
             ui,
             Icon::Cycle,
-            tr("Color based on previous close", "Цвет от предыдущего закрытия"),
-            tr("Colour by the close against the previous close instead of the open.", "Окрашивание по сравнению с закрытием предыдущей свечи вместо открытия."),
+            tr!("Color based on previous close"),
+            tr!("Colour by the close against the previous close instead of the open."),
             &mut settings.color_by_previous_close,
         );
     }
@@ -647,47 +622,47 @@ fn bar_rows(ui: &mut Ui, settings: &mut BarSettings, palette: Pair, high_low: bo
         switch_row(
             ui,
             Icon::Eye,
-            "Labels",
-            "Name the highest high and lowest low in view.",
+            tr!("Labels"),
+            tr!("Name the highest high and lowest low in view."),
             &mut settings.labels,
         );
     } else {
         switch_row(
             ui,
             Icon::Sliders,
-            "Thin bars",
-            "Keep the bars one pixel wide at every zoom.",
+            tr!("Thin bars"),
+            tr!("Keep the bars one pixel wide at every zoom."),
             &mut settings.thin,
         );
         switch_row(
             ui,
             Icon::Eye,
-            "Open and close ticks",
-            "The left tick is the open, the right the close.",
+            tr!("Open and close ticks"),
+            tr!("The left tick is the open, the right the close."),
             &mut settings.ticks,
         );
     }
     color_row(
         ui,
         Icon::ArrowUpRight,
-        "Up bars",
-        Some("Follows the bullish colour until set."),
+        tr!("Up bars"),
+        Some(tr!("Follows the bullish colour until set.")),
         &mut settings.up,
         palette.0,
     );
     color_row(
         ui,
         Icon::ArrowDownRight,
-        "Down bars",
-        Some("Follows the bearish colour until set."),
+        tr!("Down bars"),
+        Some(tr!("Follows the bearish colour until set.")),
         &mut settings.down,
         palette.1,
     );
     switch_row(
         ui,
         Icon::Cycle,
-        "Color based on previous close",
-        "Colour by the close against the previous close instead of the open.",
+        tr!("Color based on previous close"),
+        tr!("Colour by the close against the previous close instead of the open."),
         &mut settings.color_by_previous_close,
     );
 }
@@ -697,7 +672,7 @@ fn line_rows(ui: &mut Ui, id: Id, settings: &mut LineSettings, markers: bool) {
     color_row(
         ui,
         Icon::Palette,
-        "Line color",
+        tr!("Line color"),
         None,
         &mut settings.color,
         line_default(),
@@ -710,7 +685,7 @@ fn line_rows(ui: &mut Ui, id: Id, settings: &mut LineSettings, markers: bool) {
     picker_row(
         ui,
         Icon::Sliders,
-        "Line style",
+        tr!("Line style"),
         None,
         &options,
         &mut settings.dash,
@@ -721,7 +696,7 @@ fn line_rows(ui: &mut Ui, id: Id, settings: &mut LineSettings, markers: bool) {
             ui,
             id.with("marker"),
             Icon::Circle,
-            "Marker size",
+            tr!("Marker size"),
             None,
             &mut size,
             1..=8,
@@ -738,7 +713,7 @@ fn area_rows(ui: &mut Ui, id: Id, settings: &mut AreaSettings) {
     color_row(
         ui,
         Icon::Palette,
-        "Line color",
+        tr!("Line color"),
         None,
         &mut settings.line,
         default_line,
@@ -747,15 +722,15 @@ fn area_rows(ui: &mut Ui, id: Id, settings: &mut AreaSettings) {
     color_row(
         ui,
         Icon::Palette,
-        "Fill at the line",
-        Some("Its opacity sets how strong the fill is."),
+        tr!("Fill at the line"),
+        Some(tr!("Its opacity sets how strong the fill is.")),
         &mut settings.top,
         fade(line, 0.38),
     );
     color_row(
         ui,
         Icon::Palette,
-        "Fill at the bottom",
+        tr!("Fill at the bottom"),
         None,
         &mut settings.bottom,
         fade(line, 0.0),
@@ -766,7 +741,7 @@ fn hlc_area_rows(ui: &mut Ui, id: Id, settings: &mut HlcAreaSettings, palette: P
     color_row(
         ui,
         Icon::ArrowUpRight,
-        "High line",
+        tr!("High line"),
         None,
         &mut settings.high_line,
         palette.0,
@@ -774,7 +749,7 @@ fn hlc_area_rows(ui: &mut Ui, id: Id, settings: &mut HlcAreaSettings, palette: P
     color_row(
         ui,
         Icon::ArrowDownRight,
-        "Low line",
+        tr!("Low line"),
         None,
         &mut settings.low_line,
         palette.1,
@@ -782,7 +757,7 @@ fn hlc_area_rows(ui: &mut Ui, id: Id, settings: &mut HlcAreaSettings, palette: P
     color_row(
         ui,
         Icon::Palette,
-        "Close line",
+        tr!("Close line"),
         None,
         &mut settings.close_line,
         neutral_line(),
@@ -792,15 +767,15 @@ fn hlc_area_rows(ui: &mut Ui, id: Id, settings: &mut HlcAreaSettings, palette: P
     color_row(
         ui,
         Icon::Palette,
-        "Fill above close",
-        Some("Its opacity sets how strong the fill is."),
+        tr!("Fill above close"),
+        Some(tr!("Its opacity sets how strong the fill is.")),
         &mut settings.high_fill,
         fade(high, HLC_FILL_ALPHA),
     );
     color_row(
         ui,
         Icon::Palette,
-        "Fill below close",
+        tr!("Fill below close"),
         None,
         &mut settings.low_fill,
         fade(low, HLC_FILL_ALPHA),
@@ -814,8 +789,10 @@ fn baseline_rows(ui: &mut Ui, id: Id, settings: &mut BaselineSettings, palette: 
         ui,
         id.with("level"),
         Icon::Percent,
-        "Base level",
-        Some("Where the baseline sits, as a percentage of the chart's height from the bottom."),
+        tr!("Base level"),
+        Some(tr!(
+            "Where the baseline sits, as a percentage of the chart's height from the bottom."
+        )),
         &mut settings.level_percent,
         5.0,
         0.0..=100.0,
@@ -824,7 +801,7 @@ fn baseline_rows(ui: &mut Ui, id: Id, settings: &mut BaselineSettings, palette: 
     color_row(
         ui,
         Icon::ArrowUpRight,
-        "Line above",
+        tr!("Line above"),
         None,
         &mut settings.top_line,
         palette.0,
@@ -832,7 +809,7 @@ fn baseline_rows(ui: &mut Ui, id: Id, settings: &mut BaselineSettings, palette: 
     color_row(
         ui,
         Icon::ArrowDownRight,
-        "Line below",
+        tr!("Line below"),
         None,
         &mut settings.bottom_line,
         palette.1,
@@ -844,7 +821,7 @@ fn baseline_rows(ui: &mut Ui, id: Id, settings: &mut BaselineSettings, palette: 
     color_row(
         ui,
         Icon::Palette,
-        "Fill above",
+        tr!("Fill above"),
         None,
         &mut settings.top_fill,
         fade(above, 0.3),
@@ -852,7 +829,7 @@ fn baseline_rows(ui: &mut Ui, id: Id, settings: &mut BaselineSettings, palette: 
     color_row(
         ui,
         Icon::Palette,
-        "Fill below",
+        tr!("Fill below"),
         None,
         &mut settings.bottom_fill,
         fade(below, 0.3),
@@ -865,7 +842,7 @@ fn column_rows(ui: &mut Ui, settings: &mut ColumnSettings, palette: Pair) {
     color_row(
         ui,
         Icon::ArrowUpRight,
-        "Up columns",
+        tr!("Up columns"),
         None,
         &mut settings.up,
         palette.0,
@@ -873,7 +850,7 @@ fn column_rows(ui: &mut Ui, settings: &mut ColumnSettings, palette: Pair) {
     color_row(
         ui,
         Icon::ArrowDownRight,
-        "Down columns",
+        tr!("Down columns"),
         None,
         &mut settings.down,
         palette.1,
@@ -881,8 +858,8 @@ fn column_rows(ui: &mut Ui, settings: &mut ColumnSettings, palette: Pair) {
     switch_row(
         ui,
         Icon::Cycle,
-        "Color based on previous close",
-        "Colour by the value against the previous bar's instead of the open and close.",
+        tr!("Color based on previous close"),
+        tr!("Colour by the value against the previous bar's instead of the open and close."),
         &mut settings.color_by_previous_close,
     );
 }

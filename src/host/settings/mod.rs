@@ -4,6 +4,7 @@
 //! reach outside the settings it owns (notifications, login items, alert reference bookkeeping) are
 //! handed back to the caller.
 
+use crate::i18n::tr;
 use crate::model::alert::{AlertNotificationSettings, AlertRuntimeHealth};
 use crate::model::webhook::{EndpointId, WebhookDeliveryResult, WebhookEndpoint};
 use crate::service::cache::control;
@@ -232,8 +233,9 @@ impl SettingsHost {
                 SettingsAction::Network(action) => self.apply_network(action, store, ctx),
                 SettingsAction::Ai(crate::ui::settings::ai::AiAction::SavePrefs(prefs)) => {
                     if let Err(error) = prefs.save(store) {
-                        self.state.ai.status = Some(StatusMessage::error(format!(
-                            "Could not save the settings: {error}"
+                        self.state.ai.status = Some(StatusMessage::error(tr!(
+                            "Could not save the settings: {error}",
+                            error = error
                         )));
                     }
                     self.ai_prefs = Some(prefs);
@@ -244,23 +246,24 @@ impl SettingsHost {
                     let mut history = History::load(store);
                     history.clear();
                     self.state.ai.status = Some(match history.save(store) {
-                        Ok(()) => StatusMessage::ok("Saved conversations cleared."),
-                        Err(error) => {
-                            StatusMessage::error(format!("Could not clear them: {error}"))
-                        }
+                        Ok(()) => StatusMessage::ok(tr!("Saved conversations cleared.")),
+                        Err(error) => StatusMessage::error(tr!(
+                            "Could not clear them: {error}",
+                            error = error
+                        )),
                     });
                 }
                 SettingsAction::SetTheme(theme) => {
                     let _ = store.set_setting(crate::ui::theme::THEME_KEY, &theme);
                     crate::ui::theme::apply(ctx, theme);
                 }
-                SettingsAction::SetLanguage(lang) => {
-                    let _ = store.set_setting(crate::ui::i18n::LANG_KEY, &lang);
-                    crate::ui::i18n::set_language(lang);
-                }
                 SettingsAction::SetTabTitleStyle(style) => {
                     // The page draws under the store's lock, so it is written through it.
                     let _ = self.tab_titles.set(Some(store), style);
+                }
+                SettingsAction::SetLanguage(preference) => {
+                    // Applied in memory even when the save fails, like the theme.
+                    let _ = crate::host::language::choose(store, preference);
                 }
                 SettingsAction::UpdateNotifications(settings) => {
                     out.push(SettingsHostAction::UpdateNotifications(settings));
@@ -293,8 +296,9 @@ impl SettingsHost {
     fn apply_network(&mut self, action: NetworkAction, store: &Store, ctx: &egui::Context) {
         let NetworkAction::Save { config, password } = action;
         if let Err(error) = config.save(store) {
-            self.state.network.status = Some(StatusMessage::error(format!(
-                "Could not save the settings: {error}"
+            self.state.network.status = Some(StatusMessage::error(tr!(
+                "Could not save the settings: {error}",
+                error = error
             )));
             return;
         }
@@ -313,10 +317,10 @@ impl SettingsHost {
             return;
         };
         self.state.network.status = Some(match report {
-            ApplyReport::PasswordSaved => StatusMessage::ok(crate::platform::saved_securely()),
-            ApplyReport::PasswordNotKept(error) => StatusMessage::error(format!(
-                "The password could not be saved for later ({}). It works until you quit DegenView.",
-                error.0
+            ApplyReport::PasswordSaved => StatusMessage::saved_securely(),
+            ApplyReport::PasswordNotKept(error) => StatusMessage::error(tr!(
+                "The password could not be saved for later ({error}). It works until you quit DegenView.",
+                error = error.0
             )),
         });
     }
@@ -357,66 +361,60 @@ impl SettingsHost {
     fn apply_snapshots(&mut self, action: SnapshotsAction, store: &Store) {
         let held = Some(store);
         // The row a result is about, if it is about one, and what to say.
-        let (row, result): (Option<&'static str>, Result<String, String>) = match action {
-            SnapshotsAction::SetProvider(provider) => (
-                None,
-                self.snapshots
-                    .set_provider(held, provider)
-                    .map(|()| String::new()),
-            ),
-            SnapshotsAction::Save {
-                provider,
-                fields,
-                secrets,
-            } => {
-                let result = self
-                    .snapshots
-                    .set_fields(held, provider, &fields)
-                    .and_then(|()| {
-                        secrets.iter().try_for_each(|(key, value)| {
-                            self.snapshots.save_secret(provider, key, value)
-                        })
-                    });
-                if result.is_ok() {
-                    self.state.snapshots.saved(provider);
+        let (row, result): (Option<&'static str>, Result<Option<StatusMessage>, String>) =
+            match action {
+                SnapshotsAction::SetProvider(provider) => (
+                    None,
+                    self.snapshots.set_provider(held, provider).map(|()| None),
+                ),
+                SnapshotsAction::Save {
+                    provider,
+                    fields,
+                    secrets,
+                } => {
+                    let result =
+                        self.snapshots
+                            .set_fields(held, provider, &fields)
+                            .and_then(|()| {
+                                secrets.iter().try_for_each(|(key, value)| {
+                                    self.snapshots.save_secret(provider, key, value)
+                                })
+                            });
+                    if result.is_ok() {
+                        self.state.snapshots.saved(provider);
+                    }
+                    (
+                        Some(provider),
+                        result.map(|()| {
+                            Some(if secrets.is_empty() {
+                                StatusMessage::ok("Saved")
+                            } else {
+                                StatusMessage::saved_securely()
+                            })
+                        }),
+                    )
                 }
-                (
+                SnapshotsAction::RemoveSecret { provider, field } => (
                     Some(provider),
-                    result.map(|()| {
-                        if secrets.is_empty() {
-                            "Saved".to_owned()
-                        } else {
-                            crate::platform::saved_securely().to_string()
-                        }
-                    }),
-                )
-            }
-            SnapshotsAction::RemoveSecret { provider, field } => (
-                Some(provider),
-                self.snapshots
-                    .remove_secret(provider, field)
-                    .map(|()| "Removed".to_owned()),
-            ),
-            SnapshotsAction::IncludeTrading(include) => (
-                None,
-                self.snapshots
-                    .set_include_trading(held, include)
-                    .map(|()| String::new()),
-            ),
-            SnapshotsAction::Scale(scale) => (
-                None,
-                self.snapshots
-                    .set_scale(held, scale)
-                    .map(|()| String::new()),
-            ),
-            SnapshotsAction::ForgetConsent => (
-                None,
-                self.snapshots.forget_consent(held).map(|()| String::new()),
-            ),
-        };
+                    self.snapshots
+                        .remove_secret(provider, field)
+                        .map(|()| Some(StatusMessage::ok("Removed"))),
+                ),
+                SnapshotsAction::IncludeTrading(include) => (
+                    None,
+                    self.snapshots
+                        .set_include_trading(held, include)
+                        .map(|()| None),
+                ),
+                SnapshotsAction::Scale(scale) => {
+                    (None, self.snapshots.set_scale(held, scale).map(|()| None))
+                }
+                SnapshotsAction::ForgetConsent => {
+                    (None, self.snapshots.forget_consent(held).map(|()| None))
+                }
+            };
         let status = match result {
-            Ok(text) if text.is_empty() => None,
-            Ok(text) => Some(StatusMessage::ok(text)),
+            Ok(status) => status,
             Err(error) => Some(StatusMessage::error(error)),
         };
         match row {

@@ -1,6 +1,7 @@
 //! The Portfolio's Statistics tab: performance, value range, activity and P&L by asset. A pure
 //! view over the statistics the host computes.
 
+use crate::i18n::{tr, tr_n};
 use crate::model::portfolio::accounting::ClosedPosition;
 use crate::model::portfolio::format::PortfolioValueFormatter;
 use crate::model::portfolio::statistics::PortfolioStatistics;
@@ -36,81 +37,21 @@ pub struct StatisticsInput<'a> {
 
 /// "3 buys · 1 sell".
 pub fn activity_caption(buys: usize, sells: usize) -> String {
-    if crate::ui::is_ru() {
-        let buy_word = match buys % 10 {
-            1 if buys % 100 != 11 => "покупка",
-            2..=4 if !(12..=14).contains(&(buys % 100)) => "покупки",
-            _ => "покупок",
-        };
-        let sell_word = match sells % 10 {
-            1 if sells % 100 != 11 => "продажа",
-            2..=4 if !(12..=14).contains(&(sells % 100)) => "продажи",
-            _ => "продаж",
-        };
-        format!("{buys} {buy_word} · {sells} {sell_word}")
-    } else {
-        format!(
-            "{buys} {} · {sells} {}",
-            if buys == 1 { "buy" } else { "buys" },
-            if sells == 1 { "sell" } else { "sells" }
-        )
-    }
+    format!(
+        "{} · {}",
+        tr_n!(buys, "{count} buy", "{count} buys"),
+        tr_n!(sells, "{count} sell", "{count} sells")
+    )
 }
 
 /// "Tracking since Jan 15, 2024" caption: how long ago, in words.
 pub fn tracking_caption(since_ms: i64, now_ms: i64) -> String {
     let days = ((now_ms - since_ms) / 86_400_000).max(0);
-    if crate::ui::is_ru() {
-        match days {
-            0 => "сегодня".to_owned(),
-            1 => "1 день назад".to_owned(),
-            2..=59 => {
-                let rem10 = days % 10;
-                let rem100 = days % 100;
-                let word = if rem10 == 1 && rem100 != 11 {
-                    "день"
-                } else if (2..=4).contains(&rem10) && !(12..=14).contains(&rem100) {
-                    "дня"
-                } else {
-                    "дней"
-                };
-                format!("{days} {word} назад")
-            }
-            60..=729 => {
-                let months = days / 30;
-                let rem10 = months % 10;
-                let rem100 = months % 100;
-                let word = if rem10 == 1 && rem100 != 11 {
-                    "месяц"
-                } else if (2..=4).contains(&rem10) && !(12..=14).contains(&rem100) {
-                    "месяца"
-                } else {
-                    "месяцев"
-                };
-                format!("{months} {word} назад")
-            }
-            _ => {
-                let years = days / 365;
-                let rem10 = years % 10;
-                let rem100 = years % 100;
-                let word = if rem10 == 1 && rem100 != 11 {
-                    "год"
-                } else if (2..=4).contains(&rem10) && !(12..=14).contains(&rem100) {
-                    "года"
-                } else {
-                    "лет"
-                };
-                format!("{years} {word} назад")
-            }
-        }
-    } else {
-        match days {
-            0 => "today".to_owned(),
-            1 => "1 day ago".to_owned(),
-            2..=59 => format!("{days} days ago"),
-            60..=729 => format!("{} months ago", days / 30),
-            _ => format!("{} years ago", days / 365),
-        }
+    match days {
+        0 => tr!("today").to_owned(),
+        1..=59 => tr_n!(days, "{count} day ago", "{count} days ago"),
+        60..=729 => tr_n!(days / 30, "{count} month ago", "{count} months ago"),
+        _ => tr_n!(days / 365, "{count} year ago", "{count} years ago"),
     }
 }
 
@@ -183,17 +124,17 @@ fn value_cards(ui: &mut Ui, input: &StatisticsInput, stats: &PortfolioStatistics
     grid(
         ui,
         &[
-            StatCard::new(crate::ui::tr("Current Value", "Текущая стоимость"), f.money(stats.total_value)).icon(Icon::Briefcase),
-            StatCard::new(crate::ui::tr("Cost Basis", "Базовая стоимость"), f.money(stats.cost_basis)).icon(Icon::Banknote),
+            StatCard::new(tr!("Current Value"), f.money(stats.total_value)).icon(Icon::Briefcase),
+            StatCard::new(tr!("Cost Basis"), f.money(stats.cost_basis)).icon(Icon::Banknote),
             StatCard::new(
-                crate::ui::tr("Portfolio High", "Максимум портфеля"),
+                tr!("Portfolio High"),
                 stats.high.map_or("—".to_owned(), |e| f.money(e.value)),
             )
             .caption(stats.high.map(|e| on(e.timestamp)))
             .placeholder(stats.high.is_none())
             .icon(Icon::ArrowUp),
             StatCard::new(
-                crate::ui::tr("Portfolio Low", "Минимум портфеля"),
+                tr!("Portfolio Low"),
                 stats.low.map_or("—".to_owned(), |e| f.money(e.value)),
             )
             .caption(stats.low.map(|e| on(e.timestamp)))
@@ -209,19 +150,19 @@ fn activity_cards(ui: &mut Ui, input: &StatisticsInput, stats: &PortfolioStatist
     grid(
         ui,
         &[
-            StatCard::new(crate::ui::tr("Transactions", "Сделки"), stats.transaction_count.to_string())
+            StatCard::new(tr!("Transactions"), stats.transaction_count.to_string())
                 .caption(Some(activity_caption(stats.buy_count, stats.sell_count)))
                 .icon(Icon::Exchange),
-            StatCard::new(crate::ui::tr("Assets", "Активы"), stats.asset_count.to_string())
-                .caption(Some(if crate::ui::is_ru() {
-                    format!("{} в прибыли · {} в убытке", stats.winners, stats.losers)
-                } else {
-                    format!("{} in profit · {} at a loss", stats.winners, stats.losers)
-                }))
+            StatCard::new(tr!("Assets"), stats.asset_count.to_string())
+                .caption(Some(tr!(
+                    "{winners} in profit · {losers} at a loss",
+                    winners = stats.winners,
+                    losers = stats.losers
+                )))
                 .icon(Icon::Layers),
-            StatCard::new(crate::ui::tr("Fees Paid", "Уплачено комиссий"), f.money(stats.fees_paid)).icon(Icon::Percent),
+            StatCard::new(tr!("Fees Paid"), f.money(stats.fees_paid)).icon(Icon::Percent),
             StatCard::new(
-                crate::ui::tr("Tracking Since", "Отслеживается с"),
+                tr!("Tracking Since"),
                 stats.first_transaction.map_or("—".to_owned(), on),
             )
             .caption(

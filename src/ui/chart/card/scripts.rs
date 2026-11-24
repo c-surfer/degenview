@@ -2,6 +2,7 @@
 //! hand back, the pane buttons, and the own pane an `overlay=false` script draws in.
 
 use super::*;
+use crate::pine::time::bucket::seconds_of;
 
 impl ChartCard {
     pub fn pine_instances(&self) -> &[PineInstance] {
@@ -100,6 +101,12 @@ impl ChartCard {
         self.pine.set_logging(id, enabled);
     }
 
+    /// Whether a script on this chart is visible, so it runs: the chart is asked for the history
+    /// scripts are meant to run over.
+    pub fn runs_scripts(&self) -> bool {
+        self.instances.iter().any(|instance| instance.visible)
+    }
+
     pub fn pine_status(&self, id: u64) -> Option<InstanceStatus<'_>> {
         self.pine.status(id)
     }
@@ -167,6 +174,7 @@ impl ChartCard {
             bars,
             symbol: symbol_info,
             bar_seconds,
+            timeframe_seconds: self.timeframe.map(seconds_of),
             // What `chart.bg_color` and `chart.fg_color` read: the colours the chart is drawn on.
             theme: if theme::is_light() {
                 ChartTheme::LIGHT

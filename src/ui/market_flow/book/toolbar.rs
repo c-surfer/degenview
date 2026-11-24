@@ -22,7 +22,7 @@ pub(super) fn show(ui: &mut Ui, state: &mut BookViewState, ladder: &Ladder) {
             ui.spacing_mut().item_spacing.x = 8.0;
             ui.add_space(MARGIN);
             ui.label(kit::text(
-                crate::ui::tr("Group", "Группа"),
+                "Group",
                 size::CAPTION,
                 MEDIUM,
                 theme::text_secondary(),
@@ -37,7 +37,7 @@ pub(super) fn show(ui: &mut Ui, state: &mut BookViewState, ladder: &Ladder) {
                         Icon::Target,
                         26.0,
                         theme::text_secondary(),
-                        crate::ui::tr("Centre on the market", "Центрировать на рынке"),
+                        "Centre on the market",
                     )
                     .clicked()
                 {

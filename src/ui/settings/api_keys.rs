@@ -3,6 +3,7 @@
 //! CoinMarketCap connection test happen here, since the stores are process-wide, but every rule
 //! (what may be saved, what the status says) is a plain function tested against in-memory stores.
 
+use crate::i18n::tr;
 use crate::model::DataSource;
 use crate::service::ProviderError;
 use crate::service::keychain::api_keys::{
@@ -13,9 +14,10 @@ use crate::service::work_queue::{self, Pending};
 use crate::ui::icons::{self, Icon};
 use crate::ui::kit::loading::LoadingIndicator;
 use crate::ui::kit::{Autosave, Tone, destructive_button, field, open_button};
+use crate::ui::settings::brokers::step_row;
 use crate::ui::settings::card::StatusMessage;
 use crate::ui::settings::window::{card, section, status_message};
-use crate::ui::{kit, theme, tr};
+use crate::ui::{kit, theme};
 use eframe::egui;
 
 #[derive(Default)]
@@ -80,9 +82,9 @@ impl AlpacaForm {
 
     pub fn badge(&self) -> (&'static str, Tone) {
         if self.is_saved {
-            (tr("Keys saved", "Ключи сохранены"), Tone::Good)
+            (tr!("Keys saved"), Tone::Good)
         } else {
-            (tr("Not configured", "Не настроено"), Tone::Neutral)
+            (tr!("Not configured"), Tone::Neutral)
         }
     }
 
@@ -94,9 +96,9 @@ impl AlpacaForm {
         self.status = Some(match store.save(&credentials) {
             Ok(()) => {
                 self.is_saved = true;
-                StatusMessage::ok(crate::platform::saved_securely())
+                StatusMessage::saved_securely()
             }
-            Err(error) => StatusMessage::error(format!("Could not save: {}", error.0)),
+            Err(error) => StatusMessage::error(tr!("Could not save: {error}", error = error.0)),
         });
     }
 
@@ -134,9 +136,11 @@ impl AlpacaForm {
                 self.key_id.clear();
                 self.secret_key.clear();
                 self.is_saved = false;
-                StatusMessage::ok("Keys removed. Stock charts need keys to load.")
+                StatusMessage::ok(tr!("Keys removed. Stock charts need keys to load."))
             }
-            Err(error) => StatusMessage::error(format!("Could not remove the keys: {}", error.0)),
+            Err(error) => {
+                StatusMessage::error(tr!("Could not remove the keys: {error}", error = error.0))
+            }
         });
     }
 }
@@ -161,17 +165,17 @@ impl CmcForm {
 
     pub fn badge(&self) -> (&'static str, Tone) {
         if self.configured {
-            (tr("API key configured", "API-ключ настроен"), Tone::Good)
+            (tr!("API key configured"), Tone::Good)
         } else {
-            (tr("Public API mode", "Публичный режим API"), Tone::Neutral)
+            (tr!("Public API mode"), Tone::Neutral)
         }
     }
 
     pub fn field_title(&self) -> &'static str {
         if self.configured {
-            tr("Replace API Key", "Заменить API-ключ")
+            tr!("Replace API Key")
         } else {
-            tr("API Key", "API-ключ")
+            tr!("API Key")
         }
     }
 
@@ -188,9 +192,9 @@ impl CmcForm {
             Ok(()) => {
                 self.configured = true;
                 self.api_key.clear();
-                StatusMessage::ok(crate::platform::saved_securely())
+                StatusMessage::saved_securely()
             }
-            Err(error) => StatusMessage::error(format!("Could not save: {}", error.0)),
+            Err(error) => StatusMessage::error(tr!("Could not save: {error}", error = error.0)),
         });
     }
 
@@ -199,9 +203,11 @@ impl CmcForm {
             Ok(()) => {
                 self.api_key.clear();
                 self.configured = false;
-                StatusMessage::ok("Key removed. Public API mode is active.")
+                StatusMessage::ok(tr!("Key removed. Public API mode is active."))
             }
-            Err(error) => StatusMessage::error(format!("Could not remove the key: {}", error.0)),
+            Err(error) => {
+                StatusMessage::error(tr!("Could not remove the key: {error}", error = error.0))
+            }
         });
     }
 
@@ -251,9 +257,9 @@ impl SurferForm {
 
     pub fn badge(&self) -> (&'static str, Tone) {
         if self.configured {
-            (tr("Active", "Активна"), Tone::Good)
+            (tr!("Active"), Tone::Good)
         } else {
-            (tr("Inactive", "Не активна"), Tone::Neutral)
+            (tr!("Inactive"), Tone::Neutral)
         }
     }
 
@@ -262,9 +268,9 @@ impl SurferForm {
         self.status = Some(match store.save(trimmed) {
             Ok(()) => {
                 self.configured = !trimmed.is_empty();
-                StatusMessage::ok(crate::platform::saved_securely())
+                StatusMessage::saved_securely()
             }
-            Err(error) => StatusMessage::error(format!("Could not save: {}", error.0)),
+            Err(error) => StatusMessage::error(tr!("Could not save: {error}", error = error.0)),
         });
     }
 
@@ -273,16 +279,14 @@ impl SurferForm {
             Ok(()) => {
                 self.license.clear();
                 self.configured = false;
-                StatusMessage::ok(tr(
-                    "License removed. Basic RSI mode is active.",
-                    "Лицензия удалена. Включен базовый режим RSI.",
-                ))
+                StatusMessage::ok(tr!("License removed. Basic RSI mode is active."))
             }
-            Err(error) => StatusMessage::error(format!("Could not remove the license: {}", error.0)),
+            Err(error) => StatusMessage::error(tr!("Could not remove the license: {error}", error = error.0)),
         });
     }
 
-    pub fn start_test(&mut self, ctx: Option<&egui::Context>) {
+    pub fn start_test(&mut self, ctx: Option<&egui::Context>, store: &SurferKeyStore) {
+        self.save(store);
         self.start_test_with(ctx, |lic| surfer::test_connection(&lic));
     }
 
@@ -296,15 +300,15 @@ impl SurferForm {
         }
         self.status = None;
         let license = self.license.trim().to_string();
-        self.test = Some(work_queue::start(ctx, move || test(license)));
+        self.test = Some(work_queue::SNAPSHOTS.start(ctx, move || test(license)));
     }
 
-    pub fn poll_test(&mut self) {
+    pub fn poll_test(&mut self, store: &SurferKeyStore) {
         let Some(pending) = &mut self.test else {
             return;
         };
         let Some(outcome) = pending.poll_or(|| {
-            Err("The connection test stopped unexpectedly.".to_string())
+            Err(tr!("The connection test stopped unexpectedly.").to_string())
         }) else {
             return;
         };
@@ -312,18 +316,19 @@ impl SurferForm {
         self.status = Some(match outcome {
             Ok(state) => {
                 if state.success && state.error.is_none() {
+                    self.save(store);
+                    self.configured = true;
                     let end_date = state.end_date.as_deref().unwrap_or("—");
                     let nickname = state.nickname.as_deref().unwrap_or("—");
-                    let msg = if crate::ui::is_ru() {
-                        format!("Лицензия активна до {end_date} (Пользователь: {nickname})")
-                    } else {
-                        format!("License active until {end_date} (User: {nickname})")
-                    };
-                    StatusMessage::ok(msg)
+                    StatusMessage::ok(tr!(
+                        "License active until {end_date} (User: {nickname})",
+                        end_date = end_date,
+                        nickname = nickname
+                    ))
                 } else {
                     let err = state
                         .error
-                        .unwrap_or_else(|| tr("License verification failed", "Ошибка проверки лицензии").to_string());
+                        .unwrap_or_else(|| tr!("License verification failed").to_string());
                     StatusMessage::error(err)
                 }
             }
@@ -341,44 +346,20 @@ fn take_test_answer(
         return;
     };
     let Some(outcome) = pending.poll_or(|| {
-        Err(ProviderError::other(
-            "The connection test stopped unexpectedly.",
-        ))
+        Err(ProviderError::other(tr!(
+            "The connection test stopped unexpectedly."
+        )))
     }) else {
         return;
     };
     *test = None;
     *status = Some(match outcome {
-        Ok(()) => StatusMessage::ok("Connection successful."),
+        Ok(()) => StatusMessage::ok(tr!("Connection successful.")),
         Err(error) => StatusMessage::error(error.to_string()),
     });
 }
 
 // MARK: Views
-
-/// A numbered instruction line.
-fn step(ui: &mut egui::Ui, number: usize, text: &str) {
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing.x = 10.0;
-        let (badge, _) = ui.allocate_exact_size(egui::Vec2::splat(20.0), egui::Sense::hover());
-        ui.painter()
-            .circle_filled(badge.center(), 10.0, theme::ink(14));
-        let digit = kit::galley(
-            ui,
-            &number.to_string(),
-            kit::size::CAPTION + 0.5,
-            kit::BOLD,
-            theme::text_secondary(),
-            20.0,
-        );
-        ui.painter().galley(
-            badge.center() - digit.size() / 2.0,
-            digit,
-            theme::text_secondary(),
-        );
-        ui.label(kit::text(text, 12.0, kit::REGULAR, theme::text_secondary()));
-    });
-}
 
 /// A link with a leading "open" glyph: gray and underlined, as every link is.
 pub(crate) fn link(ui: &mut egui::Ui, label: &str, url: &str) {
@@ -418,15 +399,24 @@ pub fn alpaca_body(ui: &mut egui::Ui, state: &mut ApiKeysState, store: &AlpacaCr
     let (text, tone) = form.badge();
     kit::status_badge(ui, text, tone);
     ui.add_space(18.0);
-    section(ui, tr("API credentials", "Ключи API"), None, |ui| {
+    section(ui, tr!("API credentials"), None, |ui| {
         card(ui, |ui| {
             ui.vertical(|ui| {
-                let key_id = field(ui, tr("API Key ID", "Идентификатор ключа (Key ID)"), None, "PK…", &mut form.key_id, false);
+                let key_id = field(
+                    ui,
+                    "alpaca-key-id",
+                    tr!("API Key ID"),
+                    None,
+                    "PK…",
+                    &mut form.key_id,
+                    false,
+                );
                 form.autosave.watch(&key_id, false);
                 ui.add_space(12.0);
                 let secret = field(
                     ui,
-                    tr("Secret Key", "Секретный ключ (Secret Key)"),
+                    "alpaca-secret",
+                    tr!("Secret Key"),
                     Some(crate::platform::credential_stored_hint()),
                     "",
                     &mut form.secret_key,
@@ -438,13 +428,14 @@ pub fn alpaca_body(ui: &mut egui::Ui, state: &mut ApiKeysState, store: &AlpacaCr
                 ui.spacing_mut().item_spacing.x = 10.0;
                 if form.is_testing() {
                     ui.add(LoadingIndicator::new().size(14.0));
-                } else if kit::sheet_button(ui, tr("Test Connection", "Проверить подключение"), false, form.can_save()).clicked()
+                } else if kit::sheet_button(ui, tr!("Test Connection"), false, form.can_save())
+                    .clicked()
                 {
                     form.start_test(Some(ui.ctx()), |key_id, secret| {
                         crate::service::alpaca_test_connection(&key_id, &secret)
                     });
                 }
-                if form.is_saved && destructive_button(ui, tr("Remove Keys", "Удалить ключи")).clicked() {
+                if form.is_saved && destructive_button(ui, tr!("Remove Keys")).clicked() {
                     form.remove(store);
                     form.autosave.cancel();
                 }
@@ -452,29 +443,29 @@ pub fn alpaca_body(ui: &mut egui::Ui, state: &mut ApiKeysState, store: &AlpacaCr
         });
         if let Some(status) = &form.status {
             ui.add_space(8.0);
-            status_message(ui, &status.text, status.is_error);
+            status_message(ui, &status.text(), status.is_error);
         }
     });
     // Both keys are needed, so nothing is saved until both are there.
     if form.autosave.due(ui.ctx()) && form.can_save() {
         form.save(store);
     }
-    section(ui, tr("Getting your keys", "Как получить ключи"), None, |ui| {
+    section(ui, tr!("Getting your keys"), None, |ui| {
         card(ui, |ui| {
-            step(ui, 1, tr("Create a free Alpaca account.", "Создайте бесплатный аккаунт Alpaca."));
-            step(
+            step_row(ui, 1, tr!("Create a free Alpaca account."));
+            step_row(
                 ui,
                 2,
-                tr("Open the API Keys section of the dashboard and generate a key.", "Откройте раздел API Keys в панели управления и создайте ключ."),
+                tr!("Open the API Keys section of the dashboard and generate a key."),
             );
-            step(
+            step_row(
                 ui,
                 3,
-                tr("Copy both values here. Alpaca only shows the secret once.", "Скопируйте оба значения сюда. Alpaca показывает секретный ключ только один раз."),
+                tr!("Copy both values here. Alpaca only shows the secret once."),
             );
             link(
                 ui,
-                tr("Open the Alpaca dashboard", "Перейти в панель управления Alpaca"),
+                tr!("Open the Alpaca dashboard"),
                 "https://app.alpaca.markets/",
             );
         });
@@ -497,21 +488,33 @@ pub fn coinmarketcap_body(
     kit::status_badge(ui, text, tone);
     ui.add_space(18.0);
     let (title, hint) = (form.field_title(), form.field_hint());
-    section(ui, tr("API access", "Доступ к API"), None, |ui| {
+    section(ui, tr!("API access"), None, |ui| {
         card(ui, |ui| {
             ui.vertical(|ui| {
-                let key = field(ui, title, Some(hint), "", &mut form.api_key, true);
+                let key = field(
+                    ui,
+                    "cmc-key",
+                    title,
+                    Some(hint),
+                    "",
+                    &mut form.api_key,
+                    true,
+                );
                 form.autosave.watch(&key, true);
             });
             ui.horizontal(|ui| {
                 ui.spacing_mut().item_spacing.x = 10.0;
                 if form.is_testing() {
                     ui.add(LoadingIndicator::new().size(14.0));
-                } else if kit::sheet_button(ui, tr("Test Connection", "Проверить подключение"), false, true).clicked() {
+                } else if kit::sheet_button(ui, tr!("Test Connection"), false, true).clicked() {
                     form.start_test(Some(ui.ctx()), crate::service::market::cmc::test_connection);
                 }
-                open_button(ui, tr("Get API Key", "Получить API-ключ"), "https://pro.coinmarketcap.com/signup/");
-                if form.configured && destructive_button(ui, tr("Remove Key", "Удалить ключ")).clicked() {
+                open_button(
+                    ui,
+                    tr!("Get API Key"),
+                    "https://pro.coinmarketcap.com/signup/",
+                );
+                if form.configured && destructive_button(ui, tr!("Remove Key")).clicked() {
                     form.remove(store);
                     form.autosave.cancel();
                 }
@@ -519,7 +522,7 @@ pub fn coinmarketcap_body(
         });
         if let Some(status) = &form.status {
             ui.add_space(8.0);
-            status_message(ui, &status.text, status.is_error);
+            status_message(ui, &status.text(), status.is_error);
         }
     });
     if form.autosave.due(ui.ctx()) && form.can_save() {
@@ -529,10 +532,9 @@ pub fn coinmarketcap_body(
         ui,
         Icon::InfoCircle,
         theme::text_secondary(),
-        tr("A key is optional", "Ключ не обязателен"),
-        Some(tr(
-            "CoinMarketCap works without an API key. Adding one gives DegenView higher API rate limits.",
-            "CoinMarketCap работает и без API-ключа. Добавление ключа увеличивает лимиты запросов к API.",
+        tr!("A key is optional"),
+        Some(tr!(
+            "CoinMarketCap works without an API key. Adding one gives DegenView higher API rate limits."
         )),
         None,
     );
@@ -545,7 +547,7 @@ pub fn surfer_body(
 ) {
     let form = &mut state.surfer;
     form.load(store);
-    form.poll_test();
+    form.poll_test(store);
     if form.is_testing() {
         ui.ctx()
             .request_repaint_after(std::time::Duration::from_millis(150));
@@ -553,7 +555,7 @@ pub fn surfer_body(
     let (text, tone) = form.badge();
     kit::status_badge(ui, text, tone);
     ui.add_space(18.0);
-    section(ui, tr("Surfer License", "Лицензия Surfer"), None, |ui| {
+    section(ui, tr!("Surfer License"), None, |ui| {
         card(ui, |ui| {
             ui.vertical(|ui| {
                 let hint = if form.configured {
@@ -563,7 +565,8 @@ pub fn surfer_body(
                 };
                 let key = field(
                     ui,
-                    tr("License Key", "Лицензионный ключ"),
+                    "surfer-key",
+                    tr!("License Key"),
                     Some(hint),
                     "CS-...",
                     &mut form.license,
@@ -577,16 +580,16 @@ pub fn surfer_body(
                     ui.add(LoadingIndicator::new().size(14.0));
                 } else if kit::sheet_button(
                     ui,
-                    tr("Test Connection", "Проверить подключение"),
+                    tr!("Test Connection"),
                     false,
                     form.can_save(),
                 )
                 .clicked()
                 {
-                    form.start_test(Some(ui.ctx()));
+                    form.start_test(Some(ui.ctx()), store);
                 }
                 if form.configured
-                    && destructive_button(ui, tr("Remove License", "Удалить лицензию")).clicked()
+                    && destructive_button(ui, tr!("Remove License")).clicked()
                 {
                     form.remove(store);
                     form.autosave.cancel();
@@ -595,7 +598,7 @@ pub fn surfer_body(
         });
         if let Some(status) = &form.status {
             ui.add_space(8.0);
-            status_message(ui, &status.text, status.is_error);
+            status_message(ui, &status.text(), status.is_error);
         }
     });
     if form.autosave.due(ui.ctx()) && form.can_save() {
@@ -605,10 +608,9 @@ pub fn surfer_body(
         ui,
         Icon::InfoCircle,
         theme::text_secondary(),
-        tr("About Surfer PRO", "О Surfer PRO"),
-        Some(tr(
-            "Without a license, the [Surfer] RSI indicator operates in basic mode (RSI + Stochastic + ATR). A valid license unlocks Clouds (MRC), MTF Background, Extra Signals, and Divergence Validation.",
-            "Без лицензии индикатор [Surfer] RSI работает в базовом режиме (RSI + Stochastic + ATR). Валидная лицензия открывает Облака (MRC), MTF Background, Экстра-сигналы и валидацию дивергенций.",
+        tr!("About Surfer PRO"),
+        Some(tr!(
+            "Without a license, the [Surfer] RSI indicator operates in basic mode (RSI + Stochastic + ATR). A valid license unlocks Clouds (MRC), MTF Background, Extra Signals, and Divergence Validation."
         )),
         None,
     );
@@ -628,10 +630,6 @@ mod tests {
         CoinMarketCapKeyStore::with_backend(Box::new(MemoryBackend::default()))
     }
 
-    fn surfer_store() -> SurferKeyStore {
-        SurferKeyStore::with_backend(Box::new(MemoryBackend::default()))
-    }
-
     #[test]
     fn alpaca_saves_only_with_both_fields_and_reports_it() {
         let store = alpaca_store();
@@ -644,10 +642,7 @@ mod tests {
         form.secret_key = "S1".into();
         assert!(form.can_save());
         form.save(&store);
-        assert_eq!(
-            form.status,
-            Some(StatusMessage::ok(crate::platform::saved_securely()))
-        );
+        assert_eq!(form.status, Some(StatusMessage::saved_securely()));
         assert_eq!(form.badge(), ("Keys saved", Tone::Good));
         assert_eq!(store.credentials().key_id, "PK1", "saved trimmed");
     }
@@ -744,16 +739,21 @@ mod tests {
         assert_eq!(form.status, Some(StatusMessage::error("Invalid API key")));
     }
 
-    fn wait_for_surfer_test(form: &mut SurferForm) {
+    fn surfer_store() -> SurferKeyStore {
+        SurferKeyStore::with_backend_and_path(Box::new(MemoryBackend::default()), None)
+    }
+
+    fn wait_for_surfer_test(form: &mut SurferForm, store: &SurferKeyStore) {
         let deadline = Instant::now() + Duration::from_secs(5);
         while form.is_testing() && Instant::now() < deadline {
-            form.poll_test();
+            form.poll_test(store);
             std::thread::sleep(Duration::from_millis(5));
         }
     }
 
     #[test]
     fn surfer_saves_loads_and_removes_license() {
+        let _guard = crate::lock::lock(&crate::service::surfer::TEST_LICENSE_LOCK);
         let store = surfer_store();
         let mut form = SurferForm::default();
         form.load(&store);
@@ -766,7 +766,7 @@ mod tests {
         form.save(&store);
         assert_eq!(
             form.status,
-            Some(StatusMessage::ok(crate::platform::saved_securely()))
+            Some(StatusMessage::saved_securely())
         );
         assert!(form.configured);
         assert_eq!(form.badge(), ("Active", Tone::Good));
@@ -791,6 +791,8 @@ mod tests {
 
     #[test]
     fn surfer_connection_test_reports_success_and_error() {
+        let _guard = crate::lock::lock(&crate::service::surfer::TEST_LICENSE_LOCK);
+        let store = surfer_store();
         let mut form = SurferForm {
             license: "CS-TEST-KEY".into(),
             status: Some(StatusMessage::error("old")),
@@ -810,17 +812,14 @@ mod tests {
         });
         assert!(form.is_testing());
         assert_eq!(form.status, None, "new test clears old status");
-        wait_for_surfer_test(&mut form);
+        wait_for_surfer_test(&mut form, &store);
         assert!(!form.is_testing());
-        let expected_msg = if crate::ui::is_ru() {
-            "Лицензия активна до 2027-01-01 (Пользователь: AlphaTrader)"
-        } else {
-            "License active until 2027-01-01 (User: AlphaTrader)"
-        };
         assert_eq!(
             form.status,
-            Some(StatusMessage::ok(expected_msg))
+            Some(StatusMessage::ok("License active until 2027-01-01 (User: AlphaTrader)"))
         );
+        assert!(form.configured);
+        assert_eq!(store.license().as_deref(), Some("CS-TEST-KEY"));
 
         // Failed test (error from server payload)
         form.start_test_with(None, |_| {
@@ -833,7 +832,7 @@ mod tests {
                 error: Some("Key expired".into()),
             })
         });
-        wait_for_surfer_test(&mut form);
+        wait_for_surfer_test(&mut form, &store);
         assert!(!form.is_testing());
         assert_eq!(
             form.status,
@@ -842,11 +841,36 @@ mod tests {
 
         // Network / transport error
         form.start_test_with(None, |_| Err("HTTP timeout".into()));
-        wait_for_surfer_test(&mut form);
+        wait_for_surfer_test(&mut form, &store);
         assert!(!form.is_testing());
         assert_eq!(
             form.status,
             Some(StatusMessage::error("HTTP timeout"))
         );
+    }
+
+    /// A setup step is longer in another language and wraps under its number; it does not run past
+    /// the card.
+    #[test]
+    fn the_setup_steps_wrap_inside_the_page_in_the_pseudo_locale() {
+        use crate::i18n::{Locale, with_locale};
+        use crate::ui::render_tests::Screen;
+        use crate::ui::trade::pseudo_text::painted_boxes;
+        with_locale(Locale::PSEUDO, || {
+            let store = alpaca_store();
+            let mut state = ApiKeysState::default();
+            let width = 540.0;
+            let mut screen = Screen::new(egui::vec2(width, 1_100.0));
+            let mut last = None;
+            for _ in 0..3 {
+                last = Some(screen.run(Vec::new(), |ui| alpaca_body(ui, &mut state, &store)));
+            }
+            for (text, rect) in painted_boxes(&last.expect("a frame")) {
+                assert!(
+                    rect.right() <= width,
+                    "{text:?} runs past the page: {rect:?}"
+                );
+            }
+        });
     }
 }

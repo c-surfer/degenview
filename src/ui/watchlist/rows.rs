@@ -3,6 +3,7 @@
 //! line up exactly (see `watchlist_style`), and each returns the `Response` the
 //! sidebar uses for clicks, drags and menus.
 
+use crate::i18n::{tr, tr_c, tr_n};
 use crate::model::market::trend::Trend;
 use crate::model::watchlist;
 use crate::model::watchlist::layout::Flags;
@@ -175,7 +176,7 @@ pub fn column_header(
     if let Some(key) = paint_title(
         ui,
         "symbol",
-        crate::ui::tr("Symbol", "Инструмент"),
+        tr!("Symbol"),
         Some(WatchlistSortKey::Symbol),
         Align2::LEFT_CENTER,
         rect.left() + LEADING_INSET,
@@ -186,8 +187,8 @@ pub fn column_header(
     for (column, right) in edges {
         if let Some(key) = paint_title(
             ui,
+            &format!("{column:?}"),
             column.title(),
-            crate::ui::t(column.title()),
             column.sort_key(),
             Align2::RIGHT_CENTER,
             right,
@@ -196,7 +197,15 @@ pub fn column_header(
         }
     }
     if display.shows_chart {
-        paint_title(ui, "chart", "1M", None, Align2::RIGHT_CENTER, values_left);
+        paint_title(
+            ui,
+            "chart",
+            // The sparkline draws one month: "1M" is how English abbreviates that.
+            tr_c!("sparkline column", "1M"),
+            None,
+            Align2::RIGHT_CENTER,
+            values_left,
+        );
     }
     clicked
 }
@@ -410,7 +419,7 @@ pub fn instrument_row(ui: &mut egui::Ui, item: &WatchlistInstrument, row: &RowSt
             // Providers disagree on what a change is measured against, so say which.
             if let Some(basis) = quote.and_then(|quote| quote.change_basis) {
                 text.push('\n');
-                text.push_str(crate::ui::t(basis.label()));
+                text.push_str(basis.label());
             }
             text
         }
@@ -598,12 +607,17 @@ pub fn section_row(
 
     accessibility::label(
         response,
-        format!("{} section, {} symbols", section.title, count),
+        tr_n!(
+            count,
+            "{title} section, {count} symbol",
+            "{title} section, {count} symbols",
+            title = section.title
+        ),
     )
     .on_hover_text(if section.is_collapsed {
-        crate::ui::tr("Expand section", "Развернуть секцию")
+        tr!("Expand section")
     } else {
-        crate::ui::tr("Collapse section", "Свернуть секцию")
+        tr!("Collapse section")
     })
 }
 
@@ -634,7 +648,7 @@ pub fn empty_section_row(ui: &mut egui::Ui) -> Response {
     painter.text(
         inner.center(),
         Align2::CENTER_CENTER,
-        crate::ui::tr("Drag symbols here", "Перетащите символы сюда"),
+        tr!("Drag symbols here"),
         FontId::proportional(11.0),
         ui.visuals().weak_text_color().gamma_multiply(0.7),
     );

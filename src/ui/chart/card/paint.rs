@@ -259,44 +259,6 @@ impl ChartCard {
         }
     }
 
-    pub(super) fn draw_rsi(
-        &self,
-        painter: &egui::Painter,
-        plot: Rect,
-        x_for: &dyn Fn(usize) -> f32,
-        values: &[Option<f64>],
-    ) {
-        if !values.iter().any(|value| value.is_some()) {
-            return;
-        }
-        let pane = Rect::from_min_max(
-            Pos2::new(plot.left(), plot.bottom() - plot.height() * 0.28),
-            plot.right_bottom(),
-        );
-        let y_for = |reading: f64| pane.bottom() - (reading as f32 / 100.0) * pane.height();
-
-        for level in [crate::model::RSI_OVERBOUGHT, crate::model::RSI_OVERSOLD] {
-            let y = y_for(level);
-            painter.add(egui::Shape::dashed_line(
-                &[Pos2::new(pane.left(), y), Pos2::new(pane.right(), y)],
-                Stroke::new(1.0, theme::grid()),
-                4.0,
-                3.0,
-            ));
-        }
-
-        let stroke = Stroke::new(1.0, theme::RSI);
-        let mut previous: Option<Pos2> = None;
-        for (index, value) in values.iter().enumerate() {
-            let Some(value) = value else { continue };
-            let point = Pos2::new(x_for(index), y_for(*value));
-            if let Some(previous) = previous {
-                painter.line_segment([previous, point], stroke);
-            }
-            previous = Some(point);
-        }
-    }
-
     /// Labelled up/down triangles at confirmed Supertrend regime changes. Each marker (triangle
     /// plus "Bullish"/"Bearish" pill) is clamped inside the plot so a flip at a price extreme
     /// stays readable.
@@ -322,7 +284,12 @@ impl ChartCard {
                 self.bearish_color()
             };
             let galley = painter.layout_no_wrap(
-                if bullish { "Bullish" } else { "Bearish" }.to_owned(),
+                if bullish {
+                    tr!("Bullish")
+                } else {
+                    tr!("Bearish")
+                }
+                .to_owned(),
                 FontId::proportional(TREND_FLIP_LABEL_FONT_SIZE),
                 Color32::WHITE,
             );
@@ -416,16 +383,17 @@ impl ChartCard {
             .checked_sub(2)
             .map(|before| candles[before].close);
         let color = self.bar_color(last, previous_close);
-        // Dotted, so the line that follows the price reads apart from the grid and the drawings.
-        canvas::horizontal(
-            painter,
-            (plot.left(), plot.right()),
-            y,
-            canvas::LineStyle {
-                stroke: Stroke::new(1.0, color.gamma_multiply(0.65)),
-                dash: crate::model::chart::kind::LineDash::Dotted,
-            },
-        );
+
+        // Price line across the plot: 3.0 px dash, 3.0 px gap, with subtle muted attenuation (0.50).
+        let y_crisp = canvas::crisp(y, 1.0, painter.ctx().pixels_per_point());
+        painter.extend(Shape::dashed_line(
+            &[Pos2::new(plot.left(), y_crisp), Pos2::new(plot.right(), y_crisp)],
+            Stroke::new(1.0, color.gamma_multiply(0.50)),
+            3.0,
+            3.0,
+        ));
+
+        // Current price tag on the vertical price scale.
         let tag = Rect::from_min_max(
             Pos2::new(plot.right() + 3.0, y - half),
             Pos2::new(rect.right() - 3.0, y + half),
@@ -439,6 +407,64 @@ impl ChartCard {
             style.price_font(),
             Color32::WHITE,
         );
+
+        // Bar countdown timer right under the price tag.
+        let now_ms = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis() as i64;
+        let remaining_ms = last.close_time.saturating_sub(now_ms).max(0);
+        let total_seconds = (remaining_ms + 999) / 1000;
+        let hours = total_seconds / 3600;
+        let minutes = (total_seconds % 3600) / 60;
+        let seconds = total_seconds % 60;
+        let countdown = if hours > 0 {
+            format!("{hours:02}:{minutes:02}:{seconds:02}")
+        } else {
+            format!("{minutes:02}:{seconds:02}")
+        };
+
+        let timer_height = (style.price_size + 6.0).max(16.0);
+        let timer_rect = Rect::from_min_size(
+            Pos2::new(tag.min.x, tag.max.y + 1.5),
+            Vec2::new(tag.width(), timer_height),
+        );
+        painter.rect_filled(
+            timer_rect,
+            2.5,
+            Color32::from_rgba_unmultiplied(0x1e, 0x22, 0x2d, 235),
+        );
+        painter.text(
+            timer_rect.center(),
+            Align2::CENTER_CENTER,
+            countdown,
+            style.time_font(),
+            Color32::from_rgb(209, 212, 220),
+        );
+
+        painter
+            .ctx()
+            .request_repaint_after(std::time::Duration::from_millis(500));
+    }
+
+    /// A bar's time as the chart writes it: to the second on a candle shorter than a minute.
+    pub(super) fn time_text(&self, epoch_ms: i64) -> String {
+        if self.shows_seconds() {
+            format::timestamp_seconds(epoch_ms)
+        } else {
+            format::timestamp(epoch_ms)
+        }
+    }
+
+    /// Whether the candles are shorter than a minute, so times carry their seconds.
+    pub(super) fn shows_seconds(&self) -> bool {
+        self.timeframe.is_some_and(Timeframe::is_subminute)
+    }
+
+    /// How wide the crosshair's time tag is: 16 characters of the axis font, 19 with seconds.
+    pub(super) fn time_tag_width(&self, style: &CanvasStyle) -> f32 {
+        let characters = if self.shows_seconds() { 19.0 } else { 16.0 };
+        116.0 * style.time_size / 9.0 * characters / 16.0
     }
 
     /// The time labels, on the bars the vertical grid stands on.
@@ -458,7 +484,7 @@ impl ChartCard {
             let Some(candle) = candles.get(*index) else {
                 continue;
             };
-            let label = format::timestamp(candle.open_time);
+            let label = self.time_text(candle.open_time);
             let x = x_for(*index);
             // A label that would hang over the plot's right edge waits for the chart to move, as a
             // price label does at the plot's top and bottom: it would run into the price axis and

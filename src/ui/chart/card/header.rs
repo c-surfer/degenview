@@ -2,6 +2,7 @@
 //! the indicator legend and the header's buttons.
 
 use super::*;
+use crate::i18n::tr;
 
 impl ChartCard {
     /// Header row. Reordering has its own handle so clicking the market title
@@ -83,7 +84,7 @@ impl ChartCard {
                     }
                 })
                 .response
-                .on_hover_text("Drag to reorder charts");
+                .on_hover_text(tr!("Drag to reorder charts"));
                 ui.vertical(|ui| {
                     ui.set_width(title_content_width);
                     ui.spacing_mut().item_spacing.y = -3.0;
@@ -136,7 +137,7 @@ impl ChartCard {
                             // The size and fill of an indicator pill (chart_indicator_strip).
                             let label = crate::ui::kit::galley(
                                 ui,
-                                crate::ui::t("Replay"),
+                                tr!("Replay"),
                                 10.0,
                                 crate::ui::kit::MEDIUM,
                                 crate::ui::kit::primary(0.7),
@@ -165,7 +166,7 @@ impl ChartCard {
                                 label,
                                 crate::ui::kit::primary(0.7),
                             );
-                            response.on_hover_text("Historical replay");
+                            response.on_hover_text(tr!("Historical replay"));
                         }
                         // CoinMarketCap's indices aren't price series: nothing to overlay.
                         if source != DataSource::CoinMarketCap {
@@ -191,9 +192,10 @@ impl ChartCard {
                                             } else if let Some((label, price)) =
                                                 self.leading_choice()
                                             {
-                                                format!(
-                                                    "{label} · {}",
-                                                    format::headline(price, true)
+                                                tr!(
+                                                    "{label} · {price}",
+                                                    label = label,
+                                                    price = format::headline(price, true)
                                                 )
                                             } else {
                                                 format::headline(
@@ -252,7 +254,6 @@ impl ChartCard {
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     ui.spacing_mut().item_spacing.x = BUTTONS_GAP_AFTER;
-
                     let favorite_icon = if is_favorite {
                         Icon::StarFill
                     } else {
@@ -264,11 +265,10 @@ impl ChartCard {
                         theme::text_secondary()
                     };
                     let favorite_tip = if is_favorite {
-                        crate::ui::tr("Remove from watchlist", "Удалить из избранного")
+                        tr!("Remove from watchlist")
                     } else {
-                        crate::ui::tr("Add to watchlist", "Добавить в избранное")
+                        tr!("Add to watchlist")
                     };
-
                     let favorite = ui
                         .allocate_ui_with_layout(
                             Vec2::new(buttons_width, HEADER_HEIGHT),
@@ -290,7 +290,7 @@ impl ChartCard {
                                             Icon::Xmark,
                                             BTN_SIZE,
                                             theme::text_secondary(),
-                                            crate::ui::tr("Remove chart", "Закрыть график"),
+                                            tr!("Remove Chart"),
                                         )
                                         .clicked()
                                     {
@@ -303,7 +303,7 @@ impl ChartCard {
                         )
                         .inner;
                     favorite.context_menu(|ui| {
-                        ui.label(egui::RichText::new("Add to Watchlist").small().weak());
+                        ui.label(egui::RichText::new(tr!("Add to Watchlist")).small().weak());
                         for list in watchlists {
                             let mut included = list.contains_market;
                             if ui.checkbox(&mut included, &list.name).changed() {
@@ -435,7 +435,7 @@ impl SettingsTip for egui::Response {
         } else {
             // The plot's crosshair cursor is set before the header is drawn over it.
             self.on_hover_cursor(egui::CursorIcon::PointingHand)
-                .on_hover_text("Chart settings")
+                .on_hover_text(tr!("Chart settings"))
         }
     }
 }

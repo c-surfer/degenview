@@ -112,11 +112,7 @@ pub fn show(ui: &mut Ui, state: &mut MarketFlowState, body: &Body<'_>) -> Option
 fn liquidations(ui: &mut Ui, state: &mut MarketFlowState, snapshot: &Snapshot) {
     totals(ui, snapshot);
     kit::divider(ui);
-    let note = crate::ui::tr(
-        LIQUIDATIONS_FOOTNOTE,
-        "Binance передаёт не более одной последней ликвидации по каждому рынку в секунду, а по Bybit отслеживаются 60 самых активных рынков, поэтому в периоды высокой нагрузки итоговые данные могут быть меньше фактических.",
-    );
-    let footnote_height = footnote_height(ui, note);
+    let footnote_height = footnote_height(ui, LIQUIDATIONS_FOOTNOTE);
     let list_height = (ui.available_height() - footnote_height).max(60.0);
     let (list, _) = ui.allocate_exact_size(vec2(ui.available_width(), list_height), Sense::hover());
     let mut list_ui = ui.new_child(
@@ -125,7 +121,7 @@ fn liquidations(ui: &mut Ui, state: &mut MarketFlowState, snapshot: &Snapshot) {
             .layout(Layout::top_down(Align::Min)),
     );
     tape(&mut list_ui, state, snapshot);
-    footnote(ui, note);
+    footnote(ui, LIQUIDATIONS_FOOTNOTE);
 }
 
 fn header(ui: &mut Ui, state: &mut MarketFlowState, action: &mut Option<Action>) {
@@ -140,9 +136,9 @@ fn header(ui: &mut Ui, state: &mut MarketFlowState, action: &mut Option<Action>)
                 ui,
                 egui::Id::new("market-flow-mode"),
                 &[
-                    (Mode::Liquidations, crate::ui::t("Liquidations")),
-                    (Mode::TakerFlow, crate::ui::t("Taker flow")),
-                    (Mode::Book, crate::ui::t("Book")),
+                    (Mode::Liquidations, "Liquidations"),
+                    (Mode::TakerFlow, "Taker flow"),
+                    (Mode::Book, "Book"),
                 ],
                 &mut state.mode,
             );
@@ -153,7 +149,7 @@ fn header(ui: &mut Ui, state: &mut MarketFlowState, action: &mut Option<Action>)
                     Icon::Xmark,
                     26.0,
                     theme::text_secondary(),
-                    crate::ui::t("Close market flow"),
+                    "Close market flow",
                 )
                 .clicked()
                 {
@@ -168,9 +164,9 @@ fn header(ui: &mut Ui, state: &mut MarketFlowState, action: &mut Option<Action>)
 /// between longs and shorts.
 fn totals(ui: &mut Ui, snapshot: &Snapshot) {
     let periods = [
-        (crate::ui::t("Last minute"), snapshot.minute),
-        (crate::ui::t("5 minutes"), snapshot.five_minutes),
-        (crate::ui::t("Hour"), snapshot.hour),
+        ("Last minute", snapshot.minute),
+        ("5 minutes", snapshot.five_minutes),
+        ("Hour", snapshot.hour),
     ];
     let width = ui.available_width() - 2.0 * MARGIN;
     let gap = 12.0;
@@ -235,20 +231,11 @@ fn period(ui: &mut Ui, name: &str, totals: Totals, width: f32) {
             theme::UP,
         );
     }
-    let tip = if crate::ui::i18n::is_ru() {
-        format!(
-            "Лонги {} · шорты {}",
-            usd(totals.long),
-            usd(totals.short)
-        )
-    } else {
-        format!(
-            "Longs {} · shorts {}",
-            usd(totals.long),
-            usd(totals.short)
-        )
-    };
-    response.on_hover_text(tip);
+    response.on_hover_text(format!(
+        "Longs {} · shorts {}",
+        usd(totals.long),
+        usd(totals.short)
+    ));
 }
 
 /// What the two colours are.
@@ -257,8 +244,8 @@ fn legend(ui: &mut Ui) {
         ui.spacing_mut().item_spacing.x = 14.0;
         ui.add_space(MARGIN);
         for (side, text) in [
-            (Side::Long, crate::ui::t("Longs liquidated")),
-            (Side::Short, crate::ui::t("Shorts liquidated")),
+            (Side::Long, "Longs liquidated"),
+            (Side::Short, "Shorts liquidated"),
         ] {
             let (dot, _) = ui.allocate_exact_size(vec2(8.0, 8.0), Sense::hover());
             ui.painter()
@@ -283,7 +270,7 @@ fn filter_row(ui: &mut Ui, state: &mut MarketFlowState) {
         |ui| {
             ui.add_space(MARGIN);
             ui.label(kit::text(
-                crate::ui::t("Latest"),
+                "Latest",
                 size::CAPTION,
                 MEDIUM,
                 theme::text_secondary(),
@@ -292,7 +279,7 @@ fn filter_row(ui: &mut Ui, state: &mut MarketFlowState) {
                 ui.add_space(MARGIN);
                 let labels: Vec<String> = MinSize::ALL
                     .iter()
-                    .map(|size| crate::ui::t(size.label()).to_owned())
+                    .map(|size| size.label().to_owned())
                     .collect();
                 let selected = MinSize::ALL
                     .iter()
@@ -311,13 +298,13 @@ fn tape(ui: &mut Ui, state: &mut MarketFlowState, snapshot: &Snapshot) {
     if snapshot.latest.is_empty() {
         let (title, detail) = if snapshot.count == 0 {
             (
-                crate::ui::t("Waiting for liquidations"),
-                crate::ui::t("Binance and Bybit announce them as they happen."),
+                "Waiting for liquidations",
+                "Binance and Bybit announce them as they happen.",
             )
         } else {
             (
-                crate::ui::t("Nothing this size yet"),
-                crate::ui::t("Lower the size to see the smaller ones."),
+                "Nothing this size yet",
+                "Lower the size to see the smaller ones.",
             )
         };
         kit::empty_state(
@@ -354,18 +341,18 @@ fn columns_header(ui: &mut Ui) {
             color,
         );
     };
-    put(crate::ui::t("Time"), rect.left() + MARGIN, egui::Align2::LEFT_CENTER);
+    put("Time", rect.left() + MARGIN, egui::Align2::LEFT_CENTER);
     put(
-        crate::ui::t("Market"),
+        "Market",
         rect.left() + MARGIN + TIME_WIDTH,
         egui::Align2::LEFT_CENTER,
     );
     put(
-        crate::ui::t("Side"),
+        "Side",
         rect.right() - MARGIN - SIZE_WIDTH - 8.0,
         egui::Align2::RIGHT_CENTER,
     );
-    put(crate::ui::t("Size"), rect.right() - MARGIN, egui::Align2::RIGHT_CENTER);
+    put("Size", rect.right() - MARGIN, egui::Align2::RIGHT_CENTER);
     painter.hline(
         rect.x_range(),
         rect.bottom() - 0.5,
@@ -420,7 +407,7 @@ fn row(ui: &mut Ui, liquidation: &Liquidation, index: usize) {
         )
     };
     let side = text(
-        crate::ui::t(side_name(liquidation.side)).to_owned(),
+        side_name(liquidation.side).to_owned(),
         rect.right() - MARGIN - SIZE_WIDTH - 8.0,
         egui::Align2::RIGHT_CENTER,
         side_color(liquidation.side),
@@ -437,28 +424,15 @@ fn row(ui: &mut Ui, liquidation: &Liquidation, index: usize) {
     for (origin, galley) in [time, market, side, figure] {
         painter.galley(origin, galley, Color32::PLACEHOLDER);
     }
-    let tip = if crate::ui::i18n::is_ru() {
-        format!(
-            "{} {}: ликвидировано {}, {} по {}, {}",
-            liquidation.exchange.name(),
-            liquidation.symbol,
-            crate::ui::t(side_name(liquidation.side)).to_lowercase(),
-            crate::ui::pine::report::PineReportFormat::price(liquidation.quantity),
-            crate::ui::pine::report::PineReportFormat::price(liquidation.price),
-            usd(notional),
-        )
-    } else {
-        format!(
-            "{} {}: {} liquidated, {} at {}, {}",
-            liquidation.exchange.name(),
-            liquidation.symbol,
-            side_name(liquidation.side).to_lowercase(),
-            crate::ui::pine::report::PineReportFormat::price(liquidation.quantity),
-            crate::ui::pine::report::PineReportFormat::price(liquidation.price),
-            usd(notional),
-        )
-    };
-    response.on_hover_text(tip);
+    response.on_hover_text(format!(
+        "{} {}: {} liquidated, {} at {}, {}",
+        liquidation.exchange.name(),
+        liquidation.symbol,
+        side_name(liquidation.side).to_lowercase(),
+        crate::ui::pine::report::PineReportFormat::price(liquidation.quantity),
+        crate::ui::pine::report::PineReportFormat::price(liquidation.price),
+        usd(notional),
+    ));
 }
 
 const LIQUIDATIONS_FOOTNOTE: &str = "Binance sends at most the latest liquidation of each market a second, and Bybit's 60 busiest markets are followed, so a busy moment adds up to less than it was.";

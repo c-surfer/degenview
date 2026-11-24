@@ -7,6 +7,7 @@
 
 use crate::build_info::VERSION;
 use crate::host::update::{Phase, UpdateHost, UpdateView};
+use crate::i18n::tr;
 use crate::model::changelog::{Coverage, ReleaseNotes};
 use crate::ui::kit::{self, REGULAR, SEMIBOLD, sheet, size};
 use crate::ui::theme;
@@ -47,7 +48,6 @@ const BULLET_GAP: f32 = 9.0;
 const CHROME_TOLERANCE: f32 = 0.5;
 /// The size of the notes' titles, the footnotes, the note and the link under the list.
 const DETAIL_TEXT: f32 = size::SUBHEADLINE + 1.0;
-const NO_NOTES: &str = "No summary of changes is available for this version.";
 
 /// How the person answered.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -116,22 +116,12 @@ pub fn show(ctx: &egui::Context, view: &UpdateView, installed: &str) -> Option<O
     let ((), outside) = sheet::show_dismissable(ctx, id, WIDTH, |ui| {
         ui.add_space(TOP_SPACE);
         sheet::inset(ui, |ui| {
-            let title = if crate::ui::i18n::is_ru() {
-                format!("Обновление до DegenView {version}")
-            } else {
-                format!("Update to DegenView {version}")
-            };
-            let subtitle = if crate::ui::i18n::is_ru() {
-                format!("У вас установлена {installed}.")
-            } else {
-                format!("You have {installed}.")
-            };
             sheet::header_picture(
                 ui,
                 art::SIZE,
                 PICTURE_LEAD,
-                &title,
-                &subtitle,
+                &tr!("Update to DegenView {version}", version = version),
+                &tr!("You have {installed}.", installed = installed),
                 art::paint,
             );
         });
@@ -156,9 +146,9 @@ pub fn show(ctx: &egui::Context, view: &UpdateView, installed: &str) -> Option<O
         });
         sheet::footer(ui, |ui| {
             let label = if *installable {
-                crate::ui::tr("Update", "Обновить")
+                tr!("Update")
             } else {
-                crate::ui::tr("View Release", "Перейти к релизу")
+                tr!("View Release")
             };
             if kit::sheet_button_focusable(ui, primary_id, ring, label, true, true).clicked() {
                 outcome = Some(if *installable {
@@ -167,15 +157,8 @@ pub fn show(ctx: &egui::Context, view: &UpdateView, installed: &str) -> Option<O
                     Outcome::ViewRelease
                 });
             }
-            if kit::sheet_button_focusable(
-                ui,
-                id.with("cancel"),
-                ring,
-                crate::ui::tr("Cancel", "Отмена"),
-                false,
-                true,
-            )
-            .clicked()
+            if kit::sheet_button_focusable(ui, id.with("cancel"), ring, tr!("Cancel"), false, true)
+                .clicked()
             {
                 outcome = Some(Outcome::Cancel);
             }
@@ -244,7 +227,7 @@ fn changes(ui: &mut Ui, notes: &ReleaseNotes, coverage: &Coverage) {
     if notes.is_empty() {
         ui.add(
             egui::Label::new(kit::text(
-                crate::ui::tr(NO_NOTES, "Для этой версии нет описания изменений."),
+                tr!("No summary of changes is available for this version."),
                 size::BODY,
                 REGULAR,
                 theme::text_secondary(),
@@ -253,10 +236,7 @@ fn changes(ui: &mut Ui, notes: &ReleaseNotes, coverage: &Coverage) {
         );
         return;
     }
-    let groups = [
-        (crate::ui::tr("New", "Новое"), &notes.new),
-        (crate::ui::tr("Fixed", "Исправлено"), &notes.fixed),
-    ];
+    let groups = [(tr!("New"), &notes.new), (tr!("Fixed"), &notes.fixed)];
     for (index, (title, entries)) in groups
         .into_iter()
         .filter(|(_, entries)| !entries.is_empty())
@@ -316,7 +296,7 @@ fn release_notes_link(ui: &mut Ui, url: &str) {
         .add(
             egui::Label::new(
                 kit::text(
-                    crate::ui::tr("Full release notes", "Полные примечания к выпуску"),
+                    tr!("Full release notes"),
                     DETAIL_TEXT,
                     REGULAR,
                     theme::text_secondary(),

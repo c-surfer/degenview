@@ -57,18 +57,9 @@ pub fn action_label(kind: ChangeKind) -> &'static str {
 /// What the action does, said in words under the lines.
 fn explanation(kind: ChangeKind) -> &'static str {
     match kind {
-        ChangeKind::Added => crate::ui::tr(
-            "Reverting removes these lines; the rest of the script is untouched.",
-            "Откат удалит эти строки, остальная часть скрипта останется без изменений.",
-        ),
-        ChangeKind::Deleted => crate::ui::tr(
-            "Restoring puts these lines back where they were deleted.",
-            "Восстановление вернёт эти строки на прежнее место.",
-        ),
-        ChangeKind::Modified => crate::ui::tr(
-            "Reverting replaces the current lines with the saved ones.",
-            "Откат заменит текущие строки на сохранённые.",
-        ),
+        ChangeKind::Added => "Reverting removes these lines; the rest of the script is untouched.",
+        ChangeKind::Deleted => "Restoring puts these lines back where they were deleted.",
+        ChangeKind::Modified => "Reverting replaces the current lines with the saved ones.",
     }
 }
 
@@ -94,9 +85,8 @@ pub fn show(
                 if position.1 > 1 {
                     let step = |ui: &mut Ui, glyph: &str, label: &'static str| {
                         let button = egui::Button::new(RichText::new(glyph).size(13.0));
-                        let translated = crate::ui::t(label);
-                        accessibility::label(ui.add(button), translated)
-                            .on_hover_text(translated)
+                        accessibility::label(ui.add(button), label)
+                            .on_hover_text(label)
                             .clicked()
                     };
                     if step(ui, "›", "Next Change") {
@@ -105,13 +95,8 @@ pub fn show(
                     if step(ui, "‹", "Previous Change") {
                         event = PreviewEvent::Step(false);
                     }
-                    let of_label = if crate::ui::is_ru() {
-                        format!("{} из {}", position.0 + 1, position.1)
-                    } else {
-                        format!("{} of {}", position.0 + 1, position.1)
-                    };
                     ui.label(kit::text(
-                        of_label,
+                        format!("{} of {}", position.0 + 1, position.1),
                         kit::size::SUBHEADLINE,
                         400.0,
                         theme::text_secondary(),
@@ -127,7 +112,7 @@ pub fn show(
                 if hunk.kind != ChangeKind::Added {
                     block(
                         ui,
-                        crate::ui::tr("SAVED", "СОХРАНЕНО"),
+                        "SAVED",
                         &hunk.old_text,
                         hunk.old_lines.start,
                         '−',
@@ -137,7 +122,7 @@ pub fn show(
                 if hunk.kind != ChangeKind::Deleted {
                     block(
                         ui,
-                        crate::ui::tr("CURRENT", "ТЕКУЩЕЕ"),
+                        "CURRENT",
                         &hunk.new_text,
                         hunk.new_lines.start,
                         '+',
@@ -152,11 +137,11 @@ pub fn show(
             theme::text_secondary(),
         ));
         ui.horizontal(|ui| {
-            if kit::push_button(ui, Some(Icon::Undo), crate::ui::t(action_label(hunk.kind)), true).clicked() {
+            if kit::push_button(ui, Some(Icon::Undo), action_label(hunk.kind), true).clicked() {
                 event = PreviewEvent::Apply;
             }
             ui.with_layout(egui::Layout::right_to_left(Align::Center), |ui| {
-                if kit::push_button(ui, None, crate::ui::tr("Close", "Закрыть"), true).clicked() {
+                if kit::push_button(ui, None, "Close", true).clicked() {
                     event = PreviewEvent::Dismiss;
                 }
             });

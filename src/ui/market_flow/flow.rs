@@ -23,33 +23,20 @@ pub(super) fn show(ui: &mut Ui, body: &FlowBody<'_>) {
             ui,
             area,
             Icon::Flame,
-            crate::ui::t("No flow for this market"),
-            crate::ui::t("Taker flow follows the focused chart when it shows a crypto market."),
+            "No flow for this market",
+            "Taker flow follows the focused chart when it shows a crypto market.",
         );
         return;
     };
     let Some(snapshot) = body.snapshot.filter(|snapshot| snapshot.has_trades) else {
-        let (title, detail) = if crate::ui::i18n::is_ru() {
-            (
-                format!("Ожидание сделок {asset}"),
-                format!(
-                    "Спот и бессрочные контракты {asset}USDT на Binance и Bybit. Если рынок отсутствует на этих биржах, данных не будет."
-                ),
-            )
-        } else {
-            (
-                format!("Waiting for {asset} trades"),
-                format!(
-                    "Binance and Bybit spot and perpetual {asset}USDT. A market they do not list stays empty."
-                ),
-            )
-        };
         kit::empty_state(
             ui,
             area,
             Icon::Flame,
-            &title,
-            &detail,
+            &format!("Waiting for {asset} trades"),
+            &format!(
+                "Binance and Bybit spot and perpetual {asset}USDT. A market they do not list stays empty."
+            ),
         );
         return;
     };
@@ -79,15 +66,9 @@ pub(super) fn show(ui: &mut Ui, body: &FlowBody<'_>) {
 }
 
 fn footnote_text(asset: &str) -> String {
-    if crate::ui::i18n::is_ru() {
-        format!(
-            "{asset}USDT, спот и бессрочные контракты на Binance и Bybit. Чистый поток (Net flow) — это объём покупок тейкеров минус объём продаж: он показывает агрессию сторон, а не правоту. Данные с пометкой «частично», приглушённые числа и блёклые бары отражают только время активного подключения: сделки до подключения в них не входят."
-        )
-    } else {
-        format!(
-            "{asset}USDT, spot and perpetual, on Binance and Bybit. Net flow is what takers bought minus what they sold: it says who was aggressive, not who was right. Figures marked partial, muted figures and faded bars cover only the time the sockets were connected: a trade from before is not in them."
-        )
-    }
+    format!(
+        "{asset}USDT, spot and perpetual, on Binance and Bybit. Net flow is what takers bought minus what they sold: it says who was aggressive, not who was right. Figures marked partial, muted figures and faded bars cover only the time the sockets were connected: a trade from before is not in them."
+    )
 }
 
 /// Net flow reads green when buyers were the aggressors, red when sellers were. Colour is data.
@@ -109,40 +90,17 @@ fn signed_usd(value: f64) -> String {
 /// `40 s` or `3 min 5 s`.
 fn duration(ms: i64) -> String {
     let seconds = ms.max(0) / 1_000;
-    if crate::ui::i18n::is_ru() {
-        match (seconds / 60, seconds % 60) {
-            (0, seconds) => format!("{seconds} с"),
-            (minutes, 0) => format!("{minutes} мин"),
-            (minutes, seconds) => format!("{minutes} мин {seconds} с"),
-        }
-    } else {
-        match (seconds / 60, seconds % 60) {
-            (0, seconds) => format!("{seconds} s"),
-            (minutes, 0) => format!("{minutes} min"),
-            (minutes, seconds) => format!("{minutes} min {seconds} s"),
-        }
+    match (seconds / 60, seconds % 60) {
+        (0, seconds) => format!("{seconds} s"),
+        (minutes, 0) => format!("{minutes} min"),
+        (minutes, seconds) => format!("{minutes} min {seconds} s"),
     }
 }
 
 /// What a span's tooltip adds when only part of it was observed.
 fn observed_note(observed: i64, span: i64, span_name: &str) -> Option<String> {
     (!full(observed, span)).then(|| {
-        if crate::ui::i18n::is_ru() {
-            let span_ru = match span_name {
-                "last minute" => "последнюю минуту",
-                "last 5 minutes" => "последние 5 минут",
-                "last hour" => "последний час",
-                _ => span_name,
-            };
-            if observed <= 0 {
-                format!("Ничего не зафиксировано за {span_ru}: сокеты не были подключены.")
-            } else {
-                format!(
-                    "Зафиксировано только {} за {span_ru}: остальное время сокеты были отключены.",
-                    duration(observed)
-                )
-            }
-        } else if observed <= 0 {
+        if observed <= 0 {
             format!("Nothing of the {span_name} was observed: the sockets were not connected.")
         } else {
             format!(
@@ -166,7 +124,7 @@ fn title(ui: &mut Ui, asset: &str) {
                 theme::text_primary(),
             ));
             ui.label(kit::text(
-                crate::ui::t("Net taker flow, all venues"),
+                "Net taker flow, all venues",
                 size::CAPTION,
                 REGULAR,
                 theme::text_secondary(),
@@ -180,26 +138,20 @@ fn title(ui: &mut Ui, asset: &str) {
 fn totals(ui: &mut Ui, all: &Spans) {
     let periods = [
         (
-            crate::ui::t("Last minute"),
+            "Last minute",
             all.minute,
             all.observed.minute,
             MINUTE_MS,
             "last minute",
         ),
         (
-            crate::ui::t("5 minutes"),
+            "5 minutes",
             all.five_minutes,
             all.observed.five_minutes,
             5 * MINUTE_MS,
             "last 5 minutes",
         ),
-        (
-            crate::ui::t("Hour"),
-            all.hour,
-            all.observed.hour,
-            HOUR_MS,
-            "last hour",
-        ),
+        ("Hour", all.hour, all.observed.hour, HOUR_MS, "last hour"),
     ];
     let gap = 12.0;
     let column = (ui.available_width() - 2.0 * MARGIN - 2.0 * gap) / 3.0;
@@ -228,7 +180,7 @@ fn totals(ui: &mut Ui, all: &Spans) {
                 split_bar(ui, volumes, column, note.as_deref());
                 if note.is_some() {
                     ui.label(kit::text(
-                        crate::ui::t("partial"),
+                        "partial",
                         size::CAPTION,
                         REGULAR,
                         theme::text_tertiary(),
@@ -268,19 +220,11 @@ fn split_bar(ui: &mut Ui, volumes: Volumes, width: f32, note: Option<&str>) {
             theme::DOWN,
         );
     }
-    let mut text = if crate::ui::i18n::is_ru() {
-        format!(
-            "Тейкеры купили {} и продали {}",
-            usd(volumes.buy),
-            usd(volumes.sell)
-        )
-    } else {
-        format!(
-            "Takers bought {} and sold {}",
-            usd(volumes.buy),
-            usd(volumes.sell)
-        )
-    };
+    let mut text = format!(
+        "Takers bought {} and sold {}",
+        usd(volumes.buy),
+        usd(volumes.sell)
+    );
     if let Some(note) = note {
         text = format!("{text}\n{note}");
     }
@@ -294,7 +238,7 @@ fn minutes(ui: &mut Ui, snapshot: &Snapshot) {
     ui.horizontal(|ui| {
         ui.add_space(MARGIN);
         ui.label(kit::text(
-            crate::ui::t("Net flow a minute, last 30 minutes"),
+            "Net flow a minute, last 30 minutes",
             size::CAPTION,
             MEDIUM,
             theme::text_secondary(),
@@ -356,33 +300,12 @@ fn minutes(ui: &mut Ui, snapshot: &Snapshot) {
         let minute = snapshot.minutes[index];
         let observed = snapshot.minutes_observed[index];
         let ago = MINUTES - 1 - index;
-        let when = if crate::ui::i18n::is_ru() {
-            if ago == 0 {
-                "За 1 минуту".to_owned()
-            } else {
-                format!("{ago}–{} мин назад", ago + 1)
-            }
-        } else if ago == 0 {
+        let when = if ago == 0 {
             "Last minute".to_owned()
         } else {
             format!("{ago} to {} minutes ago", ago + 1)
         };
-        let text = if crate::ui::i18n::is_ru() {
-            if observed <= 0 {
-                format!("{when}: не зафиксировано, сокеты не были подключены")
-            } else {
-                let mut text = format!(
-                    "{when}: чистый {} (куплено {}, продано {})",
-                    signed_usd(minute.net()),
-                    usd(minute.buy),
-                    usd(minute.sell)
-                );
-                if !full(observed, VENUES * MINUTE_MS) {
-                    text = format!("{text}\nНекоторые биржи были подключены не всё время.");
-                }
-                text
-            }
-        } else if observed <= 0 {
+        let text = if observed <= 0 {
             format!("{when}: not observed, the sockets were not connected")
         } else {
             let mut text = format!(
@@ -419,7 +342,7 @@ fn venues(ui: &mut Ui, snapshot: &Snapshot) {
     painter.text(
         pos2(header.left() + MARGIN, header.center().y),
         egui::Align2::LEFT_CENTER,
-        crate::ui::t("Venue"),
+        "Venue",
         egui::FontId::proportional(size::CAPTION),
         theme::text_tertiary(),
     );
@@ -430,7 +353,7 @@ fn venues(ui: &mut Ui, snapshot: &Snapshot) {
                 header.center().y,
             ),
             egui::Align2::RIGHT_CENTER,
-            crate::ui::t(title),
+            title,
             egui::FontId::proportional(size::CAPTION),
             theme::text_tertiary(),
         );
@@ -443,11 +366,9 @@ fn venues(ui: &mut Ui, snapshot: &Snapshot) {
         } else if index % 2 == 1 {
             ui.painter().rect_filled(rect, 0.0, theme::quaternary(0.28));
         }
-        let venue_label = venue.label();
-        let venue_name = crate::ui::t(&venue_label);
         let label = kit::galley(
             ui,
-            venue_name,
+            &venue.label(),
             12.0,
             MEDIUM,
             theme::text_primary(),
@@ -484,19 +405,12 @@ fn venues(ui: &mut Ui, snapshot: &Snapshot) {
             );
             ui.painter().galley(origin, galley, Color32::PLACEHOLDER);
         }
-        let mut text = if crate::ui::i18n::is_ru() {
-            format!(
-                "{venue_name}: за последний час тейкеры купили {} и продали {}",
-                usd(spans.hour.buy),
-                usd(spans.hour.sell)
-            )
-        } else {
-            format!(
-                "{venue_label}: in the last hour takers bought {} and sold {}",
-                usd(spans.hour.buy),
-                usd(spans.hour.sell)
-            )
-        };
+        let mut text = format!(
+            "{}: in the last hour takers bought {} and sold {}",
+            venue.label(),
+            usd(spans.hour.buy),
+            usd(spans.hour.sell)
+        );
         for (observed, span, name) in venue_notes(spans.observed) {
             if let Some(note) = observed_note(observed, span, name) {
                 text = format!("{text}\n{note}");
@@ -545,31 +459,5 @@ mod tests {
         assert_eq!(duration(60_000), "1 min");
         assert_eq!(duration(185_000), "3 min 5 s");
         assert_eq!(duration(-5), "0 s");
-    }
-
-    #[test]
-    fn flow_russian_localization() {
-        crate::ui::i18n::set_lang(crate::ui::i18n::LANG_RU);
-
-        assert_eq!(duration(0), "0 с");
-        assert_eq!(duration(60_000), "1 мин");
-        assert_eq!(duration(185_000), "3 мин 5 с");
-
-        let partial = observed_note(40_000, 5 * MINUTE_MS, "last 5 minutes").unwrap();
-        assert_eq!(
-            partial,
-            "Зафиксировано только 40 с за последние 5 минут: остальное время сокеты были отключены."
-        );
-
-        let none = observed_note(0, HOUR_MS, "last hour").unwrap();
-        assert_eq!(
-            none,
-            "Ничего не зафиксировано за последний час: сокеты не были подключены."
-        );
-
-        let note = footnote_text("BTC");
-        assert!(note.contains("BTCUSDT, спот и бессрочные контракты на Binance и Bybit."));
-
-        crate::ui::i18n::set_lang(crate::ui::i18n::LANG_EN);
     }
 }

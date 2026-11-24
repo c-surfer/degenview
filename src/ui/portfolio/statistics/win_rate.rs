@@ -1,6 +1,7 @@
 //! The win rate panel and its ring.
 
 use super::hero::win_shares;
+use crate::i18n::tr;
 use crate::model::portfolio::statistics::PortfolioStatistics;
 use crate::ui::icons::Icon;
 use crate::ui::kit::{self, REGULAR, SEMIBOLD};
@@ -10,31 +11,33 @@ use crate::ui::theme;
 use eframe::egui::{Align2, Color32, Pos2, Rect, Shape, Stroke, Ui, pos2, vec2};
 
 pub(super) fn win_panel(ui: &mut Ui, stats: &PortfolioStatistics, content_height: f32) {
-    panel(ui, content_height, Icon::Gauge, "Win Rate", |header, ui| {
-        let priced = stats.asset_results.len();
-        let area = ui.max_rect();
-        if priced == 0 {
-            empty::compact(
-                ui,
-                area,
-                empty::Scene::Allocation,
-                crate::ui::tr("No Win Rate Yet", "Нет данных Win Rate"),
-                crate::ui::tr("Priced holdings appear here.", "Здесь появятся активы с рыночной ценой."),
-            );
-            return;
-        }
-        header.label(kit::text(
-            if crate::ui::is_ru() {
-                format!("{priced} с ценой")
-            } else {
-                format!("{priced} priced")
-            },
-            kit::size::SUBHEADLINE,
-            REGULAR,
-            caption_color(),
-        ));
-        paint_win_rate(ui, area, stats);
-    });
+    panel(
+        ui,
+        content_height,
+        Icon::Gauge,
+        tr!("Win Rate"),
+        |header, ui| {
+            let priced = stats.asset_results.len();
+            let area = ui.max_rect();
+            if priced == 0 {
+                empty::compact(
+                    ui,
+                    area,
+                    empty::Scene::Allocation,
+                    tr!("No Win Rate Yet"),
+                    tr!("Priced holdings appear here."),
+                );
+                return;
+            }
+            header.label(kit::text(
+                tr!("{n} priced", n = priced),
+                kit::size::SUBHEADLINE,
+                REGULAR,
+                caption_color(),
+            ));
+            paint_win_rate(ui, area, stats);
+        },
+    );
 }
 
 /// A ring of in profit, at a loss and level, with its legend beside it, the pair centred in
@@ -72,7 +75,7 @@ fn paint_win_rate(ui: &Ui, area: Rect, stats: &PortfolioStatistics) {
         SEMIBOLD,
         theme::text_primary(),
     );
-    let caption = line(ui, "Win Rate", kit::size::CAPTION, REGULAR, secondary);
+    let caption = line(ui, tr!("win rate"), kit::size::CAPTION, REGULAR, secondary);
     let stack = rate.size().y + caption.size().y;
     let top = centre.y - stack / 2.0;
     draw(ui, pos2(centre.x - rate.size().x / 2.0, top), &rate);
@@ -83,12 +86,12 @@ fn paint_win_rate(ui: &Ui, area: Rect, stats: &PortfolioStatistics) {
     );
 
     let mut rows = vec![
-        (theme::UP, crate::ui::tr("In profit", "В прибыли"), stats.winners),
-        (theme::DOWN, crate::ui::tr("At a loss", "В убытке"), stats.losers),
-        (theme::text_tertiary(), crate::ui::tr("Break-even", "Безубыток"), level),
+        (theme::UP, tr!("In profit"), stats.winners),
+        (theme::DOWN, tr!("At a loss"), stats.losers),
+        (theme::text_tertiary(), tr!("Break-even"), level),
     ];
     if unpriced > 0 {
-        rows.push((theme::ink(80), crate::ui::tr("No price", "Без цены"), unpriced));
+        rows.push((theme::ink(80), tr!("No price"), unpriced));
     }
     let row_height = 34.0;
     let x0 = left + diameter + 28.0;

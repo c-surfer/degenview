@@ -2,6 +2,9 @@
 //! (with its legend) and the portfolio-value line. The geometry and data preparation are
 //! pure functions with tests; the `show_*` functions only paint them.
 
+use crate::format::civil_from_days;
+use crate::i18n::datetime;
+use crate::i18n::tr;
 use crate::model::portfolio::format::PortfolioValueFormatter;
 use crate::model::portfolio::statistics::PortfolioHistoryRange;
 use crate::model::portfolio::{PortfolioCurrency, PortfolioHolding, PortfolioSnapshot};
@@ -10,7 +13,7 @@ use crate::ui::icons::{self, Icon};
 use crate::ui::kit::loading;
 use crate::ui::kit::{
     self,
-    time_text::{clock_time, date_text},
+    time_text::{clock_time, date_time_text},
 };
 use crate::ui::portfolio::empty;
 use crate::ui::theme;
@@ -67,11 +70,7 @@ pub fn slices(holdings: &[PortfolioHolding]) -> Vec<Slice> {
     if !rest.is_empty() {
         result.push(Slice {
             id: "other".to_owned(),
-            label: if crate::ui::is_ru() {
-                format!("Остальные ({})", rest.len())
-            } else {
-                format!("Other ({})", rest.len())
-            },
+            label: tr!("Other ({count})", count = rest.len()),
             share: rest.iter().map(|h| h.allocation).sum(),
             value: Some(rest.iter().filter_map(|h| h.current_value).sum()),
             color: OTHER_COLOR,
@@ -118,8 +117,8 @@ pub fn show_allocation(
             ui,
             area,
             empty::Scene::Allocation,
-            crate::ui::tr("No Allocations", "Нет распределения"),
-            crate::ui::tr("Priced holdings appear here.", "Здесь появятся активы с рыночной ценой."),
+            tr!("No Allocations"),
+            tr!("Priced holdings appear here."),
         );
         return;
     }
@@ -204,21 +203,10 @@ pub fn show_allocation(
             );
             let caption = kit::galley(
                 ui,
-                if crate::ui::is_ru() {
-                    let n = holdings.len();
-                    let rem10 = n % 10;
-                    let rem100 = n % 100;
-                    if rem10 == 1 && rem100 != 11 {
-                        "актив"
-                    } else if (2..=4).contains(&rem10) && !(12..=14).contains(&rem100) {
-                        "актива"
-                    } else {
-                        "активов"
-                    }
-                } else if holdings.len() == 1 {
-                    "Asset"
+                if holdings.len() == 1 {
+                    tr!("Asset")
                 } else {
-                    "Assets"
+                    tr!("Assets")
                 },
                 10.0,
                 kit::REGULAR,
@@ -312,10 +300,10 @@ pub fn show_allocation(
                 accessibility::label_as(
                     response,
                     egui::WidgetType::Label,
-                    format!(
-                        "{}, {} of portfolio",
-                        slice.label,
-                        formatter.percent(slice.share, 1)
+                    tr!(
+                        "{name}, {share} of portfolio",
+                        name = slice.label,
+                        share = formatter.percent(slice.share, 1)
                     ),
                 );
             }
@@ -497,16 +485,16 @@ pub fn date_label(range: PortfolioHistoryRange, ms: i64, utc_offset_secs: i64) -
     match range {
         PortfolioHistoryRange::OneDay => clock_time(ms, utc_offset_secs),
         PortfolioHistoryRange::OneWeek | PortfolioHistoryRange::OneMonth => {
-            let text = date_text(ms + utc_offset_secs * 1_000);
-            // "Oct 9, 2026" → "Oct 9"
-            text.split(',').next().unwrap_or(&text).to_owned()
+            let (year, month, day) =
+                civil_from_days((ms + utc_offset_secs * 1_000).div_euclid(86_400_000));
+            // "Oct 9"
+            datetime::month_day(year, month, day)
         }
         PortfolioHistoryRange::OneYear | PortfolioHistoryRange::All => {
-            let text = date_text(ms + utc_offset_secs * 1_000);
-            // "Oct 9, 2026" → "Oct 2026"
-            let month = text.split(' ').next().unwrap_or("");
-            let year = text.rsplit(' ').next().unwrap_or("");
-            format!("{month} {year}")
+            let (year, month, _) =
+                civil_from_days((ms + utc_offset_secs * 1_000).div_euclid(86_400_000));
+            // "Oct 2026"
+            datetime::month_year_short(year, month)
         }
     }
 }
@@ -542,7 +530,7 @@ pub fn show_history(ui: &mut egui::Ui, input: &HistoryInput, height: f32) {
     if input.privacy {
         let label = kit::galley(
             ui,
-            "Values hidden",
+            tr!("Values hidden"),
             12.0,
             kit::REGULAR,
             theme::text_secondary(),
@@ -560,8 +548,8 @@ pub fn show_history(ui: &mut egui::Ui, input: &HistoryInput, height: f32) {
             ui,
             rect,
             empty::Scene::History,
-            "No History Yet",
-            "History builds from transaction dates and available market candles.",
+            tr!("No History Yet"),
+            tr!("History builds from transaction dates and available market candles."),
         );
         return;
     };
@@ -690,11 +678,7 @@ pub fn show_history(ui: &mut egui::Ui, input: &HistoryInput, height: f32) {
         painter.circle(spot, 4.5, tint, Stroke::new(1.5, theme::background()));
 
         let value = input.currency.format(points[index].value);
-        let when = format!(
-            "{} {}",
-            date_text(points[index].timestamp + input.utc_offset_secs * 1_000),
-            clock_time(points[index].timestamp, input.utc_offset_secs)
-        );
+        let when = date_time_text(points[index].timestamp, input.utc_offset_secs);
         let value_galley = painter.layout_no_wrap(
             value,
             FontId::proportional(13.0),

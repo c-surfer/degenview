@@ -1911,14 +1911,82 @@ fn text_sizes_may_be_numbers_of_points() {
 fn the_cell_properties_the_chart_cannot_draw_are_warned_about() {
     let codes = diagnostic_codes(
         "t = table.new(position.top_left, 1, 1)\n\
-         table.cell(t, 0, 0, \"x\", tooltip = \"tip\", text_font_family = font.family_monospace)\n\
+         table.cell(t, 0, 0, \"x\", tooltip = \"tip\", text_formatting = text.format_bold, text_font_family = font.family_monospace)\n\
          table.cell_set_tooltip(t, 0, 0, \"tip\")\n\
          table.cell_set_text_formatting(t, 0, 0, text.format_bold)\n\
          table.cell_set_text_font_family(t, 0, 0, font.family_monospace)",
     );
-    // The tooltip is drawn now: only the font family and the text formatting are still ignored.
+    // The tooltip and the font family are drawn: only the text formatting is still ignored.
     assert_eq!(codes.iter().filter(|c| *c == "PINE7001").count(), 1);
-    assert_eq!(codes.iter().filter(|c| *c == "PINE7005").count(), 2);
+    assert_eq!(codes.iter().filter(|c| *c == "PINE7005").count(), 1);
+}
+
+fn diagnostic_messages(body: &str) -> Vec<String> {
+    let source = format!("//@version=6\nindicator(\"T\")\n{body}");
+    compiler::compile(&source, Limits::default(), &NoLibraries)
+        .diagnostics
+        .into_iter()
+        .filter(|d| d.code.starts_with("PINE7"))
+        .map(|d| d.message)
+        .collect()
+}
+
+#[test]
+fn an_ignored_argument_is_warned_about_by_name_and_by_position() {
+    let named = diagnostic_messages(
+        "label.new(0, 1.0, \"x\", text_formatting = text.format_bold)\n\
+         box.new(0, 1.0, 1, 2.0, text_formatting = text.format_bold)",
+    );
+    // `text_formatting` is the last parameter of both, whichever way it is passed.
+    let by_position = diagnostic_messages(
+        "label.new(0, 1.0, \"x\", xloc.bar_index, yloc.price, color.red, label.style_label_down, color.white, size.normal, text.align_center, \"tip\", font.family_default, false, text.format_bold)\n\
+         box.new(0, 1.0, 1, 2.0, color.red, 1, line.style_solid, extend.none, xloc.bar_index, color.blue, \"t\", size.normal, color.white, text.align_center, text.align_center, text.wrap_none, font.family_default, false, text.format_bold)",
+    );
+    assert_eq!(named.len(), 2, "{named:?}");
+    // The box's positional `text.wrap_none` fills `text_wrap`, which is ignored too.
+    assert_eq!(by_position.len(), 3, "{by_position:?}");
+    assert!(by_position[1].contains("`text_wrap`"), "{by_position:?}");
+    assert_eq!([&by_position[0], &by_position[2]], [&named[0], &named[1]]);
+    let point_form = diagnostic_messages(
+        "label.new(chart.point.now(1.0), \"x\", xloc.bar_index, yloc.price, color.red, label.style_label_down, color.white, size.normal, text.align_center, \"tip\", font.family_default, false, text.format_bold)",
+    );
+    assert_eq!(point_form.len(), 1, "{point_form:?}");
+    let table_cell = diagnostic_messages(
+        "t = table.new(position.top_left, 1, 1)\n\
+         table.cell(t, 0, 0, \"x\", 0, 0, color.white, text.align_center, text.align_center, size.normal, color.black, \"tip\", font.family_default, text.format_bold)",
+    );
+    assert_eq!(table_cell.len(), 1, "{table_cell:?}");
+    let plot = diagnostic_messages(
+        "plot(close, \"c\", color.red, 1, plot.style_line, true)\nplot(close, \"d\", color.red, 1, plot.style_line, false)",
+    );
+    assert_eq!(plot.len(), 2, "trackprice is ignored either way: {plot:?}");
+}
+
+#[test]
+fn an_ignored_setter_is_warned_about_when_called_as_a_method() {
+    let function_form = diagnostic_messages(
+        "l = label.new(0, 1.0, \"x\")\nlabel.set_text_formatting(l, text.format_italic)",
+    );
+    let method_form = diagnostic_messages(
+        "l = label.new(0, 1.0, \"x\")\nl.set_text_formatting(text.format_italic)",
+    );
+    assert_eq!(function_form.len(), 1, "{function_form:?}");
+    assert_eq!(method_form, function_form);
+    let on_a_call = diagnostic_messages(
+        "pick() => label.new(0, 1.0, \"x\")\npick().set_text_formatting(text.format_italic)",
+    );
+    assert_eq!(on_a_call, function_form);
+    let table_method = diagnostic_messages(
+        "t = table.new(position.top_left, 1, 1)\nt.cell_set_text_formatting(0, 0, text.format_bold)",
+    );
+    assert_eq!(table_method.len(), 1, "{table_method:?}");
+    // What is drawn, and a method the script declares itself, is never warned about.
+    let quiet = diagnostic_messages(
+        "l = label.new(0, 1.0, \"x\")\nl.set_text_font_family(font.family_monospace)\n\
+         method set_text_formatting(label this, int style) => this\n\
+         l.set_text_formatting(1)",
+    );
+    assert!(quiet.is_empty(), "{quiet:?}");
 }
 
 #[test]
@@ -3029,4 +3097,99 @@ fn array_functions_take_the_reference_parameter_names() {
     assert_eq!(value(&session, "third_smallest"), RuntimeValue::Float(5.0));
     assert_eq!(value(&session, "size"), RuntimeValue::Int(5));
     assert!(value(&session, "cov").number().unwrap() < 0.0);
+}
+
+/// `timeframe.change` keeps the open time of the bar each call site last ran on (TradingView,
+/// probe R2): the bars here are a minute apart, so `"5"` opens a new bucket at bars 5, 10 and 15.
+fn changes_counted(body: &str) -> RuntimeValue {
+    let session = run(&format!("var int n = 0\n{body}"), 20);
+    value(&session, "n")
+}
+
+#[test]
+fn timeframe_change_is_false_on_the_first_run_of_a_call_site() {
+    assert_eq!(
+        changes_counted("n += timeframe.change(\"5\") ? 1 : 0"),
+        RuntimeValue::Int(3),
+        "bars 5, 10 and 15; bar 0 has no earlier call to compare with"
+    );
+}
+
+#[test]
+fn timeframe_change_in_a_branch_compares_with_the_last_bar_the_branch_ran_on() {
+    // The branch runs on bars 0, 3, 6, ...: bars 6, 12 and 15 open a bucket that its previous run
+    // was not in. Comparing with the chart's previous bar would only see bar 15.
+    assert_eq!(
+        changes_counted("if bar_index % 3 == 0\n    n += timeframe.change(\"5\") ? 1 : 0"),
+        RuntimeValue::Int(3)
+    );
+}
+
+#[test]
+fn timeframe_change_in_the_untaken_side_of_a_ternary_or_and_does_not_run() {
+    assert_eq!(
+        changes_counted("n += (bar_index % 3 == 0 ? timeframe.change(\"5\") : false) ? 1 : 0"),
+        RuntimeValue::Int(3)
+    );
+    assert_eq!(
+        changes_counted("n += (bar_index % 3 == 0 and timeframe.change(\"5\")) ? 1 : 0"),
+        RuntimeValue::Int(3)
+    );
+}
+
+#[test]
+fn timeframe_change_in_a_switch_arm_runs_only_when_the_arm_is_chosen() {
+    assert_eq!(
+        changes_counted(
+            "n += switch\n    bar_index % 3 == 0 => timeframe.change(\"5\") ? 1 : 0\n    => 0"
+        ),
+        RuntimeValue::Int(3)
+    );
+}
+
+#[test]
+fn the_two_sides_of_an_if_else_keep_their_own_previous_bar() {
+    let session = run(
+        "var int even = 0\nvar int odd = 0\n\
+         if bar_index % 2 == 0\n    even += timeframe.change(\"5\") ? 1 : 0\n\
+         else\n    odd += timeframe.change(\"5\") ? 1 : 0",
+        20,
+    );
+    // Even bars: 6, 10 and 16. Odd bars: 5, 11 and 15. A shared previous bar would see 5, 10, 15.
+    assert_eq!(value(&session, "even"), RuntimeValue::Int(3));
+    assert_eq!(value(&session, "odd"), RuntimeValue::Int(3));
+}
+
+#[test]
+fn two_call_sites_on_every_bar_do_not_share_their_previous_bar() {
+    let session = run(
+        "var int a = 0\nvar int b = 0\n\
+         a += timeframe.change(\"5\") ? 1 : 0\nb += timeframe.change(\"5\") ? 1 : 0",
+        20,
+    );
+    assert_eq!(value(&session, "a"), RuntimeValue::Int(3));
+    assert_eq!(value(&session, "b"), RuntimeValue::Int(3));
+}
+
+#[test]
+fn a_function_calling_timeframe_change_has_one_previous_bar_per_calling_site() {
+    let session = run(
+        "var int even = 0\nvar int odd = 0\n\
+         changed(tf) => timeframe.change(tf)\n\
+         if bar_index % 2 == 0\n    even += changed(\"5\") ? 1 : 0\n\
+         else\n    odd += changed(\"5\") ? 1 : 0",
+        20,
+    );
+    assert_eq!(value(&session, "even"), RuntimeValue::Int(3));
+    assert_eq!(value(&session, "odd"), RuntimeValue::Int(3));
+}
+
+#[test]
+fn a_timeframe_change_in_a_loop_compares_every_run_with_the_previous_bar() {
+    // TradingView, probe R2: 39 = 13 days x 3 iterations. The runs of one bar share the bar the
+    // site ran on before it, so every iteration of a bar that opens a bucket reads true.
+    assert_eq!(
+        changes_counted("for i = 0 to 2\n    n += timeframe.change(\"5\") ? 1 : 0"),
+        RuntimeValue::Int(9)
+    );
 }

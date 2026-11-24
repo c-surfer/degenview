@@ -4,7 +4,6 @@ pub mod broker;
 pub mod chart;
 pub mod drawing;
 pub mod editor_appearance;
-pub mod i18n;
 pub mod icons;
 pub mod kit;
 pub mod market_flow;
@@ -26,8 +25,6 @@ pub mod window;
 pub mod workspace;
 
 pub use alert::lines::AlertMove;
-#[allow(unused_imports)]
-pub use i18n::{is_ru, t, tr};
 pub use chart::card::ContextRequest;
 pub use chart::card::HEADER_HEIGHT as CHART_HEADER_HEIGHT;
 pub use chart::card::PREVIEW_INSTANCE;

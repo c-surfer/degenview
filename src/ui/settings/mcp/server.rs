@@ -2,6 +2,7 @@
 
 use super::controls::{copy_button, field, row, secondary};
 use super::{Copied, McpSettingsInput, McpSettingsState, status_tone};
+use crate::i18n::tr;
 use crate::mcp::state::McpStatus;
 use crate::model::mcp::McpAction;
 use crate::ui::icons::Icon;
@@ -16,15 +17,14 @@ pub(super) fn server_section(
     input: &McpSettingsInput,
     actions: &mut Vec<McpAction>,
 ) {
-    section(ui, crate::ui::tr("MCP Server", "Сервер MCP"), None, |ui| {
+    section(ui, tr!("MCP Server"), None, |ui| {
         let locked = input.load_error.is_some();
         card::card(
             ui,
             Icon::LockFill,
-            crate::ui::tr("Enable MCP Server", "Включить MCP Server"),
-            Some(crate::ui::tr(
-                "Lets AI assistants and automation on this computer inspect DegenView, within the permissions below. Off until you turn it on.",
-                "Позволяет ИИ-ассистентам и скриптам автоматизации взаимодействовать с DegenView в рамках настроенных прав.",
+            tr!("Enable MCP Server"),
+            Some(tr!(
+                "Lets AI assistants and automation on this Mac inspect DegenView, within the permissions below. Off until you turn it on."
             )),
             |ui| {
                 let mut enabled = input.settings.enabled;
@@ -37,10 +37,9 @@ pub(super) fn server_section(
         card::card(
             ui,
             Icon::CheckCircle,
-            crate::ui::tr("Ask before high-impact requests", "Спрашивать перед важными действиями"),
-            Some(crate::ui::tr(
-                "Deleting alerts, charts, drawings or watchlists, saving over a script, and every paper order wait for your approval in DegenView. On unless you turn it off. A credential with remote access is asked about every change, whatever this says.",
-                "Удаление оповещений, графиков, рисунков или списков наблюдения, перезапись скрипта и каждый демо-ордер требуют вашего подтверждения в DegenView. Включено по умолчанию. При удалённом доступе подтверждение запрашивается для каждого изменения.",
+            tr!("Ask before high-impact requests"),
+            Some(tr!(
+                "Deleting alerts, charts, drawings or watchlists, saving over a script, and every paper order wait for your approval in DegenView. On unless you turn it off. A credential with remote access is asked about every change, whatever this says."
             )),
             |ui| {
                 let mut required = input.settings.require_confirmation;
@@ -57,8 +56,8 @@ pub(super) fn server_section(
         ui.add_space(10.0);
         card(ui, |ui| {
             ui.spacing_mut().item_spacing.y = 10.0;
-            row(ui, crate::ui::tr("Status", "Статус"), |ui| {
-                kit::status_badge(ui, crate::ui::t(input.status.label()), status_tone(input.status));
+            row(ui, tr!("Status"), |ui| {
+                kit::status_badge(ui, input.status.label(), status_tone(input.status));
             });
             if let McpStatus::Failed(reason) = input.status {
                 ui.add(
@@ -72,21 +71,21 @@ pub(super) fn server_section(
                 );
             }
             kit::divider(ui);
-            row(ui, crate::ui::tr("Address", "Адрес"), |ui| {
+            row(ui, tr!("Address"), |ui| {
                 secondary(ui, input.settings.bind.address().to_string())
             });
             kit::divider(ui);
-            row(ui, crate::ui::tr("Port", "Порт"), |ui| {
+            row(ui, tr!("Port"), |ui| {
                 port_control(ui, state, input.settings.port, actions)
             });
             kit::divider(ui);
-            row(ui, crate::ui::tr("Endpoint", "Точка входа"), |ui| {
+            row(ui, tr!("Endpoint"), |ui| {
                 let endpoint = input.settings.endpoint();
                 copy_button(
                     ui,
                     &mut state.copied,
                     Copied::Endpoint,
-                    crate::ui::tr("Copy", "Копировать"),
+                    tr!("Copy"),
                     &endpoint,
                     false,
                 );
@@ -124,7 +123,7 @@ fn port_control(
     let parsed = state.port_text.trim().parse::<u16>().ok();
     let changed = parsed.is_some_and(|value| value != port);
     // Right to left: the button, then the field to its left.
-    if kit::sheet_button(ui, crate::ui::tr("Apply", "Применить"), changed, changed).clicked()
+    if kit::sheet_button(ui, tr!("Apply"), changed, changed).clicked()
         && let Some(value) = parsed
     {
         actions.push(McpAction::SetPort(value));

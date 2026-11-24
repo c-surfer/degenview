@@ -34,6 +34,9 @@ pub const SURFER_URL_ENV: &str = "DEGENVIEW_SURFER_URL";
 /// Environment variable overriding the Surfer license key.
 pub const SURFER_LICENSE_ENV: &str = "DEGENVIEW_SURFER_LICENSE";
 
+/// Environment variable overriding the fallback license file path.
+pub const SURFER_FILE_ENV: &str = "DEGENVIEW_SURFER_FILE";
+
 /// Environment variable overriding the hardware ID (useful for tests and automation).
 pub const SURFER_HWID_ENV: &str = "DEGENVIEW_SURFER_HWID";
 
@@ -161,6 +164,62 @@ pub fn set_cached_license_state(state: Option<SurferLicenseState>) {
 
 // MARK: Surfer Key Store
 
+pub fn fallback_license_path() -> Option<std::path::PathBuf> {
+    if let Ok(path) = std::env::var(SURFER_FILE_ENV) {
+        let trimmed = path.trim();
+        if !trimmed.is_empty() {
+            return Some(std::path::PathBuf::from(trimmed));
+        }
+    }
+    if let Some(dir) = crate::paths::data_dir() {
+        return Some(dir.join("surfer_license.dat"));
+    }
+    std::env::var("HOME")
+        .ok()
+        .map(|h| std::path::PathBuf::from(h).join(".config/degenview/surfer.key"))
+}
+
+pub fn read_fallback_license() -> Option<String> {
+    let path = fallback_license_path()?;
+    read_fallback_license_at(&path)
+}
+
+pub fn write_fallback_license(license: &str) {
+    if let Some(path) = fallback_license_path() {
+        write_fallback_license_at(&path, license);
+    }
+}
+
+pub fn delete_fallback_license() {
+    if let Some(path) = fallback_license_path() {
+        delete_fallback_license_at(&path);
+    }
+}
+
+fn read_fallback_license_at(path: &std::path::Path) -> Option<String> {
+    std::fs::read_to_string(path)
+        .ok()
+        .map(|s| s.trim().to_owned())
+        .filter(|s| !s.is_empty())
+}
+
+fn write_fallback_license_at(path: &std::path::Path, license: &str) {
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    if std::fs::write(path, license.trim().as_bytes()).is_ok() {
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let _ = std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600));
+        }
+    }
+}
+
+fn delete_fallback_license_at(path: &std::path::Path) {
+    let _ = std::fs::remove_file(path);
+}
+
 #[derive(Default)]
 struct SurferCache {
     loaded: bool,
@@ -168,16 +227,26 @@ struct SurferCache {
     exists: Option<bool>,
 }
 
-/// Secure storage for the Surfer license key, mirroring CoinMarketCapKeyStore.
+/// Secure storage for the Surfer license key, mirroring CoinMarketCapKeyStore,
+/// with dual storage (KeychainBackend + local file fallback) for 100% Flatpak persistence.
 pub struct SurferKeyStore {
     backend: Box<dyn KeyBackend>,
+    fallback_path: Option<std::path::PathBuf>,
     cache: Mutex<SurferCache>,
 }
 
 impl SurferKeyStore {
     pub fn with_backend(backend: Box<dyn KeyBackend>) -> Self {
+        Self::with_backend_and_path(backend, fallback_license_path())
+    }
+
+    pub fn with_backend_and_path(
+        backend: Box<dyn KeyBackend>,
+        fallback_path: Option<std::path::PathBuf>,
+    ) -> Self {
         Self {
             backend,
+            fallback_path,
             cache: Mutex::new(SurferCache::default()),
         }
     }
@@ -188,15 +257,39 @@ impl SurferKeyStore {
         STORE.get_or_init(|| Self::with_backend(default_backend()))
     }
 
+    fn read_fallback(&self) -> Option<String> {
+        let path = self.fallback_path.as_deref()?;
+        read_fallback_license_at(path)
+    }
+
+    fn write_fallback(&self, license: &str) {
+        if let Some(path) = self.fallback_path.as_deref() {
+            write_fallback_license_at(path, license);
+        }
+    }
+
+    fn delete_fallback(&self) {
+        if let Some(path) = self.fallback_path.as_deref() {
+            delete_fallback_license_at(path);
+        }
+    }
+
     /// The saved license, or None. The first read may prompt for Keychain access.
     pub fn license(&self) -> Option<String> {
         let mut cache = lock(&self.cache);
         if !cache.loaded {
             cache.loaded = true;
-            cache.license = self
+            let mut key = self
                 .backend
                 .read(SURFER_SCOPE, SURFER_ACCOUNT)
-                .filter(|key| !key.is_empty());
+                .filter(|k| !k.is_empty());
+            if key.is_none() {
+                key = self.read_fallback();
+                if let Some(ref fallback_key) = key {
+                    let _ = self.backend.write(SURFER_SCOPE, SURFER_ACCOUNT, fallback_key);
+                }
+            }
+            cache.license = key;
         }
         cache.license.clone()
     }
@@ -210,7 +303,10 @@ impl SurferKeyStore {
         if let Some(exists) = cache.exists {
             return exists;
         }
-        let found = self.backend.exists(SURFER_SCOPE, SURFER_ACCOUNT);
+        let mut found = self.backend.exists(SURFER_SCOPE, SURFER_ACCOUNT);
+        if !found {
+            found = self.read_fallback().is_some();
+        }
         cache.exists = Some(found);
         found
     }
@@ -222,24 +318,30 @@ impl SurferKeyStore {
             set_cached_license_state(None);
             return self.remove();
         }
-        self.backend.write(SURFER_SCOPE, SURFER_ACCOUNT, value)?;
+        self.write_fallback(value);
+        let backend_res = self.backend.write(SURFER_SCOPE, SURFER_ACCOUNT, value);
         let mut cache = lock(&self.cache);
         *cache = SurferCache {
             loaded: true,
             license: Some(value.to_owned()),
-            exists: None,
+            exists: Some(true),
         };
-        Ok(())
+        if backend_res.is_err() {
+            Ok(())
+        } else {
+            backend_res
+        }
     }
 
     /// Removes the license from the store.
     pub fn remove(&self) -> Result<(), SecretStoreError> {
-        self.backend.delete(SURFER_SCOPE, SURFER_ACCOUNT)?;
+        self.delete_fallback();
+        let _ = self.backend.delete(SURFER_SCOPE, SURFER_ACCOUNT);
         let mut cache = lock(&self.cache);
         *cache = SurferCache {
             loaded: true,
             license: None,
-            exists: None,
+            exists: Some(false),
         };
         drop(cache);
         set_cached_license_state(None);
@@ -499,12 +601,16 @@ mod tests {
 
     #[test]
     fn surfer_key_store_saves_trims_and_removes() {
+        let _guard = crate::lock::lock(&TEST_LICENSE_LOCK);
         let memory = Arc::new(MemoryBackend::default());
         let reads = Arc::new(AtomicU64::new(0));
-        let store = SurferKeyStore::with_backend(Box::new(TrackingBackend {
-            inner: memory.clone(),
-            reads: reads.clone(),
-        }));
+        let store = SurferKeyStore::with_backend_and_path(
+            Box::new(TrackingBackend {
+                inner: memory.clone(),
+                reads: reads.clone(),
+            }),
+            None,
+        );
 
         assert!(!store.is_configured());
         assert_eq!(store.license(), None);
@@ -535,16 +641,20 @@ mod tests {
 
     #[test]
     fn surfer_key_store_answers_is_configured_without_reading_secret() {
+        let _guard = crate::lock::lock(&TEST_LICENSE_LOCK);
         let memory = Arc::new(MemoryBackend::default());
         memory
             .write(SURFER_SCOPE, SURFER_ACCOUNT, "CS-STORED-KEY")
             .unwrap();
 
         let reads = Arc::new(AtomicU64::new(0));
-        let store = SurferKeyStore::with_backend(Box::new(TrackingBackend {
-            inner: memory,
-            reads: reads.clone(),
-        }));
+        let store = SurferKeyStore::with_backend_and_path(
+            Box::new(TrackingBackend {
+                inner: memory,
+                reads: reads.clone(),
+            }),
+            None,
+        );
 
         assert!(store.is_configured(), "Should check existence only");
         assert_eq!(reads.load(Ordering::SeqCst), 0, "No read called yet");
@@ -555,6 +665,85 @@ mod tests {
         // Subsequent call is served from cache
         assert_eq!(store.license().as_deref(), Some("CS-STORED-KEY"));
         assert_eq!(reads.load(Ordering::SeqCst), 1, "Cached read");
+    }
+
+    #[test]
+    fn surfer_key_store_dual_storage_fallback_survives_empty_backend() {
+        let _guard = crate::lock::lock(&TEST_LICENSE_LOCK);
+        static TEST_CTR: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+        let file_path = std::env::temp_dir().join(format!(
+            "dv-surfer-test-{}-{}.dat",
+            std::process::id(),
+            TEST_CTR.fetch_add(1, Ordering::SeqCst)
+        ));
+        let _ = std::fs::remove_file(&file_path);
+
+        let memory = MemoryBackend::default();
+        let store = SurferKeyStore::with_backend_and_path(Box::new(memory), Some(file_path.clone()));
+
+        // Save
+        store.save("CS-DUAL-KEY-999").unwrap();
+        assert_eq!(store.license().as_deref(), Some("CS-DUAL-KEY-999"));
+        assert!(file_path.exists(), "Fallback file must be created on disk");
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let meta = std::fs::metadata(&file_path).unwrap();
+            let mode = meta.permissions().mode() & 0o777;
+            assert_eq!(mode, 0o600, "License file permissions must be 0600");
+        }
+
+        // Simulate keychain wiped / backend empty in Flatpak sandbox restart
+        let empty_backend = MemoryBackend::default();
+        let store2 = SurferKeyStore::with_backend_and_path(Box::new(empty_backend), Some(file_path.clone()));
+        assert!(store2.is_configured(), "Should detect key from fallback file");
+        assert_eq!(
+            store2.license().as_deref(),
+            Some("CS-DUAL-KEY-999"),
+            "Should restore key from fallback file"
+        );
+
+        // Cleanup
+        store2.remove().unwrap();
+        assert_eq!(store2.license(), None);
+        assert!(!file_path.exists(), "Fallback file must be cleaned up on remove");
+    }
+
+    #[test]
+    fn surfer_key_store_env_file_override() {
+        let _guard = crate::lock::lock(&TEST_LICENSE_LOCK);
+        static TEST_CTR: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(100);
+        let file_path = std::env::temp_dir().join(format!(
+            "dv-surfer-env-test-{}-{}.dat",
+            std::process::id(),
+            TEST_CTR.fetch_add(1, Ordering::SeqCst)
+        ));
+        let _ = std::fs::remove_file(&file_path);
+
+        unsafe {
+            std::env::set_var(SURFER_FILE_ENV, file_path.to_str().unwrap());
+        }
+
+        write_fallback_license("CS-ENV-FILE-KEY");
+        assert_eq!(read_fallback_license().as_deref(), Some("CS-ENV-FILE-KEY"));
+        assert!(file_path.exists());
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let meta = std::fs::metadata(&file_path).unwrap();
+            let mode = meta.permissions().mode() & 0o777;
+            assert_eq!(mode, 0o600, "License file permissions must be 0600");
+        }
+
+        delete_fallback_license();
+        assert_eq!(read_fallback_license(), None);
+        assert!(!file_path.exists());
+
+        unsafe {
+            std::env::remove_var(SURFER_FILE_ENV);
+        }
     }
 
     #[test]
@@ -633,10 +822,13 @@ mod tests {
     fn key_store_remove_clears_cached_pro_state() {
         let _guard = crate::lock::lock(&TEST_LICENSE_LOCK);
         let memory = Arc::new(MemoryBackend::default());
-        let store = SurferKeyStore::with_backend(Box::new(TrackingBackend {
-            inner: memory,
-            reads: Arc::new(AtomicU64::new(0)),
-        }));
+        let store = SurferKeyStore::with_backend_and_path(
+            Box::new(TrackingBackend {
+                inner: memory,
+                reads: Arc::new(AtomicU64::new(0)),
+            }),
+            None,
+        );
         store.save("CS-VALID").unwrap();
         set_cached_license_state(Some(SurferLicenseState {
             success: true,

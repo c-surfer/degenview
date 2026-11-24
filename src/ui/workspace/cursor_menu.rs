@@ -6,6 +6,7 @@
 //! text (the menu's own fill, so it reads in both themes), never an accent colour.
 
 use super::tool_sidebar::{STAR_TARGET, paint_star, star_button};
+use crate::i18n::tr;
 use crate::model::CursorMode;
 use crate::model::drawings::favorites::Favorite;
 use crate::ui::icons::{self, Icon};
@@ -13,7 +14,9 @@ use crate::ui::{accessibility, kit, theme};
 use eframe::egui::{self, Color32, Id, Sense, Ui, Vec2, pos2, vec2};
 
 /// The switch under the rows: holding the button still shows the values of the bar.
-pub const TOGGLE_LABEL: &str = "Values tooltip on long press";
+pub fn toggle_label() -> &'static str {
+    tr!("Values tooltip on long press")
+}
 
 const ROW_HEIGHT: f32 = 32.0;
 /// Where a row's glyph is centred and where its label starts, from the row's left edge.
@@ -64,11 +67,11 @@ pub fn width(ui: &Ui) -> f32 {
     };
     let rows = CursorMode::ALL
         .iter()
-        .map(|mode| text(crate::ui::t(mode.label())))
+        .map(|mode| text(mode.label()))
         .fold(0.0, f32::max)
         + LABEL_X
         + STAR_ROOM;
-    let toggle = text(crate::ui::t(TOGGLE_LABEL)) + TOGGLE_X + SWITCH_GAP + SWITCH.x + END_PAD / 2.0;
+    let toggle = text(toggle_label()) + TOGGLE_X + SWITCH_GAP + SWITCH.x + END_PAD / 2.0;
     (rows.max(toggle) + kit::MENU_FRAME_MARGIN).ceil()
 }
 
@@ -126,14 +129,14 @@ fn row(
     let response = accessibility::selected_as(
         response,
         egui::WidgetType::RadioButton,
-        crate::ui::t(mode.label()),
+        mode.label(),
         selected,
     );
     let star = star_button(
         ui,
         rect,
         Id::new(("cursor-menu-star", mode.label())),
-        crate::ui::t(mode.label()),
+        mode.label(),
         favorite,
     );
     let (fill, ink) = if selected {
@@ -157,7 +160,7 @@ fn row(
     );
     let galley = kit::galley(
         ui,
-        crate::ui::t(mode.label()),
+        mode.label(),
         kit::size::BODY,
         kit::REGULAR,
         ink,
@@ -181,14 +184,14 @@ fn toggle_row(ui: &mut Ui, on: bool) -> egui::Response {
     let (rect, response) =
         ui.allocate_exact_size(vec2(ui.available_width(), ROW_HEIGHT), Sense::click());
     let response =
-        accessibility::selected_as(response, egui::WidgetType::Checkbox, crate::ui::t(TOGGLE_LABEL), on);
+        accessibility::selected_as(response, egui::WidgetType::Checkbox, toggle_label(), on);
     if response.hovered() || response.has_focus() {
         ui.painter()
             .rect_filled(rect, 6.0, theme::selected_tint(true));
     }
     let galley = kit::galley(
         ui,
-        crate::ui::t(TOGGLE_LABEL),
+        toggle_label(),
         kit::size::BODY,
         kit::REGULAR,
         theme::text_primary(),

@@ -2,6 +2,7 @@
 //! store keeps them and Pine Studio, charts, sync and MCP read them. Ported from
 //! `Model/Script/*.swift`.
 
+use crate::i18n::tr;
 use crate::pine::compiler::program::ScriptType as PineScriptType;
 use crate::pine::syntax::token::{Diagnostic, DiagnosticSeverity};
 use serde::{Deserialize, Serialize};
@@ -19,12 +20,11 @@ pub enum ScriptType {
 }
 
 impl ScriptType {
-    #[allow(dead_code)]
     pub fn display_name(self) -> &'static str {
         match self {
-            Self::Indicator => "Indicator",
-            Self::Strategy => "Strategy",
-            Self::Library => "Library",
+            Self::Indicator => tr!("Indicator"),
+            Self::Strategy => tr!("Strategy"),
+            Self::Library => tr!("Library"),
         }
     }
 }

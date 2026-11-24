@@ -161,7 +161,7 @@ pub(super) fn panel(
         ui,
         pos2(chip.right() + 9.0, header.center().y),
         Align2::LEFT_CENTER,
-        crate::ui::t(title),
+        title,
         kit::size::HEADLINE,
         SEMIBOLD,
         theme::text_primary(),
@@ -298,7 +298,7 @@ pub fn stat_card(ui: &mut egui::Ui, card: &StatCard) {
     }
     let max_width = (rect.right() - 14.0 - x).max(20.0);
     let secondary = caption_color();
-    let title = line(ui, crate::ui::t(card.title), kit::size::CAPTION, REGULAR, secondary);
+    let title = line(ui, card.title, kit::size::CAPTION, REGULAR, secondary);
     let value_color = if card.placeholder {
         secondary
     } else {

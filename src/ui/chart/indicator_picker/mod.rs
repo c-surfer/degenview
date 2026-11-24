@@ -9,6 +9,7 @@ mod preview;
 mod sections;
 
 use super::indicator_strip::Action;
+use crate::i18n::tr;
 use crate::model::indicators::catalog::{self, CatalogEntry, EntryKey, Family, Origin};
 use crate::model::pine::bundled;
 use crate::model::{DataSource, IndicatorConfig};
@@ -76,10 +77,10 @@ pub enum Availability {
 /// What the entry can do on `target`.
 pub fn availability(entry: &CatalogEntry, target: Option<&Target>) -> Availability {
     let Some(target) = target else {
-        return Availability::Blocked("Open a chart to add indicators to it.");
+        return Availability::Blocked(tr!("Open a chart to add indicators to it."));
     };
     if !target.source.takes_indicators() {
-        return Availability::Blocked("This chart takes no indicators.");
+        return Availability::Blocked(tr!("This chart takes no indicators."));
     }
     match &entry.key {
         EntryKey::Native(kind) if kind.applied(&target.config) => Availability::Remove,
@@ -133,16 +134,28 @@ pub struct IndicatorPicker {
     previews: Previews,
 }
 
+/// The favorites a stored list names, each under the key the catalog uses today and listed once, in
+/// the order first kept. A key written for an indicator that has since moved (`native:rsi`, now
+/// `bundled:rsi`) is read as the one that replaced it, and one this build no longer has is dropped.
+fn canonical_favorites(stored: Vec<String>) -> Vec<String> {
+    let mut favorites: Vec<String> = Vec::with_capacity(stored.len());
+    for key in stored.iter().filter_map(|stored| EntryKey::parse(stored)) {
+        let key = key.stored();
+        if !favorites.contains(&key) {
+            favorites.push(key);
+        }
+    }
+    favorites
+}
+
 impl IndicatorPicker {
     pub fn new(store: Option<SharedStore>) -> Self {
-        // A favorite that names an indicator this build no longer has is dropped.
-        let favorites: Vec<String> = store
-            .as_ref()
-            .and_then(|store| store.lock().ok()?.setting::<Vec<String>>(FAVORITES_KEY))
-            .unwrap_or_default()
-            .into_iter()
-            .filter(|stored| EntryKey::parse(stored).is_some())
-            .collect();
+        let favorites = canonical_favorites(
+            store
+                .as_ref()
+                .and_then(|store| store.lock().ok()?.setting::<Vec<String>>(FAVORITES_KEY))
+                .unwrap_or_default(),
+        );
         Self {
             open: false,
             store,
@@ -395,7 +408,7 @@ impl IndicatorPicker {
         let bar = Rect::from_min_size(full.min, vec2(full.width(), HEADER));
         let title = kit::galley(
             ui,
-            crate::ui::t("Indicators"),
+            tr!("Indicators"),
             size::TITLE2,
             SEMIBOLD,
             theme::text_primary(),
@@ -412,11 +425,10 @@ impl IndicatorPicker {
         );
         let mut field_ui = ui.new_child(egui::UiBuilder::new().max_rect(field));
         let before = self.query.clone();
-        let prompt = if crate::ui::is_ru() {
-            format!("Поиск {total} индикаторов, концепций или синонимов…")
-        } else {
-            format!("Search {total} indicators, concepts or aliases")
-        };
+        let prompt = tr!(
+            "Search {total} indicators, concepts or aliases",
+            total = total
+        );
         let response = kit::search_field(
             &mut field_ui,
             search_id,
@@ -464,12 +476,12 @@ impl IndicatorPicker {
                         }
                     }
                 };
-                group(ui, crate::ui::t("Yours"), &sections::YOURS);
+                group(ui, tr!("Yours"), &sections::YOURS);
                 if sidebar_row(
                     ui,
                     width,
                     Icon::AngleBrackets,
-                    crate::ui::t("Open Pine Studio"),
+                    tr!("Open Pine Studio"),
                     None,
                     false,
                 )
@@ -477,10 +489,10 @@ impl IndicatorPicker {
                 {
                     *output = Some(Output::OpenPineStudio);
                 }
-                group(ui, crate::ui::t("Built-in"), &sections::BUILT_IN);
-                group(ui, crate::ui::t("Library"), &sections::LIBRARY);
+                group(ui, tr!("Built-in"), &sections::BUILT_IN);
+                group(ui, tr!("Library"), &sections::LIBRARY);
                 let families: Vec<Section> = Family::ALL.into_iter().map(Section::Family).collect();
-                group(ui, crate::ui::t("Families"), &families);
+                group(ui, tr!("Families"), &families);
             });
     }
 
@@ -510,10 +522,8 @@ impl IndicatorPicker {
                 if flat.is_empty() {
                     let message = if self.query.trim().is_empty() {
                         self.section.empty_message().to_owned()
-                    } else if crate::ui::is_ru() {
-                        format!("Нет индикаторов по запросу \u{201c}{}\u{201d}.", self.query.trim())
                     } else {
-                        format!("No indicators match \u{201c}{}\u{201d}.", self.query.trim())
+                        tr!("No indicators match “{query}”.", query = self.query.trim())
                     };
                     ui.add_space(40.0);
                     ui.vertical_centered(|ui| {
@@ -536,7 +546,7 @@ impl IndicatorPicker {
                     }
                     if let Some(heading) = block.heading {
                         let row = block_heading(ui, heading);
-                        if heading == "More to explore" && row.shuffle {
+                        if heading == tr!("More to explore") && row.shuffle {
                             self.shuffle = self.shuffle.wrapping_add(1);
                         }
                     }
@@ -612,7 +622,7 @@ impl IndicatorPicker {
         let Some(entry) = entry else {
             let text = kit::galley(
                 ui,
-                crate::ui::t("Select an indicator"),
+                tr!("Select an indicator"),
                 size::BODY,
                 kit::REGULAR,
                 theme::text_tertiary(),
@@ -684,13 +694,12 @@ impl IndicatorPicker {
                 );
                 if entry.origin != Origin::Script {
                     ui.add_space(10.0);
-                    let author_line = if crate::ui::is_ru() {
-                        format!("Автор: {} \u{b7} {}", entry.author, entry.license)
-                    } else {
-                        format!("By {} \u{b7} {}", entry.author, entry.license)
-                    };
                     ui.label(kit::text(
-                        author_line,
+                        tr!(
+                            "By {author} · {license}",
+                            author = entry.author,
+                            license = entry.license
+                        ),
                         size::CAPTION + 0.5,
                         kit::REGULAR,
                         theme::text_tertiary(),
@@ -719,9 +728,9 @@ impl IndicatorPicker {
         button_ui.spacing_mut().item_spacing.x = 8.0;
         let blocked = matches!(status, Availability::Blocked(_));
         let label = match status {
-            Availability::Remove => crate::ui::t("Remove from chart"),
-            Availability::AddAnother => crate::ui::t("Add another copy"),
-            _ => crate::ui::t("Add to chart"),
+            Availability::Remove => tr!("Remove from chart"),
+            Availability::AddAnother => tr!("Add another copy"),
+            _ => tr!("Add to chart"),
         };
         if kit::large_prominent_button(&mut button_ui, label, !blocked, buttons.width() - 40.0)
             .clicked()
@@ -757,22 +766,21 @@ impl IndicatorPicker {
             ));
             ui.add_space(10.0);
         };
-        hint(&mut footer, &["\u{2191}", "\u{2193}"], crate::ui::t("Browse"));
-        hint(&mut footer, &["\u{21b5}"], crate::ui::t("Add"));
-        hint(&mut footer, &["\u{21e7}", "\u{21b5}"], crate::ui::t("Add, keep open"));
-        hint(&mut footer, &["F"], crate::ui::t("Favorite"));
-        hint(&mut footer, &["Esc"], crate::ui::t("Close"));
+        hint(&mut footer, &["\u{2191}", "\u{2193}"], tr!("Browse"));
+        hint(&mut footer, &["\u{21b5}"], tr!("Add"));
+        hint(
+            &mut footer,
+            &["\u{21e7}", "\u{21b5}"],
+            tr!("Add, keep open"),
+        );
+        hint(&mut footer, &["F"], tr!("Favorite"));
+        hint(&mut footer, &["Esc"], tr!("Close"));
         let mut done = false;
         footer.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            done = kit::sheet_button(ui, crate::ui::t("Done"), true, true).clicked();
+            done = kit::sheet_button(ui, tr!("Done"), true, true).clicked();
             ui.add_space(8.0);
-            let shown_text = if crate::ui::is_ru() {
-                format!("{shown} показано")
-            } else {
-                format!("{shown} shown")
-            };
             ui.label(kit::text(
-                shown_text,
+                tr!("{count} shown", count = shown),
                 size::SUBHEADLINE,
                 kit::REGULAR,
                 theme::text_tertiary(),
@@ -824,14 +832,10 @@ fn glyph_for(entry: &CatalogEntry) -> Icon {
 
 /// `Momentum · Separate pane`, `Trend · Overlay`, `Your script`.
 fn meta_line(entry: &CatalogEntry) -> String {
-    let placement = if entry.overlay {
-        crate::ui::tr("Overlay", "На графике")
-    } else {
-        crate::ui::tr("Separate pane", "В подвале")
-    };
-    match entry.family {
-        Some(family) => format!("{} \u{b7} {placement}", crate::ui::t(family.title())),
-        None => crate::ui::tr("Your script", "Ваш скрипт").to_owned(),
+    match (entry.family, entry.overlay) {
+        (Some(family), true) => tr!("{family} · Overlay", family = family.title()),
+        (Some(family), false) => tr!("{family} · Separate pane", family = family.title()),
+        (None, _) => tr!("Your script").to_owned(),
     }
 }
 
@@ -931,7 +935,7 @@ fn card_ui(
     if look.on_chart {
         let tag = kit::galley(
             ui,
-            crate::ui::tr("On chart", "На графике"),
+            tr!("On chart"),
             size::CAPTION,
             MEDIUM,
             theme::text_secondary(),
@@ -994,19 +998,18 @@ fn star_button(ui: &mut Ui, favorite: bool) -> egui::Response {
         theme::text_primary(),
     );
     response.on_hover_text(if favorite {
-        crate::ui::t("Remove from favorites")
+        tr!("Remove from favorites")
     } else {
-        crate::ui::t("Add to favorites")
+        tr!("Add to favorites")
     })
 }
 
 fn sidebar_heading(ui: &mut Ui, text: &str) {
     ui.add_space(10.0);
     let (rect, _) = ui.allocate_exact_size(vec2(ui.available_width(), 18.0), Sense::hover());
-    let translated = crate::ui::t(text);
     let label = kit::galley(
         ui,
-        &translated.to_uppercase(),
+        &text.to_uppercase(),
         size::CAPTION,
         SEMIBOLD,
         theme::text_tertiary(),
@@ -1083,7 +1086,7 @@ fn block_heading(ui: &mut Ui, text: &str) -> HeadingRow {
     let (rect, _) = ui.allocate_exact_size(vec2(ui.available_width(), 24.0), Sense::hover());
     let label = kit::galley(
         ui,
-        crate::ui::t(text),
+        text,
         size::HEADLINE + 1.0,
         SEMIBOLD,
         theme::text_primary(),
@@ -1095,7 +1098,7 @@ fn block_heading(ui: &mut Ui, text: &str) -> HeadingRow {
         theme::text_primary(),
     );
     let mut shuffle = false;
-    if text == "More to explore" {
+    if text == tr!("More to explore") {
         let button = Rect::from_min_max(pos2(rect.right() - 84.0, rect.top()), rect.max);
         let response = ui.interact(button, Id::new("indicator_picker_shuffle"), Sense::click());
         let color = if response.hovered() {
@@ -1112,7 +1115,7 @@ fn block_heading(ui: &mut Ui, text: &str) -> HeadingRow {
             Icon::Repeat,
             color,
         );
-        let label = kit::galley(ui, crate::ui::t("Shuffle"), size::BODY, kit::REGULAR, color, 60.0);
+        let label = kit::galley(ui, tr!("Shuffle"), size::BODY, kit::REGULAR, color, 60.0);
         ui.painter().galley(
             pos2(
                 button.left() + 22.0,
