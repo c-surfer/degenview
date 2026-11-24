@@ -384,12 +384,12 @@ impl ChartCard {
             .map(|before| candles[before].close);
         let color = self.bar_color(last, previous_close);
 
-        // Price line across the plot: 4.0 px dash, 3.0 px gap, with softened attenuation (0.85).
+        // Price line across the plot: 3.0 px dash, 3.0 px gap, with subtle muted attenuation (0.50).
         let y_crisp = canvas::crisp(y, 1.0, painter.ctx().pixels_per_point());
         painter.extend(Shape::dashed_line(
             &[Pos2::new(plot.left(), y_crisp), Pos2::new(plot.right(), y_crisp)],
-            Stroke::new(1.0, color.gamma_multiply(0.85)),
-            4.0,
+            Stroke::new(1.0, color.gamma_multiply(0.50)),
+            3.0,
             3.0,
         ));
 
