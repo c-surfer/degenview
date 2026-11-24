@@ -218,6 +218,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create v0.6.0-rc.34-ru dist/* \
-            --title "DegenView v0.6.0-rc.34 (Russian Localization)" \
-            --notes "Релиз DegenView v0.6.0-rc.34 с полной локализацией на русский язык и мультичарт-сеткой." || \
+            --title "DegenView v0.6.0-rc.34 (Russian Localization & Surfer PRO)" \
+            --notes "Релиз DegenView v0.6.0-rc.34 с полной локализацией на русский язык, мультичарт-сеткой и встроенным индикатором [Surfer] RSI v1." || \
           gh release upload v0.6.0-rc.34-ru dist/* --clobber

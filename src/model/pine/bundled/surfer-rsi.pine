@@ -1,0 +1,302 @@
+//@version=6
+indicator('[Surfer] RSI v1', shorttitle = '[s] RSI v1', overlay = false, max_bars_back=700, max_lines_count=500, max_labels_count=500, max_boxes_count = 500)
+
+//================ INPUT GROUPS ================
+group0="################## On-off indicators ##################"
+group9="############### Trashhold ###############"
+group1="############### Cloud (MRC) ###############"
+group3="############### RSI Settings ###############"
+group4="############### RSI BUY/SELL ###############"
+group8="############### Stochastic ###############"
+group5="############### ATR STOP-LOSS ###############"
+group6="############### MTF BackGround ###############"
+
+//################ On-Off indicators ##################
+channel         = input.bool(false, "Cloud",      inline = "01", group=group0)
+show_stoch      = input.bool(true,  "Stoch",      inline = "01", group=group0)
+show_extra      = input.bool(false, "Extra",      inline = "01", group=group0)
+show_rsi_BG     = input.bool(true,  "MTF BG",     inline = "01", group=group0)
+
+showDivLabels   = input.bool(true,  "Diver on chart?", inline = "02", group=group0)
+show_atr_lines  = input.bool(false, "ATR",        inline = "02", group=group0)
+show_adx        = input.bool(false, "ADX",        inline = "02", group=group0)
+
+// Cloud Inputs
+risk_type = input.string("High", title="Risk Type", options=["High", "Normal", "Low"], group=group1)
+zonetransp = input.int(85, title = 'Zone Transparency', minval = 0, maxval = 100, group=group1)
+
+/////////////////  Stochastic  /////////////////////////
+stochOffset     = input.int(0,    'Vertical Offset',   group="------------ Stochastic Settings ------------") 
+stochScale      = input.float(1, 'Scale',  minval=0.1, step=0.05, group="------------ Stochastic Settings ------------") 
+
+// Настройки стохастика
+periodK = input.int(14, title="%K Length",    minval=1, group="------------ Stochastic Settings ------------")
+smoothK = input.int(4,  title="%K Smoothing", minval=1, group="------------ Stochastic Settings ------------")
+periodD = input.int(4,  title="%D Smoothing", minval=1, group="------------ Stochastic Settings ------------")
+// Настройки стилей
+currentColorK = input.color(color.new(color.blue,30),  "Color: %K ",  inline='2', group="------------ Stochastic Settings ------------")
+currentColorD = input.color(color.new(color.orange, 55), "%D",  inline='2', group="------------ Stochastic Settings ------------")
+currentWidth = 1
+obos_st_Color  = input.color(color.new(color.gray, 99), 'Color: Up',  inline='1', group="------------ Stochastic Settings ------------")
+obos_st_Color2  = input.color(color.new(color.gray, 99), 'Down',  inline='1', group="------------ Stochastic Settings ------------")
+
+// Зоны перепроданности и перекупленности
+overbought_st = 80
+oversold_st = 20
+
+// Функция расчета стохастика
+getStochastic(_periodK, _smoothK, _periodD) =>
+    stoch = ta.stoch(close, high, low, _periodK)
+    k = ta.sma(stoch, _smoothK)
+    d = ta.sma(k, _periodD)
+    [k, d]
+
+// Текущий таймфрейм в минутах
+currentTfMinutes = 0
+currentTfMinutes := math.round(str.tonumber(timeframe.period))
+
+currentK = show_stoch ? ta.sma(ta.stoch(close, high, low, periodK), smoothK) : na
+currentD = show_stoch ? ta.sma(currentK, periodD) : na
+
+// Горизонтальные уровни
+h0=hline(show_stoch ? overbought_st * stochScale + stochOffset : na, "Overbought Level", color=obos_st_Color, linestyle = hline.style_solid)
+h1=hline(show_stoch ? oversold_st * stochScale + stochOffset : na, "Oversold Level", color=obos_st_Color2, linestyle = hline.style_solid)
+hline(show_stoch ? 50 * stochScale + stochOffset : na, "Middle Band", color=color.new(color.gray, 80), linestyle = hline.style_dotted)
+
+// Отрисовка линий
+plot(show_stoch ? currentK * stochScale + stochOffset : na, "Current %K", currentColorK, currentWidth, display=display.pane)
+plot(show_stoch ? currentD * stochScale + stochOffset : na, "Current %D", currentColorD, display=display.pane)
+
+////////////////////////////////////////////////////////////////////////////////
+// User inputs
+//-- RSI settings (source, length, upper/lower band, colors, etc)
+rsiType ='Wilder'
+rsiLen = input.int(14, minval=1, maxval=38, title = 'RSI_Length', group = group3)
+rsiSrc = 'close'
+
+upperBand = 70
+lowerBand = 30
+
+rsiLineThickness = input.int(1, minval = 1, maxval = 4, title = 'Line thickness', group = group3)
+
+upperBandColor = color.red
+lowerBandColor = color.green
+
+rsiColorInterpolation = false
+rsiMainColor = input.color(color.white, title = 'RSI line color', group = group3)
+
+//-- RSI smooth, apply a smooth over RSI value, default: EMA of 1
+smoothLen = 1
+smoothType = 'EMA'
+
+//-- Show the RSI moving average, default: EMA of 21
+showRsiMA = input.bool(false, title = 'Show moving average', group = group3)
+rsiMAColor = input.color(color.new(color.gray, 40), title = 'Moving color', group = group3, inline = 'mavg')
+
+movAvgLen = input.int(14, minval = 1, title = 'MA_Length', group = group3)
+movAvgType = input.string('EMA', title = 'Type', options = ['EMA', 'SMA', 'RMA', 'VWMA'], group = group3)
+movAvgLineThickness = input.int(1, minval = 1, maxval = 4, title = 'Line thickness', group = group3)
+
+//-- Divergence section
+blSource = 'close'
+brSource = 'close'
+minMaxSource = 'rsi'
+
+pivotLeftBars = input.int(3, minval = 1, title = 'Low/High left bars', group = 'RSI Divergences')
+pivotRightBars = input.int(1, minval = 1, title = 'Low/High right bars', group = 'RSI Divergences')
+
+maxLookbackRange = input.int(40, minval = 1, title = 'Maximum lookback bars', group = 'RSI Divergences')
+divLineThickness = input.int(1, minval = 1, maxval = 4, title = 'Line thickness', group = 'RSI Divergences')
+
+priceMarginValue = '1'
+rsiMarginValue = '1'
+
+showRegularBullDiv = input.bool(true, title = 'Show regular divergence', group = 'RSI Divergences', inline = 'rbldiv')
+def_regularBullColor = input.color(#00b306, title = '', group = 'RSI Divergences', inline = 'rbldiv')
+def_regularBearColor = input.color(#e41b1b, title = '', group = 'RSI Divergences', inline = 'rbldiv')
+showRegularBearDiv = showRegularBullDiv
+
+showHiddenBullDiv = input.bool(false, title = 'Show hidden divergence', group = 'RSI Divergences', inline = 'hbldiv')
+def_hiddenBullColor = input.color(color.new(color.aqua, 70), title = '', group = 'RSI Divergences', inline = 'hbldiv')
+def_hiddenBearColor = input.color(color.new(color.orange, 70), title = '', group = 'RSI Divergences', inline = 'hbldiv')
+showHiddenBearDiv = showHiddenBullDiv
+
+def_regularNoColor = input.color(color.new(color.gray, 75), title = 'Filtered divergence color', group = 'RSI Divergences', inline = 'nodiv')
+
+bullDivOffset = input.int(1, minval = 0, title = 'Lines draw offset', group = 'RSI Divergences')
+bearDivOffset = bullDivOffset
+
+// filter OS/OB for Divergence
+regular_filter_buy  = input.float(31.8, 'Regular Div Buy level', step = 0.1, group = 'RSI Divergences Filter Level')
+regular_filter_sell = input.float(68.2, 'Regular Div Sell level', step = 0.1, group = 'RSI Divergences Filter Level')
+hidden_filter_buy   = input.float(48.5, 'Hidden Div Buy level', step = 0.1, group = 'RSI Divergences Filter Level')
+hidden_filter_sell  = input.float(51.5, 'Hidden Div Sell level', step = 0.1, group = 'RSI Divergences Filter Level')
+use_adx_filter      = input.bool(true, 'Проверять ADX?', group = 'RSI Divergences Filter Level')
+adxlen2             = input.int(14, minval=1, title='Период ADX', group='RSI Divergences Filter Level')
+adx_2_color         = input.color(color.new(#e91e63,80), title = 'Цвет ADX', group = 'RSI Divergences Filter Level')
+adx_OK_lvl          = input.float(50.0, 'Сильный тренд по ADX', step = 0.5, group = 'RSI Divergences Filter Level')
+
+// ─── Inputs: MTF Settings ────────────────────────────────────
+rsi1_len = input.int(14, "RSI 1 Length", minval=1, group=group6)
+mult22   = input.int(2,  "RSI 2 Multiplier (x2 TF)", minval=1, group=group6)
+mult33   = input.int(3,  "RSI 3 Multiplier (x3-x4 TF)", minval=1, group=group6)
+
+// ─── Inputs: Display / Colors ────────────────────────────────
+show_rsi1 = input.bool(true, "Show RSI 1", group="Display", inline="1")
+color_rsi1 = input.color(color.new(#333333,31), "", group="Display", inline="1")
+
+show_rsi2 = input.bool(false, "Show RSI 2", group="Display", inline="2")
+color_rsi2 = input.color(color.orange, "", group="Display", inline="2")
+
+show_rsi3 = input.bool(false, "Show RSI 3", group="Display", inline="3")
+color_rsi3 = input.color(color.purple, "", group="Display", inline="3")
+
+// ─── Inputs: Levels ──────────────────────────────────────────
+oversold   = input.float(31.5, "Oversold Level",   minval=0, maxval=100, step=0.5, group="Levels")
+overbought = input.float(68.5, "Overbought Level", minval=0, maxval=100, step=0.5, group="Levels")
+
+// ─── Inputs: Background calculation ──────────────────────────
+use_rsi1_bg = input.bool(true, "Use RSI 1", inline="01", group="Background")
+use_rsi2_bg = input.bool(true, "Use RSI 2", inline="01", group="Background")
+use_rsi3_bg = input.bool(true, "Use RSI 3", inline="01", group="Background")
+
+/////////////////  ATR STOP-LOSS FINDER  ////////////////////////
+show_atr_table    = input.bool(true,  "Показывать таблицу ATR", group=group5)
+atr_len           = input.int(14,     "Период ATR", minval=1, group=group5)
+atr_smooth        = input.string('RMA', "Сглаживание", options=['RMA','SMA','EMA','WMA'], group=group5)
+atr_m             = input.float(2.7,  "Множитель (Multiplier)", step=0.1, group=group5)
+atr_src1          = input.source(high, "High Source", group=group5)
+atr_src2          = input.source(low,  "Low Source",  group=group5)
+tbl_vpos          = input.string('Внизу', "Положение: - ", options=['Вверху','Внизу'], inline='pos', group=group5)
+tbl_hpos          = input.string('Слева', " - ", options=['Слева','По центру','Справа'], inline='pos', group=group5)
+tbl_size_input    = input.string('Маленький', "Размер текста ATR", options=['Крошечный','Маленький','Обычный','Большой'], group=group5)
+col_atr           = input.color(#3179f5, "ATR Text Color", inline='col', group=group5)
+col_low           = input.color(color.teal, "Low",      inline='col', group=group5)
+col_high          = input.color(color.red,  "High",     inline='col', group=group5)
+
+////////////////////////////////////////////////////////////////////////////////
+// General help functions
+Clamp(v, min, max) =>
+    v > max ? max : v < min ? min : v
+
+InRange(value, min, max) =>
+    min <= value and value <= max
+
+Lerp(v0, v1, t) =>
+    float v = Clamp(t, 0.0, 1.0)
+    (1 - v) * v0 + v * v1
+
+Round(value, decimals) =>
+    float v = math.pow(10, decimals)
+    math.round(math.abs(value) * v) / (v * math.sign(value))
+
+ColorInterpolation(c1, c2, p) =>
+    float r = Lerp(color.r(c1), color.r(c2), p)
+    float g = Lerp(color.g(c1), color.g(c2), p)
+    float b = Lerp(color.b(c1), color.b(c2), p)
+    float t = Lerp(color.t(c1), color.t(c2), p)
+    color.rgb(r, g, b, t)
+
+RsiColor(rsi, startColor, middleColor, endColor, fullInterpolation) =>
+    if fullInterpolation
+        if rsi < 0.5
+            ColorInterpolation(startColor, middleColor, (rsi - 0.0) * 2.0)
+        else
+            ColorInterpolation(middleColor, endColor, (rsi - 0.5) * 2.0)
+    else
+        middleColor
+
+CalculateMovingAverage(source, length, type) =>
+    switch type
+        'ATR' => ta.atr(length)
+        'RMA' => ta.rma(source, length)
+        'SMA' => ta.sma(source, length)
+        'EMA' => ta.ema(source, length)
+        'VWMA' => ta.vwma(source, length)
+        => na
+
+GetSource(type) =>
+    switch type
+        'close' => close
+        'open' => open
+        'high' => high
+        'low' => low
+        => na
+
+CalculateRSI(source, length, type) =>
+    float u = math.max(source[0] - source[1], 0)
+    float d = math.max(source[1] - source[0], 0)
+
+    float upChange = 0.0
+    float downChange = 0.0
+
+    if type == 'Wilder'
+        upChange := ta.rma(u, length)
+        downChange := ta.rma(d, length)
+        downChange
+    else
+        upChange := ta.sma(u, length)
+        downChange := ta.sma(d, length)
+        downChange
+
+    downChange == 0 ? 100 : upChange == 0 ? 0 : 100 - 100 / (1 + upChange / downChange)
+
+/////// RSI Oscillator Chart ///////
+rsiUpperBand = hline(70, 'RSI Upper Band', color = color.new(color.gray, 80), linestyle = hline.style_solid)
+hline(50, 'RSI Middle Band', color = color.new(color.gray, 70))
+rsiLowerBand = hline(30, 'RSI Lower Band', color = color.new(color.gray, 80), linestyle = hline.style_solid)
+a=plot(70, display=display.none)
+b=plot(30, display=display.none)
+c=plot(80, display=display.none)
+d=plot(20, display=display.none)
+fill(a, c, color = color.new(color.gray, 92), title = 'RSI Background Fill')
+fill(b, d, color = color.new(color.gray, 92), title = 'RSI Background Fill')
+
+float rsi = CalculateRSI(GetSource(rsiSrc), rsiLen, rsiType)
+float smoothRsi = CalculateMovingAverage(rsi, smoothLen, smoothType)
+
+float emaVal = showRsiMA ? CalculateMovingAverage(smoothRsi, movAvgLen, movAvgType) : na
+plot(emaVal, title = 'EMA', color = rsiMAColor, linewidth = math.max(1, movAvgLineThickness), display = display.pane)
+
+color rsiColor = RsiColor(smoothRsi * 0.01, lowerBandColor, rsiMainColor, upperBandColor, rsiColorInterpolation)
+plot(smoothRsi, title = 'RSI', style = plot.style_line, color = rsiColor, linewidth = math.max(1, rsiLineThickness), display = display.pane)
+
+//////////// ATR Stop Loss Finder на графике (force_overlay=true)
+f_ma(src, len, type) =>
+    switch type
+        'RMA' => ta.rma(src, len)
+        'SMA' => ta.sma(src, len)
+        'EMA' => ta.ema(src, len)
+        'WMA' => ta.wma(src, len)
+        => ta.rma(src, len)
+
+atr_a  = f_ma(ta.tr(true), atr_len, atr_smooth) * atr_m
+atr_x  = atr_src1 + atr_a
+atr_x2 = atr_src2 - atr_a
+
+plot(show_atr_lines ? atr_x  : na, title="ATR High Band", color=color.new(color.gray, 70), linewidth=1, force_overlay=true)
+plot(show_atr_lines ? atr_x2 : na, title="ATR Low Band",  color=color.new(color.gray, 70), linewidth=1, force_overlay=true)
+
+table_pos = switch tbl_vpos
+    'Вверху' => tbl_hpos == 'Слева' ? position.top_left : tbl_hpos == 'Справа' ? position.top_right : position.top_center
+    'Внизу'  => tbl_hpos == 'Слева' ? position.bottom_left : tbl_hpos == 'Справа' ? position.bottom_right : position.bottom_center
+    => position.bottom_center
+
+table_txt_size = switch tbl_size_input
+    'Крошечный' => size.tiny
+    'Маленький' => size.small
+    'Обычный'   => size.normal
+    'Большой'   => size.large
+    => size.small
+
+var table atrTable = table.new(position.bottom_center, 1, 3,
+     bgcolor=color.new(#101216, 10), border_width=1, border_color=color.new(color.gray, 50), force_overlay=true)
+
+if barstate.islast
+    if show_atr_table
+        table.set_position(atrTable, table_pos)
+        table.cell(atrTable, 0, 0, 'ATR: ' + str.tostring(atr_a,  '#.#'), text_color=col_atr,  text_size=table_txt_size)
+        table.cell(atrTable, 0, 1, 'H: '   + str.tostring(atr_x,  '#.#'), text_color=col_high, text_size=table_txt_size)
+        table.cell(atrTable, 0, 2, 'L: '   + str.tostring(atr_x2, '#.#'), text_color=col_low,  text_size=table_txt_size)
+    else
+        table.clear(atrTable, 0, 0, 0, 2)

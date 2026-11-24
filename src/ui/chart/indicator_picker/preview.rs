@@ -207,7 +207,7 @@ impl Previews {
         }
         let scripts = bundled::ALL
             .iter()
-            .map(|indicator| (EntryKey::Bundled(indicator.id), indicator.source.to_owned()))
+            .map(|indicator| (EntryKey::Bundled(indicator.id), indicator.effective_source().into_owned()))
             .collect();
         self.runs = Some(BatchRun::start(
             scripts,
@@ -431,7 +431,7 @@ mod tests {
     fn every_bundled_script_previews_and_agrees_on_its_pane() {
         for indicator in &bundled::ALL {
             let (output, failure) = crate::host::pine::run_script_checked(
-                indicator.source,
+                &indicator.effective_source(),
                 bars(),
                 &symbol(),
                 &HashMap::new(),

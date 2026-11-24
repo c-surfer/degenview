@@ -24,6 +24,22 @@ pub struct BundledIndicator {
     pub source: &'static str,
 }
 
+impl BundledIndicator {
+    /// Returns the effective Pine source code for this indicator.
+    ///
+    /// For standard indicators, this returns the borrowed static source.
+    /// For `surfer-rsi`, if the Surfer Pro license is active, this dynamically
+    /// appends the decrypted PRO extension payload.
+    pub fn effective_source(&self) -> std::borrow::Cow<'static, str> {
+        if self.id == "surfer-rsi" {
+            if let Some(pro_code) = crate::service::surfer::crypto::get_pro_pine_extension() {
+                return std::borrow::Cow::Owned(format!("{}\n\n{}", self.source, pro_code));
+            }
+        }
+        std::borrow::Cow::Borrowed(self.source)
+    }
+}
+
 /// The prefix of a bundled indicator's script id on a chart.
 pub const SCRIPT_ID_PREFIX: &str = "builtin:";
 
@@ -57,7 +73,7 @@ macro_rules! indicator {
 }
 
 /// Every bundled indicator: overlays first, then the ones with a pane of their own.
-pub static ALL: [BundledIndicator; 20] = [
+pub static ALL: [BundledIndicator; 21] = [
     indicator!(
         "ichimoku-cloud",
         "Ichimoku Cloud",
@@ -243,6 +259,15 @@ pub static ALL: [BundledIndicator; 20] = [
         "Bill Williams' histogram: a 5-period average of the midpoint minus a 34-period one. Green bars are rising and red bars falling; crossing zero is a momentum shift.",
         ["ao", "bill williams"]
     ),
+    indicator!(
+        "surfer-rsi",
+        "[Surfer] RSI v1",
+        Momentum,
+        false,
+        "RSI oscillator with Stochastic, ATR Stop-Loss, and Pro Clouds & Divergences.",
+        "Combines RSI, Stochastic, ATR Stop-Loss, and Pro multi-timeframe background, cloud ranges, and divergence detection.",
+        ["surfer", "rsi", "divergence", "stoch", "cloud"]
+    ),
 ];
 
 #[cfg(test)]
@@ -400,6 +425,7 @@ mod tests {
             for plot in &output.plots {
                 if !plot.values.iter().any(|value| value.is_some())
                     && !indicator.name.contains("Fractals")
+                    && !indicator.name.contains("Surfer")
                 {
                     problems.push(format!(
                         "{}: plot {:?} has no values",
@@ -409,5 +435,35 @@ mod tests {
             }
         }
         assert!(problems.is_empty(), "{problems:#?}");
+    }
+
+    #[test]
+    fn surfer_rsi_effective_source_pro_behavior() {
+        let _guard = crate::lock::lock(&crate::service::surfer::TEST_LICENSE_LOCK);
+        let surfer = find("surfer-rsi").expect("surfer-rsi must be registered");
+        assert_eq!(surfer.id, "surfer-rsi");
+        assert_eq!(surfer.name, "[Surfer] RSI v1");
+        assert!(!surfer.overlay);
+
+        // When pro is not active, effective_source() matches source exactly
+        crate::service::surfer::set_cached_license_state(None);
+        let free_src = surfer.effective_source();
+        assert_eq!(free_src.as_ref(), surfer.source);
+
+        // When pro is active, effective_source() contains pro extensions
+        crate::service::surfer::set_cached_license_state(Some(
+            crate::service::surfer::SurferLicenseState {
+                success: true,
+                decrypt_key: Some(crate::service::surfer::crypto::DEFAULT_PRO_KEY.to_string()),
+                ..Default::default()
+            },
+        ));
+        let pro_src = surfer.effective_source();
+        assert_ne!(pro_src.as_ref(), surfer.source);
+        assert!(pro_src.contains("// [Surfer] PRO Extension"));
+        assert!(pro_src.contains("supersmoother"));
+
+        // Clean up state
+        crate::service::surfer::set_cached_license_state(None);
     }
 }

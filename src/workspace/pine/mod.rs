@@ -294,7 +294,7 @@ impl ChartWorkspace {
                     chart_id,
                     crate::model::pine::bundled::script_id(indicator),
                     indicator.name,
-                    indicator.source,
+                    &indicator.effective_source(),
                     &HashMap::new(),
                     true,
                 )

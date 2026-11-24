@@ -10,6 +10,7 @@ use crate::model::alert::{
 use crate::model::mcp::McpAction;
 use crate::platform;
 use crate::service::keychain::api_keys::{AlpacaCredentialsStore, CoinMarketCapKeyStore};
+use crate::service::surfer::SurferKeyStore;
 use crate::ui::icons::{self, Icon};
 use crate::ui::kit::{Tone, time_text::relative_time};
 use crate::ui::settings::api_keys::{self, ApiKeysState};
@@ -25,7 +26,7 @@ pub const SIDEBAR_WIDTH: f32 = 224.0;
 /// The Settings window: the sidebar and a 616-point page.
 pub const WINDOW_SIZE: Vec2 = Vec2::new(840.0, 600.0);
 /// The smallest the window can be made: tall enough for every sidebar row.
-pub const MIN_SIZE: Vec2 = Vec2::new(520.0, 480.0);
+pub const MIN_SIZE: Vec2 = Vec2::new(520.0, 500.0);
 
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub enum SettingsSection {
@@ -35,6 +36,7 @@ pub enum SettingsSection {
     Alpaca,
     Brokers,
     CoinMarketCap,
+    Surfer,
     Ai,
     Notifications,
     Webhooks,
@@ -47,12 +49,13 @@ pub enum SettingsSection {
 }
 
 impl SettingsSection {
-    pub const ALL: [Self; 14] = [
+    pub const ALL: [Self; 15] = [
         Self::Appearance,
         Self::PineStudio,
         Self::Alpaca,
         Self::Brokers,
         Self::CoinMarketCap,
+        Self::Surfer,
         Self::Ai,
         Self::Notifications,
         Self::Webhooks,
@@ -78,6 +81,7 @@ impl SettingsSection {
             Self::Alpaca => "Alpaca",
             Self::Brokers => crate::ui::tr("Brokers", "Брокеры"),
             Self::CoinMarketCap => "CoinMarketCap",
+            Self::Surfer => "Surfer",
             Self::Ai => crate::ui::tr("AI Assistant", "AI Ассистент"),
             Self::Notifications => crate::ui::tr("Notifications", "Уведомления"),
             Self::Webhooks => crate::ui::tr("Webhooks", "Вебхуки"),
@@ -98,6 +102,7 @@ impl SettingsSection {
             Self::Alpaca => Color32::from_rgb(255, 159, 10),
             Self::Brokers => Color32::from_rgb(255, 112, 67),
             Self::CoinMarketCap => Color32::from_rgb(10, 132, 255),
+            Self::Surfer => Color32::from_rgb(0, 199, 190),
             Self::Ai => Color32::from_rgb(255, 214, 10),
             Self::Notifications => Color32::from_rgb(48, 209, 88),
             Self::Webhooks => Color32::from_rgb(48, 176, 199),
@@ -118,6 +123,7 @@ impl SettingsSection {
             Self::Alpaca => "alpaca",
             Self::Brokers => "brokers",
             Self::CoinMarketCap => "coinmarketcap",
+            Self::Surfer => "surfer",
             Self::Ai => "ai",
             Self::Notifications => "notifications",
             Self::Webhooks => "webhooks",
@@ -346,6 +352,7 @@ impl SettingsSection {
             Self::Alpaca => Icon::ChartLine,
             Self::Brokers => Icon::ArrowLeftRight,
             Self::CoinMarketCap => Icon::Gauge,
+            Self::Surfer => Icon::Key,
             Self::Ai => Icon::Sparkles,
             Self::Notifications => Icon::BellBadge,
             Self::Webhooks => Icon::ArrowUpRightSquare,
@@ -497,6 +504,18 @@ pub fn show(
                     "Графики рыночных настроений с возможностью увеличения лимитов API.",
                 ),
                 |ui| api_keys::coinmarketcap_body(ui, &mut state.api_keys, store),
+            );
+        }
+        SettingsSection::Surfer => {
+            let store = SurferKeyStore::shared();
+            page_shell(
+                &mut page,
+                section,
+                crate::ui::tr(
+                    "Surfer PRO indicators license & cloud authentication.",
+                    "Лицензия индикатора Surfer PRO и подключение к сервису.",
+                ),
+                |ui| api_keys::surfer_body(ui, &mut state.api_keys, store),
             );
         }
         SettingsSection::Ai => {
