@@ -233,6 +233,7 @@ pub(super) fn axis_texts(drawn: &Drawn) -> Vec<String> {
         .texts
         .iter()
         .filter(|(pos, ..)| pos.x > SIZE.x - 90.0)
+        .filter(|(_, text, _)| !text.contains(':'))
         .collect();
     pieces.sort_by(|a, b| a.0.y.total_cmp(&b.0.y));
     // Labels are many points apart; the pieces of one are within a few.
@@ -298,6 +299,24 @@ fn a_tiny_price_counts_its_zeros_on_the_axis_by_default() {
         );
         assert!(!label.contains("0.00"), "{label} writes no run of zeros");
     }
+}
+
+#[test]
+fn the_last_price_draws_a_bar_countdown_timer() {
+    let mut harness = Harness::new(ChartCanvas::default());
+    let (drawn, _) = harness.draw();
+    let timer_texts: Vec<&String> = drawn
+        .texts
+        .iter()
+        .filter(|(pos, ..)| pos.x > SIZE.x - 90.0)
+        .map(|(_, text, _)| text)
+        .filter(|text| text.contains(':'))
+        .collect();
+    assert!(
+        !timer_texts.is_empty(),
+        "expected countdown timer on price axis, got texts: {:?}",
+        drawn.texts
+    );
 }
 
 #[test]

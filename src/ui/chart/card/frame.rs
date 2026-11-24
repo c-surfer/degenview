@@ -517,6 +517,11 @@ impl ChartCard {
             shown_synthetic.and_then(|_| bars.last()),
             style,
         );
+        if main_visible && !candles.is_empty() {
+            painter
+                .ctx()
+                .request_repaint_after(std::time::Duration::from_millis(500));
+        }
         let main_tag_y = candles.last().map(|last| scale.y(last.close));
         self.paint_overlay_tags(
             &main_painter,

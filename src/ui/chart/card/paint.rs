@@ -383,16 +383,17 @@ impl ChartCard {
             .checked_sub(2)
             .map(|before| candles[before].close);
         let color = self.bar_color(last, previous_close);
-        // Dotted, so the line that follows the price reads apart from the grid and the drawings.
-        canvas::horizontal(
-            painter,
-            (plot.left(), plot.right()),
-            y,
-            canvas::LineStyle {
-                stroke: Stroke::new(1.0, color.gamma_multiply(0.65)),
-                dash: crate::model::chart::kind::LineDash::Dotted,
-            },
-        );
+
+        // Price line across the plot: 4.0 px dash, 3.0 px gap, with softened attenuation (0.85).
+        let y_crisp = canvas::crisp(y, 1.0, painter.ctx().pixels_per_point());
+        painter.extend(Shape::dashed_line(
+            &[Pos2::new(plot.left(), y_crisp), Pos2::new(plot.right(), y_crisp)],
+            Stroke::new(1.0, color.gamma_multiply(0.85)),
+            4.0,
+            3.0,
+        ));
+
+        // Current price tag on the vertical price scale.
         let tag = Rect::from_min_max(
             Pos2::new(plot.right() + 3.0, y - half),
             Pos2::new(rect.right() - 3.0, y + half),
@@ -406,6 +407,44 @@ impl ChartCard {
             style.price_font(),
             Color32::WHITE,
         );
+
+        // Bar countdown timer right under the price tag.
+        let now_ms = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis() as i64;
+        let remaining_ms = last.close_time.saturating_sub(now_ms).max(0);
+        let total_seconds = (remaining_ms + 999) / 1000;
+        let hours = total_seconds / 3600;
+        let minutes = (total_seconds % 3600) / 60;
+        let seconds = total_seconds % 60;
+        let countdown = if hours > 0 {
+            format!("{hours:02}:{minutes:02}:{seconds:02}")
+        } else {
+            format!("{minutes:02}:{seconds:02}")
+        };
+
+        let timer_height = (style.price_size + 6.0).max(16.0);
+        let timer_rect = Rect::from_min_size(
+            Pos2::new(tag.min.x, tag.max.y + 1.5),
+            Vec2::new(tag.width(), timer_height),
+        );
+        painter.rect_filled(
+            timer_rect,
+            2.5,
+            Color32::from_rgba_unmultiplied(0x1e, 0x22, 0x2d, 235),
+        );
+        painter.text(
+            timer_rect.center(),
+            Align2::CENTER_CENTER,
+            countdown,
+            style.time_font(),
+            Color32::from_rgb(209, 212, 220),
+        );
+
+        painter
+            .ctx()
+            .request_repaint_after(std::time::Duration::from_millis(500));
     }
 
     /// A bar's time as the chart writes it: to the second on a candle shorter than a minute.
