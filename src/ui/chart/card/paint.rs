@@ -446,9 +446,13 @@ impl ChartCard {
             Color32::from_rgb(230, 233, 240),
         );
 
-        painter
-            .ctx()
-            .request_repaint_after(std::time::Duration::from_millis(500));
+        // Repaint only when the displayed second actually changes (plus 25ms buffer for jitter).
+        if remaining_ms > 0 {
+            let ms_until_next_sec = ((remaining_ms - 1) % 1000 + 1) as u64;
+            painter
+                .ctx()
+                .request_repaint_after(std::time::Duration::from_millis(ms_until_next_sec + 25));
+        }
     }
 
     /// A bar's time as the chart writes it: to the second on a candle shorter than a minute.
