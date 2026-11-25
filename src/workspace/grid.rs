@@ -211,8 +211,15 @@ impl ChartWorkspace {
             }
         }
 
-        let valid_cols: HashSet<u64> = self.columns.iter().map(|c| c.id).collect();
-        self.row_weights.retain(|id, _| valid_cols.contains(id));
+        if self.row_weights.len() != col_count
+            || self
+                .row_weights
+                .keys()
+                .any(|id| !self.columns.iter().any(|c| c.id == *id))
+        {
+            self.row_weights
+                .retain(|id, _| self.columns.iter().any(|c| c.id == *id));
+        }
 
         for column in &self.columns {
             let row_count = column.chart_ids.len().max(1);
@@ -468,7 +475,6 @@ impl ChartWorkspace {
         let card_height =
             ChartLayout::grid_card_height(available.y, max_rows, ui.spacing().item_spacing.y);
 
-        let plan = self.columns.clone();
         let index_map: HashMap<u64, usize> = self
             .charts
             .iter()
@@ -619,7 +625,8 @@ impl ChartWorkspace {
             })
             .collect();
 
-        let row_weights_snapshot = self.row_weights.clone();
+        let plan = &self.columns;
+        let row_weights_map = &self.row_weights;
         let mut col_resizes: Vec<(usize, f32)> = Vec::new();
         let mut row_resizes: Vec<(u64, usize, f32)> = Vec::new();
 
@@ -661,17 +668,14 @@ impl ChartWorkspace {
                         let total_row_splitters_h =
                             total_row_splitters as f32 * ROW_SPLITTER_HEIGHT;
                         let usable_h = (available.y - total_row_splitters_h).max(0.0);
-                        let r_weights = row_weights_snapshot
-                            .get(&column.id)
-                            .cloned()
-                            .unwrap_or_else(|| vec![1.0 / row_count as f32; row_count]);
+                        let r_weights = row_weights_map.get(&column.id).map(Vec::as_slice);
 
                         let min_row_h = MIN_ROW_HEIGHT.min(usable_h / row_count as f32);
                         column_ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
 
                         for (row_index, &chart_id) in column.chart_ids.iter().enumerate() {
                             let row_weight = r_weights
-                                .get(row_index)
+                                .and_then(|w| w.get(row_index))
                                 .copied()
                                 .unwrap_or(1.0 / row_count as f32);
                             let this_card_height = if row_count == 1 {
@@ -1084,7 +1088,8 @@ impl ChartWorkspace {
             ctx.request_repaint();
         }
         for (col_id, row_idx, delta_y) in row_resizes {
-            let row_count = plan
+            let row_count = self
+                .columns
                 .iter()
                 .find(|c| c.id == col_id)
                 .map_or(1, |c| c.chart_ids.len());
