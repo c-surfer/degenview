@@ -24,6 +24,7 @@ if barstate.islast
 fn painted(harness: &Harness, input: &SnapshotInput) -> Vec<ClippedShape> {
     let rect = Rect::from_min_size(Pos2::ZERO, harness.card.snapshot_size());
     let ctx = egui::Context::default();
+    crate::ui::theme::install_offscreen(&ctx);
     let raw = egui::RawInput {
         screen_rect: Some(rect),
         ..Default::default()

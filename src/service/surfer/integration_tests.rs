@@ -66,6 +66,7 @@ impl Drop for StateGuard {
 fn test_surfer_end_to_end_lifecycle() {
     let _lock = crate::lock::lock(&TEST_LICENSE_LOCK);
     let _guard = StateGuard;
+    crypto::init_pro_pine_extension();
     set_cached_license_state(None);
 
     let bars = generate_test_bars(350);
@@ -80,14 +81,20 @@ fn test_surfer_end_to_end_lifecycle() {
 
     assert_eq!(indicator.id, "surfer-rsi");
     assert_eq!(indicator.name, "[Surfer] RSI v1");
-    assert!(!indicator.overlay, "Surfer RSI должен быть осциллятором (overlay = false)");
+    assert!(
+        !indicator.overlay,
+        "Surfer RSI должен быть осциллятором (overlay = false)"
+    );
     assert!(
         bundled::ALL.iter().any(|ind| ind.id == "surfer-rsi"),
         "Индикатор обязан присутствовать в статическом каталоге bundled::ALL"
     );
 
     // Проверяем, что PRO режим выключен
-    assert!(!is_pro_active(), "При холодном старте PRO режим должен быть неактивен");
+    assert!(
+        !is_pro_active(),
+        "При холодном старте PRO режим должен быть неактивен"
+    );
     assert_eq!(get_decrypt_key(), None);
     assert_eq!(current_license_state(), None);
 
@@ -140,12 +147,8 @@ fn test_surfer_end_to_end_lifecycle() {
     );
 
     // Исполнение Free Core на потоке баров
-    let (free_output, free_failure) = crate::host::pine::run_script_checked(
-        free_source.as_ref(),
-        &bars,
-        &symbol,
-        &empty_inputs,
-    );
+    let (free_output, free_failure) =
+        crate::host::pine::run_script_checked(free_source.as_ref(), &bars, &symbol, &empty_inputs);
     assert!(
         free_failure.is_none(),
         "Free Core должен успешно исполняться без рантайм-сбоев: {free_failure:?}"
@@ -175,7 +178,10 @@ fn test_surfer_end_to_end_lifecycle() {
     // Применяем активированное состояние
     set_cached_license_state(Some(state));
 
-    assert!(is_pro_active(), "После активации is_pro_active() должен возвращать true");
+    assert!(
+        is_pro_active(),
+        "После активации is_pro_active() должен возвращать true"
+    );
     assert_eq!(get_decrypt_key().as_deref(), Some(crypto::DEFAULT_PRO_KEY));
 
     let pro_source = indicator.effective_source();
@@ -224,12 +230,8 @@ fn test_surfer_end_to_end_lifecycle() {
     );
 
     // Исполнение PRO скрипта на потоке баров
-    let (pro_output, pro_failure) = crate::host::pine::run_script_checked(
-        pro_source.as_ref(),
-        &bars,
-        &symbol,
-        &empty_inputs,
-    );
+    let (pro_output, pro_failure) =
+        crate::host::pine::run_script_checked(pro_source.as_ref(), &bars, &symbol, &empty_inputs);
     assert!(
         pro_failure.is_none(),
         "Объединенный PRO Pine скрипт должен успешно исполняться на потоке баров: {pro_failure:?}"
@@ -246,16 +248,26 @@ fn test_surfer_end_to_end_lifecycle() {
     let store = SurferKeyStore::with_backend(Box::new(memory_backend));
 
     // Сохраняем ключ в хранилище
-    store.save("VALID_SURFER_KEY_XYZ").expect("Сохранение ключа должно пройти успешно");
+    store
+        .save("VALID_SURFER_KEY_XYZ")
+        .expect("Сохранение ключа должно пройти успешно");
     assert!(store.is_configured());
     assert_eq!(store.license().as_deref(), Some("VALID_SURFER_KEY_XYZ"));
 
     // Отзываем / удаляем лицензию через store.remove()
-    store.remove().expect("Удаление лицензии должно пройти успешно");
+    store
+        .remove()
+        .expect("Удаление лицензии должно пройти успешно");
 
-    assert!(!store.is_configured(), "После remove() хранилище должно быть не настроено");
+    assert!(
+        !store.is_configured(),
+        "После remove() хранилище должно быть не настроено"
+    );
     assert_eq!(store.license(), None);
-    assert!(!is_pro_active(), "После store.remove() PRO режим должен быть мгновенно сброшен в false");
+    assert!(
+        !is_pro_active(),
+        "После store.remove() PRO режим должен быть мгновенно сброшен в false"
+    );
     assert_eq!(get_decrypt_key(), None);
     assert_eq!(current_license_state(), None);
 

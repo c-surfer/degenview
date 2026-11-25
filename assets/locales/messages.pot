@@ -7568,6 +7568,10 @@ msgstr ""
 msgid "More text and notes"
 msgstr ""
 
+#: src/ui/workspace/toolbar.rs
+msgid "More timeframes"
+msgstr ""
+
 #: src/ui/chart/indicator_picker/mod.rs
 #: src/ui/chart/indicator_picker/sections.rs
 msgid "More to explore"
@@ -13761,6 +13765,10 @@ msgstr ""
 
 #: src/ui/workspace/toolbar.rs
 msgid "Timeframe"
+msgstr ""
+
+#: src/ui/workspace/toolbar.rs
+msgid "Timeframe: {timeframe}"
 msgstr ""
 
 #: src/ui/workspace/toolbar.rs

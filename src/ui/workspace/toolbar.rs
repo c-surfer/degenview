@@ -21,6 +21,8 @@ pub struct ToolbarInput<'a> {
     pub timeframe: Timeframe,
     /// The custom timeframes pinned in the timeframe picker.
     pub pinned: &'a [Timeframe],
+    /// The favorite timeframes starred for quick access on the toolbar.
+    pub favorites: &'a [Timeframe],
     /// The market sources of the tab's charts: the picker warns of one that cannot draw a
     /// timeframe.
     pub sources: &'a [DataSource],
@@ -78,6 +80,8 @@ pub enum ToolbarAction {
     /// Chart this timeframe and keep it among the picker's chips.
     PinTimeframe(Timeframe),
     UnpinTimeframe(Timeframe),
+    /// Star or unstar a timeframe for quick access on the toolbar.
+    ToggleFavoriteTimeframe(Timeframe),
     /// Open the symbol picker, to change the focused chart's market.
     OpenSymbolSearch,
     /// Open the symbol picker to compare another market on the focused chart.
@@ -155,6 +159,7 @@ pub fn show(ui: &mut Ui, input: &ToolbarInput) -> Vec<ToolbarAction> {
                 let picker = timeframe_picker::TimeframePickerInput {
                     current: input.timeframe,
                     pinned: input.pinned,
+                    favorites: input.favorites,
                     sources: input.sources,
                 };
                 match timeframe_picker::show(ui, response, &picker) {
@@ -166,6 +171,9 @@ pub fn show(ui: &mut Ui, input: &ToolbarInput) -> Vec<ToolbarAction> {
                     }
                     Some(TimeframePick::Unpin(timeframe)) => {
                         actions.push(ToolbarAction::UnpinTimeframe(timeframe));
+                    }
+                    Some(TimeframePick::ToggleFavorite(timeframe)) => {
+                        actions.push(ToolbarAction::ToggleFavoriteTimeframe(timeframe));
                     }
                     None => {}
                 }
@@ -219,18 +227,45 @@ fn left_items(input: &ToolbarInput) -> Vec<Item> {
             .on_click(ToolbarAction::CompareSymbol),
     ));
     items.push(Item::Separator);
-    // One button for the tab's timeframe; its popover lists the presets and the pinned ones.
-    let mut timeframe = Button::new("timeframe", tr!("Timeframe"))
-        .label(input.timeframe.label())
-        .chevron()
-        .with_menu(Menu::Timeframe);
-    timeframe.keep_label = true;
-    timeframe.weight = SEMIBOLD;
-    timeframe.access = Some(tr!(
-        "Timeframe: {timeframe}. Choose another",
-        timeframe = input.timeframe.description()
-    ));
-    items.push(Item::Button(timeframe));
+    // Favorite timeframes (quick access)
+    for tf in input.favorites {
+        let active = *tf == input.timeframe;
+        let mut btn = Button::new(format!("tf_fav_{}", tf.label()), tf.description())
+            .label(tf.label())
+            .compact()
+            .keep_label(true)
+            .active(active)
+            .quiet(!active)
+            .on_click(ToolbarAction::SetTimeframe(*tf));
+        btn.weight = if active { SEMIBOLD } else { REGULAR };
+        btn.access = Some(tr!("Timeframe: {timeframe}", timeframe = tf.description()));
+        items.push(Item::Button(btn));
+    }
+
+    if input.favorites.is_empty() {
+        let mut timeframe = Button::new("timeframe", tr!("Timeframe"))
+            .label(input.timeframe.label())
+            .chevron()
+            .with_menu(Menu::Timeframe);
+        timeframe.keep_label = true;
+        timeframe.weight = SEMIBOLD;
+        timeframe.access = Some(tr!(
+            "Timeframe: {timeframe}. Choose another",
+            timeframe = input.timeframe.description()
+        ));
+        items.push(Item::Button(timeframe));
+    } else {
+        let mut menu_btn = Button::new("timeframe_menu", tr!("More timeframes"))
+            .chevron()
+            .compact()
+            .with_menu(Menu::Timeframe);
+        if !input.favorites.contains(&input.timeframe) {
+            menu_btn = menu_btn.label(input.timeframe.label()).active(true);
+            menu_btn.keep_label = true;
+            menu_btn.weight = SEMIBOLD;
+        }
+        items.push(Item::Button(menu_btn));
+    }
     items.push(Item::Separator);
     let indicators_tip = if input.chart.is_some_and(|chart| !chart.indicators) {
         tr!("Indicators: this chart takes none")
@@ -322,11 +357,8 @@ fn right_items(input: &ToolbarInput) -> Vec<Item> {
     layout.menu = Some(Menu::Layout);
     layout.access = Some(tr!("Layout: {help}", help = help));
 
-    let mut grid_preset = Button::new(
-        "grid-preset",
-        tr!("Select grid layout"),
-    )
-    .icon(Icon::RectLeft);
+    let mut grid_preset =
+        Button::new("grid-preset", tr!("Select grid layout")).icon(Icon::RectLeft);
     grid_preset.menu = Some(Menu::GridPreset);
 
     let mut snapshot = Button::new("snapshot", tr!("Take a snapshot"))
@@ -383,38 +415,19 @@ fn right_items(input: &ToolbarInput) -> Vec<Item> {
 }
 
 /// The menu for picking a multi-chart grid preset in the style of TradingView.
-fn grid_preset_popup(
-    ui: &mut Ui,
-    response: &Response,
-    actions: &mut Vec<ToolbarAction>,
-) {
+fn grid_preset_popup(ui: &mut Ui, response: &Response, actions: &mut Vec<ToolbarAction>) {
     let presets = [
-        (
-            crate::model::GridLayoutPreset::Single,
-            tr!("1 chart"),
-        ),
-        (
-            crate::model::GridLayoutPreset::TwoColumns,
-            tr!("2 charts"),
-        ),
+        (crate::model::GridLayoutPreset::Single, tr!("1 chart")),
+        (crate::model::GridLayoutPreset::TwoColumns, tr!("2 charts")),
         (
             crate::model::GridLayoutPreset::ThreeLeftFocus,
             tr!("3 charts"),
         ),
-        (
-            crate::model::GridLayoutPreset::FourGrid,
-            tr!("4 charts"),
-        ),
-        (
-            crate::model::GridLayoutPreset::FiveSplit,
-            tr!("5 charts"),
-        ),
+        (crate::model::GridLayoutPreset::FourGrid, tr!("4 charts")),
+        (crate::model::GridLayoutPreset::FiveSplit, tr!("5 charts")),
     ];
 
-    let rows: Vec<(&str, Option<&str>)> = presets
-        .iter()
-        .map(|(_, label)| (*label, None))
-        .collect();
+    let rows: Vec<(&str, Option<&str>)> = presets.iter().map(|(_, label)| (*label, None)).collect();
 
     kit::fitted_menu_rows(ui, response, egui::RectAlign::BOTTOM_END, &rows, |ui| {
         for (preset, label) in presets {
@@ -666,6 +679,7 @@ mod tests {
         ToolbarInput {
             timeframe: Timeframe::DAY_1,
             pinned: &[],
+            favorites: &[],
             sources: &[DataSource::Binance],
             layout_name: "Morning",
             unsaved: false,

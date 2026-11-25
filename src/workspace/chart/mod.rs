@@ -755,7 +755,12 @@ mod tests {
 
     #[test]
     fn replacing_a_chart_from_a_watchlist_updates_its_market_metadata() {
-        let mut chart = Chart::blank(1, "OldPairAddress", DataSource::DexScreener, Timeframe::HOUR_1);
+        let mut chart = Chart::blank(
+            1,
+            "OldPairAddress",
+            DataSource::DexScreener,
+            Timeframe::HOUR_1,
+        );
         chart.chart.set_title(Some("OLD/USDC".into()));
         chart.pm_series.push(PmSeries {
             token_id: "old-choice".into(),

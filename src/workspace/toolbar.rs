@@ -48,6 +48,11 @@ impl ChartWorkspace {
             .lock()
             .map(|store| store.pinned_timeframes_cached())
             .unwrap_or_default();
+        let favorites = self
+            .store
+            .lock()
+            .map(|store| store.favorite_timeframes_cached())
+            .unwrap_or_default();
         let sources: Vec<DataSource> = self
             .charts
             .iter()
@@ -60,6 +65,7 @@ impl ChartWorkspace {
                 .map(|c| c.timeframe)
                 .unwrap_or(self.timeframe),
             pinned: &pinned,
+            favorites: &favorites,
             sources: &sources,
             layout_name: self.layout.active_view_name().unwrap_or(tr!("Unnamed")),
             // Autosave keeps a layout clean in the user's eyes: "(unsaved)" only shows while
@@ -108,6 +114,9 @@ impl ChartWorkspace {
                     self.set_timeframe(timeframe, ctx);
                 }
                 ToolbarAction::UnpinTimeframe(timeframe) => self.unpin_timeframe(timeframe),
+                ToolbarAction::ToggleFavoriteTimeframe(timeframe) => {
+                    self.toggle_favorite_timeframe(timeframe);
+                }
                 ToolbarAction::OpenSymbolSearch => self.open_symbol_picker(),
                 ToolbarAction::SaveLayout => save_clicked = true,
                 ToolbarAction::CopyLayout => copy_clicked = true,
@@ -198,6 +207,12 @@ impl ChartWorkspace {
     fn unpin_timeframe(&self, timeframe: Timeframe) {
         if let Ok(store) = self.store.lock() {
             let _ = store.unpin_timeframe(timeframe);
+        }
+    }
+
+    fn toggle_favorite_timeframe(&self, timeframe: Timeframe) {
+        if let Ok(store) = self.store.lock() {
+            let _ = store.toggle_favorite_timeframe(timeframe);
         }
     }
 
@@ -323,7 +338,12 @@ mod tests {
         workspace.set_chart_timeframe(second, Timeframe::HOUR_1, &ctx);
 
         let tf_of = |workspace: &super::ChartWorkspace, id: u64| {
-            workspace.charts.iter().find(|c| c.id == id).unwrap().timeframe
+            workspace
+                .charts
+                .iter()
+                .find(|c| c.id == id)
+                .unwrap()
+                .timeframe
         };
         assert_eq!(tf_of(&workspace, first), Timeframe::MINUTE_15);
         assert_eq!(tf_of(&workspace, second), Timeframe::HOUR_1);
@@ -343,7 +363,12 @@ mod tests {
         workspace.set_chart_timeframe(first, Timeframe::MINUTE_15, &ctx);
 
         let dup_id = workspace.duplicate_chart(first, &ctx).expect("duplicated");
-        let dup_tf = workspace.charts.iter().find(|c| c.id == dup_id).unwrap().timeframe;
+        let dup_tf = workspace
+            .charts
+            .iter()
+            .find(|c| c.id == dup_id)
+            .unwrap()
+            .timeframe;
         assert_eq!(dup_tf, Timeframe::MINUTE_15);
     }
 

@@ -3,8 +3,8 @@
 //! any DPI and need no font or image loader.
 
 use eframe::egui::{
-    Color32, CornerRadius, Mesh, Painter, Pos2, Rect, Response, Sense, Shape, Stroke, StrokeKind,
-    Ui, Vec2, epaint::PathShape, pos2, vec2,
+    Color32, CornerRadius, CursorIcon, Mesh, Painter, Pos2, Rect, Response, Sense, Shape, Stroke,
+    StrokeKind, Ui, Vec2, epaint::PathShape, pos2, vec2,
 };
 
 /// The glyph set the app draws.
@@ -474,8 +474,12 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
             );
             painter.rect_stroke(outer, round(2.5), stroke, StrokeKind::Middle);
         }
-        Icon::Star => closed(&star_points(6.6, 3.0)),
-        Icon::StarFill => fill_poly(star_points(6.9, 3.2)),
+        Icon::Star => closed(&star_points(6.7, 2.65)),
+        Icon::StarFill => {
+            let pts = star_points(6.7, 2.65);
+            fill_poly(pts.clone());
+            closed(&pts);
+        }
         Icon::Minus => line(&[p(3.0, 8.0), p(13.0, 8.0)]),
         Icon::RectFill => {
             painter.rect_filled(rect_of(p(2.0, 3.5), p(14.0, 12.5)), round(1.8), color);
@@ -2403,7 +2407,9 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
 /// An icon-only button: a square hit target with a hover/press fill, like a toolbar item.
 pub fn button(ui: &mut Ui, icon: Icon, size: f32, color: Color32, tooltip: &str) -> Response {
     let (rect, response) = ui.allocate_exact_size(Vec2::splat(size), Sense::click());
-    let response = super::accessibility::label(response, tooltip).on_hover_text(tooltip);
+    let response = super::accessibility::label(response, tooltip)
+        .on_hover_text(tooltip)
+        .on_hover_cursor(CursorIcon::PointingHand);
     if ui.is_rect_visible(rect) {
         let fill = if response.is_pointer_button_down_on() {
             super::theme::ink(26)

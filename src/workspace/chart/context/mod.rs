@@ -973,7 +973,11 @@ impl ChartWorkspace {
         let Some(index) = self.chart_index(chart_id) else {
             return;
         };
-        let title = format!("{} {}", self.charts[index].symbol, self.charts[index].timeframe.label());
+        let title = format!(
+            "{} {}",
+            self.charts[index].symbol,
+            self.charts[index].timeframe.label()
+        );
         let hours = session_stats::MarketHours::for_source(self.charts[index].source);
         let bar_ms = self.charts[index].timeframe.nominal_ms();
         // The chart data borrows the workspace, so the panel's state is lent out for the frame.

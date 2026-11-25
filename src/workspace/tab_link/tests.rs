@@ -436,7 +436,11 @@ fn choosing_an_already_open_market_in_the_watchlist_is_announced() {
 
     // The user clicks ETH in the watchlist: it replaces the market on the focused chart and announces it.
     workspace.open_watchlist_instrument(&row("ETHUSDT"), &ctx);
-    assert_eq!(workspace.focused, Some(first), "focus stays on active chart");
+    assert_eq!(
+        workspace.focused,
+        Some(first),
+        "focus stays on active chart"
+    );
     assert_eq!(shown(&workspace, first), "ETHUSDT");
     assert_eq!(shown(&workspace, second), "ETHUSDT");
     let signals = workspace.take_link_signals();

@@ -201,7 +201,12 @@ impl Previews {
         }
         let scripts = bundled::ALL
             .iter()
-            .map(|indicator| (EntryKey::Bundled(indicator.id), indicator.effective_source().into_owned()))
+            .map(|indicator| {
+                (
+                    EntryKey::Bundled(indicator.id),
+                    indicator.effective_source().into_owned(),
+                )
+            })
             .collect();
         self.runs = Some(BatchRun::start(
             scripts,

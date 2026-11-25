@@ -240,10 +240,10 @@ impl SurferForm {
         }
         self.loaded = true;
         self.configured = store.is_configured();
-        if self.configured {
-            if let Some(license) = store.license() {
-                self.license = license;
-            }
+        if self.configured
+            && let Some(license) = store.license()
+        {
+            self.license = license;
         }
     }
 
@@ -281,7 +281,10 @@ impl SurferForm {
                 self.configured = false;
                 StatusMessage::ok(tr!("License removed. Basic RSI mode is active."))
             }
-            Err(error) => StatusMessage::error(tr!("Could not remove the license: {error}", error = error.0)),
+            Err(error) => StatusMessage::error(tr!(
+                "Could not remove the license: {error}",
+                error = error.0
+            )),
         });
     }
 
@@ -307,9 +310,9 @@ impl SurferForm {
         let Some(pending) = &mut self.test else {
             return;
         };
-        let Some(outcome) = pending.poll_or(|| {
-            Err(tr!("The connection test stopped unexpectedly.").to_string())
-        }) else {
+        let Some(outcome) =
+            pending.poll_or(|| Err(tr!("The connection test stopped unexpectedly.").to_string()))
+        else {
             return;
         };
         self.test = None;
@@ -540,11 +543,7 @@ pub fn coinmarketcap_body(
     );
 }
 
-pub fn surfer_body(
-    ui: &mut egui::Ui,
-    state: &mut ApiKeysState,
-    store: &SurferKeyStore,
-) {
+pub fn surfer_body(ui: &mut egui::Ui, state: &mut ApiKeysState, store: &SurferKeyStore) {
     let form = &mut state.surfer;
     form.load(store);
     form.poll_test(store);
@@ -578,19 +577,12 @@ pub fn surfer_body(
                 ui.spacing_mut().item_spacing.x = 10.0;
                 if form.is_testing() {
                     ui.add(LoadingIndicator::new().size(14.0));
-                } else if kit::sheet_button(
-                    ui,
-                    tr!("Test Connection"),
-                    false,
-                    form.can_save(),
-                )
-                .clicked()
+                } else if kit::sheet_button(ui, tr!("Test Connection"), false, form.can_save())
+                    .clicked()
                 {
                     form.start_test(Some(ui.ctx()), store);
                 }
-                if form.configured
-                    && destructive_button(ui, tr!("Remove License")).clicked()
-                {
+                if form.configured && destructive_button(ui, tr!("Remove License")).clicked() {
                     form.remove(store);
                     form.autosave.cancel();
                 }
@@ -764,10 +756,7 @@ mod tests {
         form.license = "  CS-TEST-KEY-1234  ".into();
         assert!(form.can_save());
         form.save(&store);
-        assert_eq!(
-            form.status,
-            Some(StatusMessage::saved_securely())
-        );
+        assert_eq!(form.status, Some(StatusMessage::saved_securely()));
         assert!(form.configured);
         assert_eq!(form.badge(), ("Active", Tone::Good));
         assert_eq!(store.license().as_deref(), Some("CS-TEST-KEY-1234"));
@@ -816,7 +805,9 @@ mod tests {
         assert!(!form.is_testing());
         assert_eq!(
             form.status,
-            Some(StatusMessage::ok("License active until 2027-01-01 (User: AlphaTrader)"))
+            Some(StatusMessage::ok(
+                "License active until 2027-01-01 (User: AlphaTrader)"
+            ))
         );
         assert!(form.configured);
         assert_eq!(store.license().as_deref(), Some("CS-TEST-KEY"));
@@ -834,19 +825,13 @@ mod tests {
         });
         wait_for_surfer_test(&mut form, &store);
         assert!(!form.is_testing());
-        assert_eq!(
-            form.status,
-            Some(StatusMessage::error("Key expired"))
-        );
+        assert_eq!(form.status, Some(StatusMessage::error("Key expired")));
 
         // Network / transport error
         form.start_test_with(None, |_| Err("HTTP timeout".into()));
         wait_for_surfer_test(&mut form, &store);
         assert!(!form.is_testing());
-        assert_eq!(
-            form.status,
-            Some(StatusMessage::error("HTTP timeout"))
-        );
+        assert_eq!(form.status, Some(StatusMessage::error("HTTP timeout")));
     }
 
     /// A setup step is longer in another language and wraps under its number; it does not run past

@@ -119,9 +119,7 @@ impl ChartCard {
                                 ui.set_max_width(title_max_width);
                                 ui.add(
                                     egui::Label::new(
-                                        egui::RichText::new(title_text)
-                                            .size(13.0)
-                                            .strong(),
+                                        egui::RichText::new(title_text).size(13.0).strong(),
                                     )
                                     .truncate()
                                     .sense(Sense::click()),
@@ -292,6 +290,7 @@ impl ChartCard {
                                             theme::text_secondary(),
                                             tr!("Remove Chart"),
                                         )
+                                        .on_hover_cursor(egui::CursorIcon::PointingHand)
                                         .clicked()
                                     {
                                         action.remove_requested = true;

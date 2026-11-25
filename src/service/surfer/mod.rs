@@ -25,8 +25,7 @@ const SURFER_SCOPE: Scope = Scope {
 };
 
 /// Default Google Apps Script Web App URL for Surfer license verification.
-pub const DEFAULT_GAS_URL: &str =
-    "https://script.google.com/macros/s/AKfycbyM7uY4v5wCVLKUIXP5aRbZ2g4J-RKNV7eeyldHTkm6BkcgLTMMKfSygjvPsqpcbiPAzw/exec";
+pub const DEFAULT_GAS_URL: &str = "https://script.google.com/macros/s/AKfycbyM7uY4v5wCVLKUIXP5aRbZ2g4J-RKNV7eeyldHTkm6BkcgLTMMKfSygjvPsqpcbiPAzw/exec";
 
 /// Environment variable overriding the Google Apps Script Web App endpoint URL.
 pub const SURFER_URL_ENV: &str = "DEGENVIEW_SURFER_URL";
@@ -65,17 +64,16 @@ fn resolve_hwid() -> String {
 
     let hwid_file = crate::paths::data_dir().map(|dir| dir.join("machine_id"));
 
-    if let Some(path) = &hwid_file {
-        if let Ok(content) = std::fs::read_to_string(path) {
-            let trimmed = content.trim();
-            if trimmed.len() >= 16 {
-                return trimmed.to_owned();
-            }
+    if let Some(path) = &hwid_file
+        && let Ok(content) = std::fs::read_to_string(path)
+    {
+        let trimmed = content.trim();
+        if trimmed.len() >= 16 {
+            return trimmed.to_owned();
         }
     }
 
-    let raw_id = read_system_machine_id()
-        .unwrap_or_else(|| crate::store::sync::new_device_id());
+    let raw_id = read_system_machine_id().unwrap_or_else(crate::store::sync::new_device_id);
 
     let final_hwid = crate::model::encoding::sha256_hex(raw_id.trim().as_bytes());
 
@@ -286,7 +284,9 @@ impl SurferKeyStore {
             if key.is_none() {
                 key = self.read_fallback();
                 if let Some(ref fallback_key) = key {
-                    let _ = self.backend.write(SURFER_SCOPE, SURFER_ACCOUNT, fallback_key);
+                    let _ = self
+                        .backend
+                        .write(SURFER_SCOPE, SURFER_ACCOUNT, fallback_key);
                 }
             }
             cache.license = key;
@@ -679,7 +679,8 @@ mod tests {
         let _ = std::fs::remove_file(&file_path);
 
         let memory = MemoryBackend::default();
-        let store = SurferKeyStore::with_backend_and_path(Box::new(memory), Some(file_path.clone()));
+        let store =
+            SurferKeyStore::with_backend_and_path(Box::new(memory), Some(file_path.clone()));
 
         // Save
         store.save("CS-DUAL-KEY-999").unwrap();
@@ -696,8 +697,12 @@ mod tests {
 
         // Simulate keychain wiped / backend empty in Flatpak sandbox restart
         let empty_backend = MemoryBackend::default();
-        let store2 = SurferKeyStore::with_backend_and_path(Box::new(empty_backend), Some(file_path.clone()));
-        assert!(store2.is_configured(), "Should detect key from fallback file");
+        let store2 =
+            SurferKeyStore::with_backend_and_path(Box::new(empty_backend), Some(file_path.clone()));
+        assert!(
+            store2.is_configured(),
+            "Should detect key from fallback file"
+        );
         assert_eq!(
             store2.license().as_deref(),
             Some("CS-DUAL-KEY-999"),
@@ -707,7 +712,10 @@ mod tests {
         // Cleanup
         store2.remove().unwrap();
         assert_eq!(store2.license(), None);
-        assert!(!file_path.exists(), "Fallback file must be cleaned up on remove");
+        assert!(
+            !file_path.exists(),
+            "Fallback file must be cleaned up on remove"
+        );
     }
 
     #[test]

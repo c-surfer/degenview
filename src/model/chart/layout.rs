@@ -143,14 +143,14 @@ impl ChartLayout {
 /// Presets for multi-chart grid layouts in the style of TradingView.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub enum GridLayoutPreset {
-    Single,           // 1 график
-    TwoColumns,       // 2 графика рядом (2 колонки)
-    TwoRows,          // 2 графика друг под другом (1 колонка, 2 строки)
-    ThreeLeftFocus,   // 3 графика: 1 слева во всю высоту + 2 справа друг над другом (Скриншот 3)
-    ThreeRightFocus,  // 3 графика: 2 слева друг над другом + 1 справа во всю высоту
-    ThreeColumns,     // 3 графика: 3 колонки
-    FourGrid,         // 4 графика: сетка 2x2 (2 колонки по 2 графика)
-    FiveSplit,        // 5 графиков: 2 слева (65%), 3 справа (35%)
+    Single,          // 1 график
+    TwoColumns,      // 2 графика рядом (2 колонки)
+    TwoRows,         // 2 графика друг под другом (1 колонка, 2 строки)
+    ThreeLeftFocus,  // 3 графика: 1 слева во всю высоту + 2 справа друг над другом (Скриншот 3)
+    ThreeRightFocus, // 3 графика: 2 слева друг над другом + 1 справа во всю высоту
+    ThreeColumns,    // 3 графика: 3 колонки
+    FourGrid,        // 4 графика: сетка 2x2 (2 колонки по 2 графика)
+    FiveSplit,       // 5 графиков: 2 слева (65%), 3 справа (35%)
 }
 
 impl GridLayoutPreset {
@@ -443,10 +443,7 @@ mod tests {
         assert!(arranged(GridLayoutPreset::FourGrid, &[]).is_empty());
 
         // Fewer charts
-        assert_eq!(
-            arranged(GridLayoutPreset::TwoColumns, &[1]),
-            vec![vec![1]]
-        );
+        assert_eq!(arranged(GridLayoutPreset::TwoColumns, &[1]), vec![vec![1]]);
         assert_eq!(
             arranged(GridLayoutPreset::ThreeLeftFocus, &[1]),
             vec![vec![1]]

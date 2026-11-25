@@ -79,6 +79,10 @@ pub struct Button<A, M> {
     pub keep_label: bool,
     /// Quiet text until hovered or lit (a timeframe that is not the current one).
     pub quiet: bool,
+    /// More compact padding for dense groups like quick-access timeframe buttons.
+    pub compact: bool,
+    /// Custom font size (in points), defaulting to size::CALLOUT (12.0) for compact buttons or size::BODY (13.0).
+    pub font_size: Option<f32>,
     pub weight: f32,
     pub min_width: f32,
     /// The popup the button owns; the caller draws it.
@@ -103,6 +107,8 @@ impl<A, M> Button<A, M> {
             tint: None,
             keep_label: false,
             quiet: false,
+            compact: false,
+            font_size: None,
             weight: MEDIUM,
             min_width: 0.0,
             menu: None,
@@ -124,6 +130,21 @@ impl<A, M> Button<A, M> {
 
     pub fn on_click(mut self, action: A) -> Self {
         self.action = Some(action);
+        self
+    }
+
+    pub fn compact(mut self) -> Self {
+        self.compact = true;
+        self
+    }
+
+    pub fn quiet(mut self, quiet: bool) -> Self {
+        self.quiet = quiet;
+        self
+    }
+
+    pub fn keep_label(mut self, keep: bool) -> Self {
+        self.keep_label = keep;
         self
     }
 
@@ -205,13 +226,18 @@ fn measure<'a, A, M>(ui: &Ui, items: &'a [Item<A, M>], labels: bool) -> Vec<Slot
             Item::Separator => Slot::Separator,
             Item::Button(button) => {
                 let shown = button.glyph.is_none() || labels || button.keep_label;
+                let font_size = button.font_size.unwrap_or(if button.compact {
+                    size::CALLOUT
+                } else {
+                    LABEL_SIZE
+                });
                 let text = |value: &Option<String>, weight: f32| {
                     value.as_ref().filter(|_| shown).map(|value| {
                         // The colour is chosen when the button is painted.
                         kit::galley(
                             ui,
                             value,
-                            LABEL_SIZE,
+                            font_size,
                             weight,
                             Color32::PLACEHOLDER,
                             NAME_MAX_WIDTH,
@@ -221,11 +247,12 @@ fn measure<'a, A, M>(ui: &Ui, items: &'a [Item<A, M>], labels: bool) -> Vec<Slot
                 let label = text(&button.label, button.weight);
                 let suffix = text(&button.suffix, REGULAR);
                 let content = content_width(button, label.as_deref(), suffix.as_deref());
+                let pad = if button.compact { 4.0 } else { PAD };
                 Slot::Button(Measured {
                     button,
                     label,
                     suffix,
-                    width: (content + 2.0 * PAD).max(button.min_width),
+                    width: (content + 2.0 * pad).max(button.min_width),
                 })
             }
         })

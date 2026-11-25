@@ -67,6 +67,8 @@ fn persisted_session_round_trips() {
             active_view: Some(9),
             custom_title: None,
             link: None,
+            column_weights: Vec::new(),
+            row_weights: std::collections::HashMap::new(),
         })],
     };
     let encoded = serde_json::to_string(&session).expect("serialize session");

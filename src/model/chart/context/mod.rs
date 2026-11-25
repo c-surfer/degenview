@@ -754,9 +754,7 @@ fn background(context: &ChartContext, facts: &Facts) -> Vec<Entry> {
         .disabled_unless(facts.time_locked || context.time_ms.is_some(), no_price()),
     ];
 
-    let mut utilities = vec![
-        Item::new(Command::DuplicateChart, tr!("Duplicate chart")),
-    ];
+    let mut utilities = vec![Item::new(Command::DuplicateChart, tr!("Duplicate chart"))];
     if facts.can_close {
         utilities.push(Item::new(Command::CloseChart, tr!("Close chart")));
     }

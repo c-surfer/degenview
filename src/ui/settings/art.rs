@@ -293,7 +293,10 @@ impl Art<'_> {
         let card = self.scene();
         let centre = card.center();
         let base_y = centre.y;
-        for (i, (y_off, alpha)) in [(-7.0, 0.22), (0.0, 0.4), (7.0, 0.22)].into_iter().enumerate() {
+        for (i, (y_off, alpha)) in [(-7.0, 0.22), (0.0, 0.4), (7.0, 0.22)]
+            .into_iter()
+            .enumerate()
+        {
             let y = base_y + y_off;
             let stroke_color = self.tint.gamma_multiply(alpha);
             let mut points = Vec::new();

@@ -285,9 +285,12 @@ mod tests {
         let mut workspace = empty_workspace(1);
         workspace.timeframe = Timeframe::parse("5m").unwrap();
         for id in 1..=2 {
-            workspace
-                .charts
-                .push(Chart::blank(id, "BTCUSDT", DataSource::Binance, workspace.timeframe));
+            workspace.charts.push(Chart::blank(
+                id,
+                "BTCUSDT",
+                DataSource::Binance,
+                workspace.timeframe,
+            ));
         }
         let live = |open: i64, volume: f64| Kline {
             volume,
@@ -321,9 +324,12 @@ mod tests {
     fn a_refresh_that_replaces_the_forming_bucket_makes_the_next_live_kline_start_from_it() {
         let mut workspace = empty_workspace(1);
         workspace.timeframe = Timeframe::parse("5m").unwrap();
-        workspace
-            .charts
-            .push(Chart::blank(1, "BTCUSDT", DataSource::Binance, workspace.timeframe));
+        workspace.charts.push(Chart::blank(
+            1,
+            "BTCUSDT",
+            DataSource::Binance,
+            workspace.timeframe,
+        ));
         let mut kline = candle(0, 5.0);
         kline.volume = 4.0;
         workspace.apply_live_kline(

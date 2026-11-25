@@ -183,6 +183,7 @@ pub fn tile_chip_text_width(ui: &Ui, label: &str) -> f32 {
 /// One choice of a grid: a rounded rectangle of exactly `extent` with a hairline border, the label
 /// centred. `selected` is the choice made (lit, semibold); `highlighted` is the keyboard's place,
 /// drawn like a hover.
+#[allow(dead_code)]
 pub fn tile_chip(
     ui: &mut Ui,
     extent: Vec2,
@@ -190,6 +191,19 @@ pub fn tile_chip(
     selected: bool,
     highlighted: bool,
 ) -> egui::Response {
+    tile_chip_starred(ui, extent, label, selected, highlighted, false).0
+}
+
+/// One choice of a grid with an optional favorite star on the right: a rounded rectangle of
+/// exactly `extent` with a hairline border. Returns `(response, star_clicked)`.
+pub fn tile_chip_starred(
+    ui: &mut Ui,
+    extent: Vec2,
+    label: &str,
+    selected: bool,
+    highlighted: bool,
+    is_favorite: bool,
+) -> (egui::Response, bool) {
     let (rect, response) = ui.allocate_exact_size(extent, Sense::click());
     let response = response.on_hover_cursor(egui::CursorIcon::PointingHand);
     response.widget_info(|| {
@@ -217,10 +231,44 @@ pub fn tile_chip(
         theme::text_primary(),
         f32::INFINITY,
     );
-    ui.painter().galley(
-        rect.center() - text.size() / 2.0,
+    // Draw label slightly shifted left to give comfortable room for the star
+    painter.galley(
+        pos2(
+            rect.center().x - text.size().x / 2.0 - 5.0,
+            rect.center().y - text.size().y / 2.0,
+        ),
         text,
         theme::text_primary(),
     );
-    response
+
+    // Star icon on the right
+    let star_center = pos2(rect.right() - 12.0, rect.center().y);
+    let star_hit_rect = Rect::from_center_size(star_center, Vec2::splat(18.0));
+    let star_hovered = ui.rect_contains_pointer(star_hit_rect);
+    let pointer_pos = ui.input(|i| i.pointer.interact_pos());
+    let star_clicked =
+        response.clicked() && pointer_pos.map_or(star_hovered, |p| star_hit_rect.contains(p));
+
+    let star_icon = if is_favorite {
+        Icon::StarFill
+    } else {
+        Icon::Star
+    };
+
+    let star_color = if is_favorite || star_hovered {
+        Color32::from_rgb(245, 186, 73) // Warm golden yellow
+    } else if lit {
+        theme::text_secondary()
+    } else {
+        theme::with_alpha(theme::text_tertiary(), 0.5)
+    };
+
+    icons::paint(
+        painter,
+        Rect::from_center_size(star_center, Vec2::splat(11.0)),
+        star_icon,
+        star_color,
+    );
+
+    (response, star_clicked)
 }

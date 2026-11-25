@@ -115,11 +115,11 @@ impl ChartWorkspace {
                 }
             }
 
-            if let Some(pos) = self.charts.iter().position(|c| c.id == target_id) {
-                if pos > 0 {
-                    let focused_chart = self.charts.remove(pos);
-                    self.charts.insert(0, focused_chart);
-                }
+            if let Some(pos) = self.charts.iter().position(|c| c.id == target_id)
+                && pos > 0
+            {
+                let focused_chart = self.charts.remove(pos);
+                self.charts.insert(0, focused_chart);
             }
         }
 
@@ -134,26 +134,14 @@ impl ChartWorkspace {
             crate::model::GridLayoutPreset::Single => {
                 self.column_weights = vec![1.0];
             }
-            crate::model::GridLayoutPreset::ThreeLeftFocus => {
-                if col_count == 2 {
-                    self.column_weights = vec![0.65, 0.35];
-                } else {
-                    self.column_weights = vec![1.0 / col_count as f32; col_count];
-                }
+            crate::model::GridLayoutPreset::ThreeLeftFocus if col_count == 2 => {
+                self.column_weights = vec![0.65, 0.35];
             }
-            crate::model::GridLayoutPreset::ThreeRightFocus => {
-                if col_count == 2 {
-                    self.column_weights = vec![0.35, 0.65];
-                } else {
-                    self.column_weights = vec![1.0 / col_count as f32; col_count];
-                }
+            crate::model::GridLayoutPreset::ThreeRightFocus if col_count == 2 => {
+                self.column_weights = vec![0.35, 0.65];
             }
-            crate::model::GridLayoutPreset::FiveSplit => {
-                if col_count == 2 {
-                    self.column_weights = vec![0.65, 0.35];
-                } else {
-                    self.column_weights = vec![1.0 / col_count as f32; col_count];
-                }
+            crate::model::GridLayoutPreset::FiveSplit if col_count == 2 => {
+                self.column_weights = vec![0.65, 0.35];
             }
             _ => {
                 self.column_weights = vec![1.0 / col_count as f32; col_count];
@@ -193,7 +181,23 @@ impl ChartWorkspace {
         }
 
         if self.column_weights.len() != col_count {
-            self.column_weights = vec![1.0 / col_count as f32; col_count];
+            if col_count == 2 {
+                if self.columns[0].chart_ids.len() == 1 && self.columns[1].chart_ids.len() == 2 {
+                    self.column_weights = vec![0.65, 0.35];
+                } else if self.columns[0].chart_ids.len() == 2
+                    && self.columns[1].chart_ids.len() == 1
+                {
+                    self.column_weights = vec![0.35, 0.65];
+                } else if self.columns[0].chart_ids.len() == 2
+                    && self.columns[1].chart_ids.len() == 3
+                {
+                    self.column_weights = vec![0.65, 0.35];
+                } else {
+                    self.column_weights = vec![0.5, 0.5];
+                }
+            } else {
+                self.column_weights = vec![1.0 / col_count as f32; col_count];
+            }
         } else {
             let sum: f32 = self.column_weights.iter().sum();
             if sum <= 0.0 || sum.is_nan() || (sum - 1.0).abs() > 0.001 {
@@ -271,9 +275,7 @@ impl ChartWorkspace {
         }
         let delta_w = delta_y / usable_height;
         let sum_w = weights[row_index] + weights[row_index + 1];
-        let min_w = (MIN_ROW_HEIGHT / usable_height)
-            .max(0.10)
-            .min(sum_w * 0.45);
+        let min_w = (MIN_ROW_HEIGHT / usable_height).max(0.10).min(sum_w * 0.45);
         let max_w = sum_w - min_w;
         if min_w < max_w {
             let new_top = (weights[row_index] + delta_w).clamp(min_w, max_w);
@@ -623,8 +625,7 @@ impl ChartWorkspace {
 
         ui.horizontal_top(|ui| {
             ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
-            for column_index in 0..total_slots {
-                let col_width = col_widths[column_index];
+            for (column_index, &col_width) in col_widths.iter().enumerate().take(total_slots) {
                 ui.allocate_ui_with_layout(
                     egui::vec2(col_width, available.y),
                     egui::Layout::top_down(egui::Align::Min),
@@ -779,8 +780,7 @@ impl ChartWorkspace {
                                             candles,
                                         );
                                     }
-                                    let instrument =
-                                        InstrumentId::new(chart.source, &chart.symbol);
+                                    let instrument = InstrumentId::new(chart.source, &chart.symbol);
                                     let memberships: Vec<crate::ui::WatchlistMembership> =
                                         watchlist_memberships
                                             .iter()
@@ -841,16 +841,12 @@ impl ChartWorkspace {
                                         chart.chart.set_values_tooltip(values_tooltip);
                                         chart.chart.set_snapshot_select(selecting_portion);
                                         let for_logs = logs_chart == Some(chart_id);
-                                        chart
-                                            .chart
-                                            .set_logs_range(logs_range.filter(|_| for_logs));
-                                        chart.chart.set_pick_kind(
-                                            if for_logs && logs_picking {
-                                                PickKind::LogsRange
-                                            } else {
-                                                PickKind::Replay
-                                            },
-                                        );
+                                        chart.chart.set_logs_range(logs_range.filter(|_| for_logs));
+                                        chart.chart.set_pick_kind(if for_logs && logs_picking {
+                                            PickKind::LogsRange
+                                        } else {
+                                            PickKind::Replay
+                                        });
                                         let mut replay_frame = ReplayChartFrame {
                                             // Select portion has the pointer: nothing is
                                             // picked meanwhile, and the pick waits.
@@ -901,9 +897,7 @@ impl ChartWorkspace {
                                             && let Some(change) = chart.chart.link_change()
                                         {
                                             self.link_state.outbox.push(
-                                                crate::model::tab::link::LinkSignal::View(
-                                                    change,
-                                                ),
+                                                crate::model::tab::link::LinkSignal::View(change),
                                             );
                                         }
                                         if linked
@@ -928,10 +922,8 @@ impl ChartWorkspace {
                                         if frame.copy_image.is_some() {
                                             picture_copy = frame.copy_image.take();
                                         }
-                                        if let Some((drawing_id, request)) = frame.link_request
-                                        {
-                                            link_request =
-                                                Some((chart_id, drawing_id, request));
+                                        if let Some((drawing_id, request)) = frame.link_request {
+                                            link_request = Some((chart_id, drawing_id, request));
                                         }
                                         drawing_reveal |= frame.reveal_all;
                                         drawing_copy |= frame.copy_requested;
@@ -945,20 +937,17 @@ impl ChartWorkspace {
                                             drawing_properties_request =
                                                 Some((chart_id, drawing_id));
                                         }
-                                        let frame_commands =
-                                            std::mem::take(&mut frame.commands);
+                                        let frame_commands = std::mem::take(&mut frame.commands);
                                         if !frame_commands.is_empty() {
                                             drawing_commands.push((chart_id, frame_commands));
                                         }
                                         if pointer.clicked {
                                             action.focus_requested = true;
                                         }
-                                        if pointer.on_overlay_card && crosshair_update.is_none()
-                                        {
+                                        if pointer.on_overlay_card && crosshair_update.is_none() {
                                             crosshair_update = freeze(crosshair, chart_id);
                                         }
-                                        if let Some(overlay_action) =
-                                            pointer.overlay_action.take()
+                                        if let Some(overlay_action) = pointer.overlay_action.take()
                                         {
                                             commands.push(ChartCommand::Indicator(
                                                 chart_id,
@@ -1046,7 +1035,11 @@ impl ChartWorkspace {
                                     );
                                 }
                                 if dragged.is_none() && response.dragged() {
-                                    row_resizes.push((column.id, row_index, response.drag_delta().y));
+                                    row_resizes.push((
+                                        column.id,
+                                        row_index,
+                                        response.drag_delta().y,
+                                    ));
                                 }
                             }
                         }
@@ -1473,7 +1466,11 @@ mod grid_splitter_tests {
 
         // 4 -> 2
         workspace.apply_grid_preset(GridLayoutPreset::TwoColumns, &ctx);
-        assert_eq!(workspace.charts.len(), 2, "4 -> 2 must leave exactly 2 charts");
+        assert_eq!(
+            workspace.charts.len(),
+            2,
+            "4 -> 2 must leave exactly 2 charts"
+        );
         assert_eq!(workspace.columns.len(), 2);
         assert_eq!(workspace.columns[0].chart_ids.len(), 1);
         assert_eq!(workspace.columns[1].chart_ids.len(), 1);
@@ -1485,7 +1482,11 @@ mod grid_splitter_tests {
 
         // 4 -> 3
         workspace.apply_grid_preset(GridLayoutPreset::ThreeLeftFocus, &ctx);
-        assert_eq!(workspace.charts.len(), 3, "4 -> 3 must leave exactly 3 charts");
+        assert_eq!(
+            workspace.charts.len(),
+            3,
+            "4 -> 3 must leave exactly 3 charts"
+        );
         assert_eq!(workspace.columns.len(), 2);
         assert_eq!(workspace.columns[0].chart_ids.len(), 1);
         assert_eq!(workspace.columns[1].chart_ids.len(), 2);
@@ -1493,7 +1494,11 @@ mod grid_splitter_tests {
 
         // 3 -> 2
         workspace.apply_grid_preset(GridLayoutPreset::TwoColumns, &ctx);
-        assert_eq!(workspace.charts.len(), 2, "3 -> 2 must leave exactly 2 charts");
+        assert_eq!(
+            workspace.charts.len(),
+            2,
+            "3 -> 2 must leave exactly 2 charts"
+        );
         assert_eq!(workspace.columns.len(), 2);
         assert_eq!(workspace.columns[0].chart_ids.len(), 1);
         assert_eq!(workspace.columns[1].chart_ids.len(), 1);
@@ -1524,7 +1529,11 @@ mod grid_splitter_tests {
 
         // 5 -> 3
         workspace.apply_grid_preset(GridLayoutPreset::ThreeLeftFocus, &ctx);
-        assert_eq!(workspace.charts.len(), 3, "5 -> 3 must leave exactly 3 charts");
+        assert_eq!(
+            workspace.charts.len(),
+            3,
+            "5 -> 3 must leave exactly 3 charts"
+        );
     }
 
     #[test]
@@ -1590,11 +1599,147 @@ mod grid_splitter_tests {
         // Add another column
         let new_col = workspace.fresh_id();
         let new_chart = workspace.fresh_id();
-        workspace.columns.push(ChartColumn::new(new_col, vec![new_chart]));
+        workspace
+            .columns
+            .push(ChartColumn::new(new_col, vec![new_chart]));
         workspace.validate_grid_weights();
 
         assert_eq!(workspace.column_weights().len(), 3);
         let sum: f32 = workspace.column_weights().iter().sum();
         assert!((sum - 1.0).abs() < 1e-4);
+    }
+
+    #[test]
+    fn workspace_persistence_preserves_tickers_order_and_aspect_ratios() {
+        let mut workspace = empty_workspace(1);
+        let c1 = chart_with_drawings(&mut workspace, "BTCUSDT", &[]);
+        let ctx = egui::Context::default();
+        workspace.focused = Some(c1);
+
+        workspace.apply_grid_preset(GridLayoutPreset::ThreeLeftFocus, &ctx);
+        assert_eq!(workspace.charts.len(), 3);
+
+        // Customize symbols on the 3 charts
+        workspace.charts[0].symbol = "BTCUSDT".into();
+        workspace.charts[1].symbol = "ETHUSDT".into();
+        workspace.charts[2].symbol = "SOLUSDT".into();
+
+        assert_eq!(workspace.column_weights(), &[0.65, 0.35]);
+
+        let col0_id = workspace.columns[0].id;
+        let col1_id = workspace.columns[1].id;
+        assert_eq!(workspace.row_weights(col0_id), Some(&[1.0][..]));
+        assert_eq!(workspace.row_weights(col1_id), Some(&[0.5, 0.5][..]));
+
+        // Persist session
+        let saved = workspace.persisted();
+        assert_eq!(saved.charts.len(), 3);
+        assert_eq!(saved.charts[0].symbol, "BTCUSDT");
+        assert_eq!(saved.charts[1].symbol, "ETHUSDT");
+        assert_eq!(saved.charts[2].symbol, "SOLUSDT");
+        assert_eq!(saved.column_weights, vec![0.65, 0.35]);
+
+        // Restore session
+        let restored = ChartWorkspace::restored(
+            saved,
+            workspace.watchlist.clone(),
+            workspace.quote_book.clone(),
+            workspace.quote_coordinator.clone(),
+            workspace.store.clone(),
+            &ctx,
+        );
+
+        assert_eq!(restored.charts.len(), 3);
+        assert_eq!(restored.charts[0].symbol, "BTCUSDT");
+        assert_eq!(restored.charts[1].symbol, "ETHUSDT");
+        assert_eq!(restored.charts[2].symbol, "SOLUSDT");
+        assert_eq!(restored.column_weights(), &[0.65, 0.35]);
+        assert_eq!(restored.row_weights(col0_id), Some(&[1.0][..]));
+        assert_eq!(restored.row_weights(col1_id), Some(&[0.5, 0.5][..]));
+
+        // Legacy restore without column_weights: smart fallback must restore 0.65 / 0.35
+        let mut legacy_saved = workspace.persisted();
+        legacy_saved.column_weights.clear();
+        legacy_saved.row_weights.clear();
+
+        let mut legacy_restored = ChartWorkspace::restored(
+            legacy_saved,
+            workspace.watchlist.clone(),
+            workspace.quote_book.clone(),
+            workspace.quote_coordinator.clone(),
+            workspace.store.clone(),
+            &ctx,
+        );
+        legacy_restored.validate_grid_weights();
+        assert_eq!(legacy_restored.column_weights(), &[0.65, 0.35]);
+        assert_eq!(legacy_restored.charts[0].symbol, "BTCUSDT");
+        assert_eq!(legacy_restored.charts[1].symbol, "ETHUSDT");
+        assert_eq!(legacy_restored.charts[2].symbol, "SOLUSDT");
+    }
+
+    #[test]
+    fn five_charts_persistence_preserves_tickers_and_ratios() {
+        let mut workspace = empty_workspace(1);
+        let c1 = chart_with_drawings(&mut workspace, "BTCUSDT", &[]);
+        let ctx = egui::Context::default();
+        workspace.focused = Some(c1);
+
+        workspace.apply_grid_preset(GridLayoutPreset::FiveSplit, &ctx);
+        assert_eq!(workspace.charts.len(), 5);
+
+        workspace.charts[0].symbol = "BTCUSDT".into();
+        workspace.charts[1].symbol = "ETHUSDT".into();
+        workspace.charts[2].symbol = "SOLUSDT".into();
+        workspace.charts[3].symbol = "AVAXUSDT".into();
+        workspace.charts[4].symbol = "DOGEUSDT".into();
+
+        assert_eq!(workspace.column_weights(), &[0.65, 0.35]);
+
+        let col0_id = workspace.columns[0].id;
+        let col1_id = workspace.columns[1].id;
+        assert_eq!(workspace.row_weights(col0_id), Some(&[0.5, 0.5][..]));
+        let r1 = workspace.row_weights(col1_id).unwrap();
+        assert_eq!(r1.len(), 3);
+
+        let saved = workspace.persisted();
+        assert_eq!(saved.charts.len(), 5);
+        assert_eq!(saved.charts[0].symbol, "BTCUSDT");
+        assert_eq!(saved.charts[1].symbol, "ETHUSDT");
+        assert_eq!(saved.charts[2].symbol, "SOLUSDT");
+        assert_eq!(saved.charts[3].symbol, "AVAXUSDT");
+        assert_eq!(saved.charts[4].symbol, "DOGEUSDT");
+
+        let restored = ChartWorkspace::restored(
+            saved,
+            workspace.watchlist.clone(),
+            workspace.quote_book.clone(),
+            workspace.quote_coordinator.clone(),
+            workspace.store.clone(),
+            &ctx,
+        );
+
+        assert_eq!(restored.charts.len(), 5);
+        assert_eq!(restored.charts[0].symbol, "BTCUSDT");
+        assert_eq!(restored.charts[1].symbol, "ETHUSDT");
+        assert_eq!(restored.charts[2].symbol, "SOLUSDT");
+        assert_eq!(restored.charts[3].symbol, "AVAXUSDT");
+        assert_eq!(restored.charts[4].symbol, "DOGEUSDT");
+        assert_eq!(restored.column_weights(), &[0.65, 0.35]);
+        assert_eq!(restored.row_weights(col0_id), Some(&[0.5, 0.5][..]));
+
+        let mut legacy_saved = workspace.persisted();
+        legacy_saved.column_weights.clear();
+        legacy_saved.row_weights.clear();
+
+        let mut legacy_restored = ChartWorkspace::restored(
+            legacy_saved,
+            workspace.watchlist.clone(),
+            workspace.quote_book.clone(),
+            workspace.quote_coordinator.clone(),
+            workspace.store.clone(),
+            &ctx,
+        );
+        legacy_restored.validate_grid_weights();
+        assert_eq!(legacy_restored.column_weights(), &[0.65, 0.35]);
     }
 }

@@ -30,6 +30,12 @@ pub struct SavedView {
     /// Which parts of horizontal navigation the charts share. Older rows have none and open linked, the default.
     #[serde(default)]
     pub sync: crate::model::ChartSyncSettings,
+    /// Normalized column width weights (sum = 1.0).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub column_weights: Option<Vec<f32>>,
+    /// Normalized row height weights per column id.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub row_weights: Option<std::collections::HashMap<u64, Vec<f32>>>,
 }
 
 #[cfg(test)]
@@ -71,6 +77,8 @@ mod tests {
                 horizontal_position: true,
                 horizontal_zoom: false,
             },
+            column_weights: None,
+            row_weights: None,
         }
     }
 

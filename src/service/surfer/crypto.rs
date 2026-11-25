@@ -24,18 +24,21 @@ pub static ENCRYPTED_PRO_PAYLOAD: &[u8] = include_bytes!("surfer_pro.bin");
 /// this single function handles both encryption and decryption.
 pub fn crypt_ctr(key: &[u8], data: &[u8]) -> Vec<u8> {
     let mut result = Vec::with_capacity(data.len());
-    let mut counter: u64 = 0;
-    for chunk in data.chunks(32) {
-        let mut mac = HmacSha256::new_from_slice(key)
-            .expect("HMAC-SHA256 accepts keys of any size");
+    for (counter, chunk) in (0_u64..).zip(data.chunks(32)) {
+        let mut mac =
+            HmacSha256::new_from_slice(key).expect("HMAC-SHA256 accepts keys of any size");
         mac.update(&counter.to_be_bytes());
         let keystream = mac.finalize().into_bytes();
         for (&b, &k) in chunk.iter().zip(keystream.iter()) {
             result.push(b ^ k);
         }
-        counter += 1;
     }
     result
+}
+
+/// Registers the Surfer PRO extension provider into `model::pine::bundled`.
+pub fn init_pro_pine_extension() {
+    crate::model::pine::bundled::set_pro_extension_provider(get_pro_pine_extension);
 }
 
 /// Helper function to encrypt a plaintext slice with a key.
@@ -154,11 +157,7 @@ mod tests {
         let pro_code = decrypt_pro_payload(DEFAULT_PRO_KEY).expect("Valid pro decryption");
         let combined = format!("{free_source}\n\n{pro_code}");
 
-        let program = compiler::compile(
-            &combined,
-            Limits::default(),
-            &LibraryRegistry,
-        );
+        let program = compiler::compile(&combined, Limits::default(), &LibraryRegistry);
 
         let mut errors = Vec::new();
         for diag in &program.diagnostics {
@@ -166,6 +165,9 @@ mod tests {
                 errors.push(format!("{:?} {}", diag.severity, diag.message));
             }
         }
-        assert!(errors.is_empty(), "Combined Pine script has errors: {errors:#?}");
+        assert!(
+            errors.is_empty(),
+            "Combined Pine script has errors: {errors:#?}"
+        );
     }
 }

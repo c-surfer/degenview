@@ -141,6 +141,12 @@ pub struct PersistedWorkspace {
         deserialize_with = "LinkColor::lenient"
     )]
     pub link: Option<LinkColor>,
+    /// Normalized column width weights (sum = 1.0).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub column_weights: Vec<f32>,
+    /// Normalized row height weights per column id.
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub row_weights: HashMap<u64, Vec<f32>>,
 }
 
 impl crate::store::Document for PersistedWorkspace {
@@ -400,6 +406,8 @@ impl ChartWorkspace {
             active_view,
             custom_title,
             link,
+            column_weights,
+            row_weights,
         } = saved;
 
         // The layout may have been deleted (here or on another Mac) since the tab was saved.
@@ -447,6 +455,8 @@ impl ChartWorkspace {
         {
             workspace.focused = workspace.charts.first().map(|chart| chart.id);
         }
+        workspace.column_weights = column_weights;
+        workspace.row_weights = row_weights;
         workspace.set_baseline();
         workspace
     }
@@ -911,6 +921,8 @@ mod tests {
             active_view: Some(42),
             custom_title: Some("Earnings".into()),
             link: Some(LinkColor::Orange),
+            column_weights: vec![0.65, 0.35],
+            row_weights: HashMap::new(),
         };
         let encoded = serde_json::to_string(&saved).expect("serialize workspace");
         let decoded: PersistedWorkspace =

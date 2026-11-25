@@ -57,7 +57,8 @@ pub fn run_gui_with(
     // A finished update leaves the previous app in a hidden folder until the new one has started.
     service::work_queue::submit(service::update::install::cleanup_stale);
     service::work_queue::submit(service::update::install::sync_installed_version);
-    // Surfer PRO auto-activation on startup
+    // Surfer PRO provider registration & auto-activation on startup
+    service::surfer::crypto::init_pro_pine_extension();
     if let Some(license) = service::surfer::SurferKeyStore::shared().license() {
         service::work_queue::submit(move || {
             let _ = service::surfer::test_connection(&license);

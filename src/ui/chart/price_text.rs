@@ -31,6 +31,7 @@ fn split_count(text: &str) -> Option<(&str, String, &str)> {
 pub struct PriceText {
     parts: Vec<Part>,
     size: Vec2,
+    color: Color32,
 }
 
 struct Part {
@@ -50,6 +51,7 @@ impl PriceText {
                     offset: Vec2::ZERO,
                 }],
                 size,
+                color,
             };
         };
         let small = FontId::new(font.size * SUBSCRIPT_SCALE, font.family.clone());
@@ -78,6 +80,7 @@ impl PriceText {
         Self {
             parts,
             size: Vec2::new(x, height),
+            color,
         }
     }
 
@@ -90,11 +93,7 @@ impl PriceText {
     pub fn paint(&self, painter: &Painter, anchor: Align2, pos: Pos2) -> Rect {
         let rect = anchor.anchor_size(pos, self.size);
         for part in &self.parts {
-            painter.galley(
-                rect.min + part.offset,
-                Arc::clone(&part.galley),
-                Color32::WHITE,
-            );
+            painter.galley(rect.min + part.offset, Arc::clone(&part.galley), self.color);
         }
         rect
     }

@@ -190,7 +190,7 @@ impl ChartWorkspace {
     /// Duplicates an existing chart by id into the grid.
     pub fn duplicate_chart(&mut self, chart_id: u64, ctx: &egui::Context) -> Option<u64> {
         let chart = self.charts.iter().find(|c| c.id == chart_id)?;
-        if let Some(card) = chart.card.clone() {
+        if let Some(card) = chart.card {
             let id = self.fresh_id();
             self.charts.push(Chart::portfolio_card(id, card));
             self.place_in_grid(id);
@@ -202,7 +202,7 @@ impl ChartWorkspace {
             chart.chart.title().map(str::to_owned),
             chart.image_url.clone(),
             chart.scale_mode,
-            chart.indicators.clone(),
+            chart.indicators,
             chart.chart.appearance(),
             chart.timeframe,
         );

@@ -115,6 +115,7 @@ impl PineStudio {
                     let input = timeframe_picker::TimeframePickerInput {
                         current: state.market.timeframe,
                         pinned: &state.pinned,
+                        favorites: &[],
                         sources: &[state.market.source],
                     };
                     if let Some(pick) = timeframe_picker::show(ui, response, &input) {
@@ -134,6 +135,9 @@ impl PineStudio {
                 }
                 BarAction::Timeframe(TimeframePick::Unpin(timeframe)) => {
                     self.with_pins(|store| store.unpin_timeframe(timeframe));
+                }
+                BarAction::Timeframe(TimeframePick::ToggleFavorite(timeframe)) => {
+                    self.with_pins(|store| store.toggle_favorite_timeframe(timeframe));
                 }
             }
         }

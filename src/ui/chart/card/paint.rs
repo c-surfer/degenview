@@ -387,7 +387,10 @@ impl ChartCard {
         // Price line across the plot: 3.0 px dash, 3.0 px gap, with subtle muted attenuation (0.50).
         let y_crisp = canvas::crisp(y, 1.0, painter.ctx().pixels_per_point());
         painter.extend(Shape::dashed_line(
-            &[Pos2::new(plot.left(), y_crisp), Pos2::new(plot.right(), y_crisp)],
+            &[
+                Pos2::new(plot.left(), y_crisp),
+                Pos2::new(plot.right(), y_crisp),
+            ],
             Stroke::new(1.0, color.gamma_multiply(0.50)),
             3.0,
             3.0,
@@ -399,13 +402,14 @@ impl ChartCard {
             Pos2::new(rect.right() - 3.0, y + half),
         );
         painter.rect_filled(tag, 3.0, color);
+        let tag_text_color = on_color(color);
         price_text::paint(
             painter,
             tag.center(),
             Align2::CENTER_CENTER,
             &scale.tag_label(self.appearance.price_format(), last.close),
             style.price_font(),
-            Color32::WHITE,
+            tag_text_color,
         );
 
         // Bar countdown timer right under the price tag.
@@ -439,7 +443,7 @@ impl ChartCard {
             Align2::CENTER_CENTER,
             countdown,
             style.time_font(),
-            Color32::from_rgb(209, 212, 220),
+            Color32::from_rgb(230, 233, 240),
         );
 
         painter
@@ -512,4 +516,15 @@ const TREND_FLIP_LABEL_GAP: f32 = 2.0;
 pub(super) fn contained_center(center: f32, lower: f32, upper: f32, length: f32) -> Option<f32> {
     let (low, high) = (lower + length / 2.0, upper - length / 2.0);
     (length >= 0.0 && low <= high).then(|| center.clamp(low, high))
+}
+
+/// Returns high-contrast text color (dark charcoal or white) based on background fill luminance.
+fn on_color(fill: Color32) -> Color32 {
+    let luminance =
+        0.299 * f32::from(fill.r()) + 0.587 * f32::from(fill.g()) + 0.114 * f32::from(fill.b());
+    if luminance > 160.0 {
+        Color32::from_rgb(19, 23, 34)
+    } else {
+        Color32::WHITE
+    }
 }

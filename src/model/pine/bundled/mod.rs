@@ -31,12 +31,24 @@ impl BundledIndicator {
     /// For `surfer-rsi`, if the Surfer Pro license is active, this dynamically
     /// appends the decrypted PRO extension payload.
     pub fn effective_source(&self) -> std::borrow::Cow<'static, str> {
-        if self.id == "surfer-rsi" {
-            if let Some(pro_code) = crate::service::surfer::crypto::get_pro_pine_extension() {
-                return std::borrow::Cow::Owned(format!("{}\n\n{}", self.source, pro_code));
-            }
+        if self.id == "surfer-rsi"
+            && let Ok(lock) = PRO_EXTENSION_PROVIDER.read()
+            && let Some(provider) = *lock
+            && let Some(pro_code) = provider()
+        {
+            return std::borrow::Cow::Owned(format!("{}\n\n{}", self.source, pro_code));
         }
         std::borrow::Cow::Borrowed(self.source)
+    }
+}
+
+type ProExtensionProvider = fn() -> Option<String>;
+static PRO_EXTENSION_PROVIDER: std::sync::RwLock<Option<ProExtensionProvider>> =
+    std::sync::RwLock::new(None);
+
+pub fn set_pro_extension_provider(provider: ProExtensionProvider) {
+    if let Ok(mut lock) = PRO_EXTENSION_PROVIDER.write() {
+        *lock = Some(provider);
     }
 }
 
@@ -499,31 +511,24 @@ mod tests {
 
     #[test]
     fn surfer_rsi_effective_source_pro_behavior() {
-        let _guard = crate::lock::lock(&crate::service::surfer::TEST_LICENSE_LOCK);
         let surfer = find("surfer-rsi").expect("surfer-rsi must be registered");
         assert_eq!(surfer.id, "surfer-rsi");
         assert_eq!(surfer.name, "[Surfer] RSI v1");
         assert!(!surfer.overlay);
 
         // When pro is not active, effective_source() matches source exactly
-        crate::service::surfer::set_cached_license_state(None);
+        set_pro_extension_provider(|| None);
         let free_src = surfer.effective_source();
         assert_eq!(free_src.as_ref(), surfer.source);
 
         // When pro is active, effective_source() contains pro extensions
-        crate::service::surfer::set_cached_license_state(Some(
-            crate::service::surfer::SurferLicenseState {
-                success: true,
-                decrypt_key: Some(crate::service::surfer::crypto::DEFAULT_PRO_KEY.to_string()),
-                ..Default::default()
-            },
-        ));
+        set_pro_extension_provider(|| Some("// [Surfer] PRO Extension\nsupersmoother".into()));
         let pro_src = surfer.effective_source();
         assert_ne!(pro_src.as_ref(), surfer.source);
         assert!(pro_src.contains("// [Surfer] PRO Extension"));
         assert!(pro_src.contains("supersmoother"));
 
         // Clean up state
-        crate::service::surfer::set_cached_license_state(None);
+        set_pro_extension_provider(|| None);
     }
 }
