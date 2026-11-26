@@ -30,12 +30,32 @@ pub enum Control {
 /// matches to the `.desktop` file, and so to its icon. Permanent; see `docs/flatpak.md`.
 pub const APP_ID: &str = "es.nico.degenview";
 
+/// Effective application id (`DEGENVIEW_APP_ID` if set and non-empty, otherwise [`APP_ID`]).
+pub fn app_id() -> &'static str {
+    static RESOLVED: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    RESOLVED
+        .get_or_init(|| {
+            std::env::var("DEGENVIEW_APP_ID")
+                .ok()
+                .map(|v| v.trim().to_owned())
+                .filter(|v| !v.is_empty())
+                .unwrap_or_else(|| APP_ID.to_owned())
+        })
+        .as_str()
+}
+
 /// The app icon with its corners rounded, for the window systems that draw an icon as it is.
 #[cfg(not(target_os = "macos"))]
 pub fn app_icon() -> std::sync::Arc<egui::IconData> {
     use std::sync::{Arc, OnceLock};
     static ICON: OnceLock<Arc<egui::IconData>> = OnceLock::new();
     Arc::clone(ICON.get_or_init(|| {
+        if let Some(path) = std::env::var_os("DEGENVIEW_ICON_PATH").filter(|p| !p.is_empty())
+            && let Ok(bytes) = std::fs::read(path)
+            && let Ok(icon) = eframe::icon_data::from_png_bytes(&bytes)
+        {
+            return Arc::new(icon);
+        }
         let bytes = include_bytes!("../../../assets/brand/DegenView-512-rounded.png");
         Arc::new(eframe::icon_data::from_png_bytes(bytes).expect("the bundled icon decodes"))
     }))
@@ -51,7 +71,7 @@ pub fn branded(builder: ViewportBuilder) -> ViewportBuilder {
     }
     #[cfg(not(target_os = "macos"))]
     {
-        builder.with_app_id(APP_ID).with_icon(app_icon())
+        builder.with_app_id(app_id()).with_icon(app_icon())
     }
 }
 

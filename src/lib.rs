@@ -74,7 +74,7 @@ pub fn run_gui_with(
             wgpu_options: graphics.configure(eframe::NativeOptions::default().wgpu_options),
             viewport: egui::ViewportBuilder::default()
                 .with_title("DegenView")
-                .with_app_id(ui::window::chrome::APP_ID)
+                .with_app_id(ui::window::chrome::app_id())
                 // The surface is shared by every window, and eframe reads whether it may be
                 // transparent from this first one (`ui::window::corners`).
                 .with_transparent(ui::window::chrome::rounded_corners())
