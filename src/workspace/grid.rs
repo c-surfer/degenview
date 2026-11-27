@@ -463,7 +463,10 @@ impl ChartWorkspace {
         // The next visit to the empty page starts from fresh data.
         self.empty_page.reset();
 
-        let available = ui.available_size();
+        let raw_available = ui.available_size();
+        let outer_padding = ChartLayout::GRID_OUTER_PADDING;
+        let available =
+            (raw_available - egui::Vec2::splat(outer_padding * 2.0)).max(egui::Vec2::ZERO);
         let column_count = self.columns.len().max(1);
         let max_rows = self
             .columns
@@ -580,7 +583,7 @@ impl ChartWorkspace {
         let card_env = self.card_env.clone();
 
         let mut commands: Vec<ChartCommand> = Vec::new();
-        let can_add_column = ChartLayout::can_add_column(available.x, column_count);
+        let can_add_column = ChartLayout::can_add_column(raw_available.x, column_count);
         let ctx = ui.ctx().clone();
         // Nothing about a drag shows until a chart is being dragged.
         let dragged: Option<u64> = egui::DragAndDrop::payload::<u64>(&ctx).map(|payload| *payload);
@@ -626,484 +629,519 @@ impl ChartWorkspace {
             .collect();
 
         let plan = self.columns.clone();
-        let column_lengths: Vec<usize> = plan
-            .iter()
-            .map(|column| column.chart_ids.len())
-            .chain(previewed.map(|_| 0))
-            .collect();
         let row_weights_map = &self.row_weights;
         let mut col_resizes: Vec<(usize, f32)> = Vec::new();
         let mut row_resizes: Vec<(u64, usize, f32)> = Vec::new();
 
-        ui.horizontal_top(|ui| {
-            // Cards abut, in a column and across them; inside a card the usual spacing returns.
-            let spacing = ui.spacing().item_spacing;
-            ui.spacing_mut().item_spacing = egui::Vec2::ZERO;
-            for (column_index, &col_width) in col_widths.iter().enumerate().take(total_slots) {
-                ui.allocate_ui_with_layout(
-                    egui::vec2(col_width, available.y),
-                    egui::Layout::top_down(egui::Align::Min),
-                    |column_ui| {
-                        let Some(column) = plan.get(column_index) else {
-                            // The previewed new column: a dashed placeholder where it would be.
-                            let rect = column_ui.max_rect();
-                            let card = egui::Rect::from_min_size(
-                                rect.min,
-                                egui::vec2(rect.width(), card_height),
-                            );
-                            ui::workspace::grid_drop::new_column_placeholder(column_ui, card);
-                            zones.new_column = Some(egui::Rect::from_min_size(
-                                rect.min,
-                                egui::vec2(rect.width(), available.y),
-                            ));
-                            return;
-                        };
-                        let column_rect = column_ui.max_rect();
-                        zones.columns.push((
-                            column.id,
-                            egui::Rect::from_min_size(
-                                column_rect.min,
-                                egui::vec2(col_width, available.y),
-                            ),
-                        ));
-
-                        let row_count = column.chart_ids.len();
-                        if row_count == 0 {
-                            return;
-                        }
-                        let total_row_splitters = row_count.saturating_sub(1);
-                        let total_row_splitters_h =
-                            total_row_splitters as f32 * ROW_SPLITTER_HEIGHT;
-                        let usable_h = (available.y - total_row_splitters_h).max(0.0);
-                        let r_weights = row_weights_map.get(&column.id).map(Vec::as_slice);
-                        let min_row_h = MIN_ROW_HEIGHT.min(usable_h / row_count as f32);
-                        column_ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
-
-                        for (row, &chart_id) in column.chart_ids.iter().enumerate() {
-                            let row_weight = r_weights
-                                .and_then(|w| w.get(row))
-                                .copied()
-                                .unwrap_or(1.0 / row_count as f32);
-                            let this_card_height = if row_count == 1 {
-                                available.y
-                            } else {
-                                (usable_h * row_weight).max(min_row_h)
-                            };
-                            let Some(&index) = index_map.get(&chart_id) else {
-                                continue;
-                            };
-                            let is_focused = multi && focused == Some(chart_id);
-                            let slot = ui::workspace::grid_card::Slot {
-                                column_lengths: &column_lengths,
-                                column: column_index,
-                                row,
-                            };
-                            let outline = if replay_ms.is_some() {
-                                Some(ui::theme::REPLAY)
-                            } else {
-                                is_focused.then_some(ui::theme::ACCENT)
-                            };
-
-                            let drawn = column_ui.allocate_ui_with_layout(
-                                egui::vec2(column_ui.available_width(), this_card_height),
-                                egui::Layout::top_down(egui::Align::Min),
-                                |ui| {
-                                    if previewed == Some(chart_id) {
-                                        ui.multiply_opacity(0.35);
-                                    }
-                                    let chart = &mut self.charts[index];
-                                    if let Some(mut shown) = chart.card {
-                                        let instrument = shown.instrument_id();
-                                        let memberships: Vec<crate::ui::WatchlistMembership> =
-                                            watchlist_memberships
-                                                .iter()
-                                                .map(|(id, name, instruments)| {
-                                                    crate::ui::WatchlistMembership {
-                                                        id: *id,
-                                                        name: name.clone(),
-                                                        contains_market: instruments
-                                                            .contains(&instrument.key()),
-                                                    }
-                                                })
-                                                .collect();
-                                        return ui::workspace::grid_card::show(
-                                            ui,
-                                            slot,
-                                            outline,
-                                            |ui| {
-                                                ui.spacing_mut().item_spacing = spacing;
-                                                ui::workspace::grid_card::padded(ui, |ui| {
-                                                    let mut action = ChartCardAction::default();
-                                                    let data = card_env.as_ref().map(|env| {
-                                                        let runtime = chart
-                                                            .card_runtime
-                                                            .get_or_insert_with(|| env.runtime());
-                                                        env.view(runtime, &shown, ui.ctx())
-                                                    });
-                                                    let scope = data.as_ref().map_or_else(
-                                                        || shown.scope_name(&[]),
-                                                        |data| data.scope_name.clone(),
-                                                    );
-                                                    ui::portfolio::cards::header(
-                                                        ui,
-                                                        &shown,
-                                                        &scope,
-                                                        chart_id,
-                                                        favorites.contains(&instrument.key()),
-                                                        &memberships,
-                                                        &mut action,
-                                                    );
-                                                    if ui::portfolio::cards::body(
-                                                        ui,
-                                                        &mut shown,
-                                                        data.as_ref(),
-                                                        chart_id,
-                                                    ) {
-                                                        action.focus_requested = true;
-                                                    }
-                                                    chart.card = Some(shown);
-                                                    action
-                                                })
-                                            },
-                                        );
-                                    }
-                                    chart.chart.set_series_cutoff(replay_ms);
-                                    let chart_timeframe = chart.timeframe;
-                                    chart.chart.set_timeframe(chart_timeframe);
-                                    let countdown = chart.bar_countdown(
-                                        chart_timeframe,
-                                        replay_ms.is_some(),
-                                        now_ms,
+        egui::Frame::new()
+            .inner_margin(egui::Margin::same(outer_padding as i8))
+            .show(ui, |ui| {
+                ui.horizontal_top(|ui| {
+                    // Cards abut, in a column and across them; inside a card the usual spacing returns.
+                    let spacing = ui.spacing().item_spacing;
+                    ui.spacing_mut().item_spacing = egui::Vec2::ZERO;
+                    for (column_index, &col_width) in
+                        col_widths.iter().enumerate().take(total_slots)
+                    {
+                        ui.allocate_ui_with_layout(
+                            egui::vec2(col_width, available.y),
+                            egui::Layout::top_down(egui::Align::Min),
+                            |column_ui| {
+                                let Some(column) = plan.get(column_index) else {
+                                    // The previewed new column: a dashed placeholder where it would be.
+                                    let rect = column_ui.max_rect();
+                                    let card = egui::Rect::from_min_size(
+                                        rect.min,
+                                        egui::vec2(rect.width(), card_height),
                                     );
-                                    chart.chart.set_countdown(countdown);
-                                    // The next frame is wanted when the text changes, not
-                                    // sooner: a tab that is not drawn asks for nothing.
-                                    if let Some(countdown) = countdown {
-                                        ui.ctx().request_repaint_after(countdown.next_repaint());
-                                    }
-                                    let candles = displayed_candles(&chart.candles, replay_ms);
-                                    if linked {
-                                        chart.chart.follow_sync(
-                                            &mut self.sync_hub,
-                                            chart_id,
-                                            sync,
-                                            chart.source,
-                                            candles,
-                                        );
-                                    }
-                                    if link_focus == Some(chart_id) && candles.is_empty() {
-                                        link_waiting = true;
-                                    }
-                                    if link_focus == Some(chart_id) && !candles.is_empty() {
-                                        // A follower's move is made before the frame's baseline,
-                                        // so it is never announced back.
-                                        chart.chart.follow_sync(
-                                            &mut self.link_state.hub,
-                                            chart_id,
-                                            link_view,
-                                            chart.source,
-                                            candles,
-                                        );
-                                    }
-                                    let instrument = InstrumentId::new(chart.source, &chart.symbol);
-                                    let memberships: Vec<crate::ui::WatchlistMembership> =
-                                        watchlist_memberships
-                                            .iter()
-                                            .map(|(id, name, instruments)| {
-                                                crate::ui::WatchlistMembership {
-                                                    id: *id,
-                                                    name: name.clone(),
-                                                    contains_market: instruments
-                                                        .contains(&instrument.key()),
-                                                }
-                                            })
-                                            .collect();
-                                    ui::workspace::grid_card::show(ui, slot, outline, |ui| {
-                                        ui.spacing_mut().item_spacing = spacing;
-                                        let mut action = ChartCardAction::default();
-                                        // The chart reaches the card's edges and the header is drawn over
-                                        // it afterwards, so its widgets sit above the plot's own pointer
-                                        // area and its empty space still pans the chart.
-                                        let padding = f32::from(ui::workspace::grid_card::PADDING);
-                                        let header_rect = egui::Rect::from_min_size(
-                                            ui.available_rect_before_wrap().min
-                                                + egui::Vec2::splat(padding),
-                                            egui::vec2(
-                                                ui.available_width() - 2.0 * padding,
-                                                ui::CHART_HEADER_HEIGHT,
-                                            ),
-                                        );
-                                        chart
-                                            .chart
-                                            .set_top_inset(padding + ui::CHART_HEADER_HEIGHT);
-                                        let selected = selected_drawing
-                                            .as_ref()
-                                            .filter(|(chart, _)| *chart == chart_id)
-                                            .map(|(_, drawings)| drawings.clone())
-                                            .unwrap_or_default();
-                                        let (pending, place_now, replace_with) =
-                                            picture_work.for_chart(chart_id);
-                                        let mut frame = DrawingFrame::new(
-                                            &chart.drawings,
-                                            active_tool,
-                                            None,
-                                            chart.next_drawing_id,
-                                        )
-                                        .with_pending_content(pending)
-                                        .with_picture_work(place_now, replace_with)
-                                        .with_selection(selected)
-                                        .with_view(timeframe, hide_all_drawings)
-                                        .with_behavior(magnet, keep_drawing)
-                                        .with_style_clipboard(style_clipboard)
-                                        .with_keys_blocked(dialog_open)
-                                        .with_cursor(cursor)
-                                        .with_defaults(&drawing_defaults)
-                                        .with_preview(
-                                            drawing_preview
-                                                .as_ref()
-                                                .filter(|(preview_chart, _)| {
-                                                    *preview_chart == chart_id
-                                                })
-                                                .map(|(_, draft)| draft),
-                                        );
-                                        chart.chart.set_zoom_armed(zoom_armed);
-                                        chart.chart.set_cursor_mode(cursor);
-                                        chart.chart.set_values_tooltip(values_tooltip);
-                                        chart.chart.set_snapshot_select(selecting_portion);
-                                        let for_logs = logs_chart == Some(chart_id);
-                                        chart.chart.set_logs_range(logs_range.filter(|_| for_logs));
-                                        chart.chart.set_pick_kind(if for_logs && logs_picking {
-                                            PickKind::LogsRange
-                                        } else {
-                                            PickKind::Replay
-                                        });
-                                        let mut replay_frame = ReplayChartFrame {
-                                            // Select portion has the pointer: nothing is
-                                            // picked meanwhile, and the pick waits.
-                                            selecting: (replay_selecting
-                                                || (for_logs && logs_picking))
-                                                && !selecting_portion,
-                                            active: replay_active,
-                                            picked_ms: None,
-                                            picked_range: None,
-                                        };
-                                        let mut pointer = chart.chart.body(
-                                            ui,
-                                            &chart.symbol,
-                                            candles,
-                                            chart.loading,
-                                            chart.error.as_ref(),
-                                            chart.scale_mode,
-                                            chart.source,
-                                            &chart.indicators,
-                                            crosshair.as_ref(),
-                                            chart_id,
-                                            &mut frame,
-                                            &mut replay_frame,
-                                        );
-                                        let mut header_ui = ui.new_child(
-                                            egui::UiBuilder::new().max_rect(header_rect),
-                                        );
-                                        chart.chart.header(
-                                            &mut header_ui,
-                                            &chart.symbol,
-                                            chart.source,
-                                            &chart.indicators,
-                                            candles,
-                                            replay_ms.is_some(),
-                                            favorites.contains(&instrument.key()),
-                                            &memberships,
-                                            &mut action,
-                                            chart_id,
-                                            multi,
-                                        );
-                                        if let Some(range) = replay_frame.picked_range {
-                                            logs_picked = Some(range);
-                                        }
-                                        if let Some(picked_ms) = replay_frame.picked_ms {
-                                            replay_picked = Some((chart_id, picked_ms));
-                                        }
-                                        if link_focus == Some(chart_id)
-                                            && let Some(change) = chart.chart.link_change()
-                                        {
-                                            self.link_state.outbox.push(
-                                                crate::model::tab::link::LinkSignal::View(change),
-                                            );
-                                        }
-                                        if linked
-                                            && chart.chart.publish_sync(
-                                                &mut self.sync_hub,
-                                                chart_id,
-                                                sync,
-                                            )
-                                        {
-                                            navigated = true;
-                                        }
-                                        chart.next_drawing_id = frame.next_id;
-                                        if let Some(select) = frame.select {
-                                            drawing_select = Some((chart_id, select));
-                                        }
-                                        drawing_escape |= frame.escape_consumed;
-                                        drawing_put_down |= frame.put_down;
-                                        picture_used |= frame.content_used;
-                                        if let Some(drawing_id) = frame.replace_request {
-                                            picture_replace = Some((chart_id, drawing_id));
-                                        }
-                                        if frame.copy_image.is_some() {
-                                            picture_copy = frame.copy_image.take();
-                                        }
-                                        if let Some((drawing_id, request)) = frame.link_request {
-                                            link_request = Some((chart_id, drawing_id, request));
-                                        }
-                                        drawing_reveal |= frame.reveal_all;
-                                        drawing_copy |= frame.copy_requested;
-                                        if let Some(price) = frame.alert_price {
-                                            drawing_alert = Some((chart_id, price));
-                                        }
-                                        if frame.style_copied.is_some() {
-                                            drawing_style_copied = frame.style_copied;
-                                        }
-                                        if let Some(drawing_id) = frame.open_properties {
-                                            drawing_properties_request =
-                                                Some((chart_id, drawing_id));
-                                        }
-                                        let frame_commands = std::mem::take(&mut frame.commands);
-                                        if !frame_commands.is_empty() {
-                                            drawing_commands.push((chart_id, frame_commands));
-                                        }
-                                        if pointer.clicked {
-                                            action.focus_requested = true;
-                                        }
-                                        if pointer.on_overlay_card && crosshair_update.is_none() {
-                                            crosshair_update = freeze(crosshair, chart_id);
-                                        }
-                                        if let Some(overlay_action) = pointer.overlay_action.take()
-                                        {
-                                            commands.push(ChartCommand::Indicator(
-                                                chart_id,
-                                                overlay_action,
-                                            ));
-                                        }
-                                        if let Some(anchor) = pointer.hover_anchor {
-                                            hover_update = Some((chart_id, anchor));
-                                        }
-                                        if let Some(request) = pointer.context.clone() {
-                                            context_request = Some((chart_id, request));
-                                        }
-                                        if let (Some(x_fraction), Some(price)) =
-                                            (pointer.hover_x_fraction, pointer.hover_price)
-                                        {
-                                            crosshair_update = Some(CrosshairInfo {
-                                                frozen: false,
-                                                owner_id: chart_id,
-                                                x_fraction,
-                                                time: pointer.hover_time,
-                                                price,
-                                            });
-                                        }
-                                        action
-                                    })
-                                },
-                            );
+                                    ui::workspace::grid_drop::new_column_placeholder(
+                                        column_ui, card,
+                                    );
+                                    zones.new_column = Some(egui::Rect::from_min_size(
+                                        rect.min,
+                                        egui::vec2(rect.width(), available.y),
+                                    ));
+                                    return;
+                                };
+                                let column_rect = column_ui.max_rect();
+                                zones.columns.push((
+                                    column.id,
+                                    egui::Rect::from_min_size(
+                                        column_rect.min,
+                                        egui::vec2(col_width, available.y),
+                                    ),
+                                ));
 
-                            if drawn.inner.focus_requested {
-                                commands.push(ChartCommand::Focus(chart_id));
-                            }
-                            if drawn.inner.remove_requested {
-                                commands.push(ChartCommand::Remove(chart_id));
-                            }
-                            if drawn.inner.settings_requested {
-                                commands.push(ChartCommand::Settings(chart_id));
-                            }
-                            if let Some(action) = drawn.inner.indicator_action {
-                                commands.push(ChartCommand::Indicator(chart_id, action));
-                            }
-                            if drawn.inner.toggle_favorite {
-                                favorite_toggles.push(chart_id);
-                            }
-                            if let Some(change) = drawn.inner.watchlist_change {
-                                watchlist_changes.push((chart_id, change));
-                            }
-                            if let Some(side) = drawn.inner.quick_trade {
-                                let reference_price =
-                                    displayed_candles(&self.charts[index].candles, replay_ms)
+                                let row_count = column.chart_ids.len();
+                                if row_count == 0 {
+                                    return;
+                                }
+                                let total_row_splitters = row_count.saturating_sub(1);
+                                let total_row_splitters_h =
+                                    total_row_splitters as f32 * ROW_SPLITTER_HEIGHT;
+                                let usable_h = (available.y - total_row_splitters_h).max(0.0);
+                                let r_weights = row_weights_map.get(&column.id).map(Vec::as_slice);
+                                let min_row_h = MIN_ROW_HEIGHT.min(usable_h / row_count as f32);
+                                column_ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
+
+                                for (row, &chart_id) in column.chart_ids.iter().enumerate() {
+                                    let row_weight = r_weights
+                                        .and_then(|w| w.get(row))
+                                        .copied()
+                                        .unwrap_or(1.0 / row_count as f32);
+                                    let this_card_height = if row_count == 1 {
+                                        available.y
+                                    } else {
+                                        (usable_h * row_weight).max(min_row_h)
+                                    };
+                                    let Some(&index) = index_map.get(&chart_id) else {
+                                        continue;
+                                    };
+                                    let is_focused = multi && focused == Some(chart_id);
+                                    let outline = if replay_ms.is_some() {
+                                        Some(ui::theme::REPLAY)
+                                    } else {
+                                        is_focused.then_some(ui::theme::ACCENT)
+                                    };
+
+                                    let drawn = column_ui.allocate_ui_with_layout(
+                                        egui::vec2(column_ui.available_width(), this_card_height),
+                                        egui::Layout::top_down(egui::Align::Min),
+                                        |ui| {
+                                            if previewed == Some(chart_id) {
+                                                ui.multiply_opacity(0.35);
+                                            }
+                                            let chart = &mut self.charts[index];
+                                            if let Some(mut shown) = chart.card {
+                                                let instrument = shown.instrument_id();
+                                                let memberships: Vec<
+                                                    crate::ui::WatchlistMembership,
+                                                > = watchlist_memberships
+                                                    .iter()
+                                                    .map(|(id, name, instruments)| {
+                                                        crate::ui::WatchlistMembership {
+                                                            id: *id,
+                                                            name: name.clone(),
+                                                            contains_market: instruments
+                                                                .contains(&instrument.key()),
+                                                        }
+                                                    })
+                                                    .collect();
+                                                return ui::workspace::grid_card::show(
+                                                    ui,
+                                                    outline,
+                                                    |ui| {
+                                                        ui.spacing_mut().item_spacing = spacing;
+                                                        let mut action = ChartCardAction::default();
+                                                        let data = card_env.as_ref().map(|env| {
+                                                            let runtime = chart
+                                                                .card_runtime
+                                                                .get_or_insert_with(|| {
+                                                                    env.runtime()
+                                                                });
+                                                            env.view(runtime, &shown, ui.ctx())
+                                                        });
+                                                        let scope = data.as_ref().map_or_else(
+                                                            || shown.scope_name(&[]),
+                                                            |data| data.scope_name.clone(),
+                                                        );
+                                                        ui::portfolio::cards::header(
+                                                            ui,
+                                                            &shown,
+                                                            &scope,
+                                                            chart_id,
+                                                            favorites.contains(&instrument.key()),
+                                                            &memberships,
+                                                            &mut action,
+                                                        );
+                                                        if ui::portfolio::cards::body(
+                                                            ui,
+                                                            &mut shown,
+                                                            data.as_ref(),
+                                                            chart_id,
+                                                        ) {
+                                                            action.focus_requested = true;
+                                                        }
+                                                        chart.card = Some(shown);
+                                                        action
+                                                    },
+                                                );
+                                            }
+                                            chart.chart.set_series_cutoff(replay_ms);
+                                            let chart_timeframe = chart.timeframe;
+                                            chart.chart.set_timeframe(chart_timeframe);
+                                            let countdown = chart.bar_countdown(
+                                                chart_timeframe,
+                                                replay_ms.is_some(),
+                                                now_ms,
+                                            );
+                                            chart.chart.set_countdown(countdown);
+                                            // The next frame is wanted when the text changes, not
+                                            // sooner: a tab that is not drawn asks for nothing.
+                                            if let Some(countdown) = countdown {
+                                                ui.ctx().request_repaint_after(
+                                                    countdown.next_repaint(),
+                                                );
+                                            }
+                                            let candles =
+                                                displayed_candles(&chart.candles, replay_ms);
+                                            if linked {
+                                                chart.chart.follow_sync(
+                                                    &mut self.sync_hub,
+                                                    chart_id,
+                                                    sync,
+                                                    chart.source,
+                                                    candles,
+                                                );
+                                            }
+                                            if link_focus == Some(chart_id) && candles.is_empty() {
+                                                link_waiting = true;
+                                            }
+                                            if link_focus == Some(chart_id) && !candles.is_empty() {
+                                                // A follower's move is made before the frame's baseline,
+                                                // so it is never announced back.
+                                                chart.chart.follow_sync(
+                                                    &mut self.link_state.hub,
+                                                    chart_id,
+                                                    link_view,
+                                                    chart.source,
+                                                    candles,
+                                                );
+                                            }
+                                            let instrument =
+                                                InstrumentId::new(chart.source, &chart.symbol);
+                                            let memberships: Vec<crate::ui::WatchlistMembership> =
+                                                watchlist_memberships
+                                                    .iter()
+                                                    .map(|(id, name, instruments)| {
+                                                        crate::ui::WatchlistMembership {
+                                                            id: *id,
+                                                            name: name.clone(),
+                                                            contains_market: instruments
+                                                                .contains(&instrument.key()),
+                                                        }
+                                                    })
+                                                    .collect();
+                                            ui::workspace::grid_card::show(ui, outline, |ui| {
+                                                ui.spacing_mut().item_spacing = spacing;
+                                                let mut action = ChartCardAction::default();
+                                                // The chart fills the card's inner rect and the
+                                                // header is drawn over it afterwards, so its
+                                                // widgets sit above the plot's own pointer area and
+                                                // its empty space still pans the chart.
+                                                let header_rect = egui::Rect::from_min_size(
+                                                    ui.available_rect_before_wrap().min,
+                                                    egui::vec2(
+                                                        ui.available_width(),
+                                                        ui::CHART_HEADER_HEIGHT,
+                                                    ),
+                                                );
+                                                chart.chart.set_top_inset(ui::CHART_HEADER_HEIGHT);
+                                                let selected = selected_drawing
+                                                    .as_ref()
+                                                    .filter(|(chart, _)| *chart == chart_id)
+                                                    .map(|(_, drawings)| drawings.clone())
+                                                    .unwrap_or_default();
+                                                let (pending, place_now, replace_with) =
+                                                    picture_work.for_chart(chart_id);
+                                                let mut frame = DrawingFrame::new(
+                                                    &chart.drawings,
+                                                    active_tool,
+                                                    None,
+                                                    chart.next_drawing_id,
+                                                )
+                                                .with_pending_content(pending)
+                                                .with_picture_work(place_now, replace_with)
+                                                .with_selection(selected)
+                                                .with_view(timeframe, hide_all_drawings)
+                                                .with_behavior(magnet, keep_drawing)
+                                                .with_style_clipboard(style_clipboard)
+                                                .with_keys_blocked(dialog_open)
+                                                .with_cursor(cursor)
+                                                .with_defaults(&drawing_defaults)
+                                                .with_preview(
+                                                    drawing_preview
+                                                        .as_ref()
+                                                        .filter(|(preview_chart, _)| {
+                                                            *preview_chart == chart_id
+                                                        })
+                                                        .map(|(_, draft)| draft),
+                                                );
+                                                chart.chart.set_zoom_armed(zoom_armed);
+                                                chart.chart.set_cursor_mode(cursor);
+                                                chart.chart.set_values_tooltip(values_tooltip);
+                                                chart.chart.set_snapshot_select(selecting_portion);
+                                                let for_logs = logs_chart == Some(chart_id);
+                                                chart.chart.set_logs_range(
+                                                    logs_range.filter(|_| for_logs),
+                                                );
+                                                chart.chart.set_pick_kind(
+                                                    if for_logs && logs_picking {
+                                                        PickKind::LogsRange
+                                                    } else {
+                                                        PickKind::Replay
+                                                    },
+                                                );
+                                                let mut replay_frame = ReplayChartFrame {
+                                                    // Select portion has the pointer: nothing is
+                                                    // picked meanwhile, and the pick waits.
+                                                    selecting: (replay_selecting
+                                                        || (for_logs && logs_picking))
+                                                        && !selecting_portion,
+                                                    active: replay_active,
+                                                    picked_ms: None,
+                                                    picked_range: None,
+                                                };
+                                                let mut pointer = chart.chart.body(
+                                                    ui,
+                                                    &chart.symbol,
+                                                    candles,
+                                                    chart.loading,
+                                                    chart.error.as_ref(),
+                                                    chart.scale_mode,
+                                                    chart.source,
+                                                    &chart.indicators,
+                                                    crosshair.as_ref(),
+                                                    chart_id,
+                                                    &mut frame,
+                                                    &mut replay_frame,
+                                                );
+                                                let mut header_ui = ui.new_child(
+                                                    egui::UiBuilder::new().max_rect(header_rect),
+                                                );
+                                                chart.chart.header(
+                                                    &mut header_ui,
+                                                    &chart.symbol,
+                                                    chart.source,
+                                                    &chart.indicators,
+                                                    candles,
+                                                    replay_ms.is_some(),
+                                                    favorites.contains(&instrument.key()),
+                                                    &memberships,
+                                                    &mut action,
+                                                    chart_id,
+                                                    multi,
+                                                );
+                                                if let Some(range) = replay_frame.picked_range {
+                                                    logs_picked = Some(range);
+                                                }
+                                                if let Some(picked_ms) = replay_frame.picked_ms {
+                                                    replay_picked = Some((chart_id, picked_ms));
+                                                }
+                                                if link_focus == Some(chart_id)
+                                                    && let Some(change) = chart.chart.link_change()
+                                                {
+                                                    self.link_state.outbox.push(
+                                                        crate::model::tab::link::LinkSignal::View(
+                                                            change,
+                                                        ),
+                                                    );
+                                                }
+                                                if linked
+                                                    && chart.chart.publish_sync(
+                                                        &mut self.sync_hub,
+                                                        chart_id,
+                                                        sync,
+                                                    )
+                                                {
+                                                    navigated = true;
+                                                }
+                                                chart.next_drawing_id = frame.next_id;
+                                                if let Some(select) = frame.select {
+                                                    drawing_select = Some((chart_id, select));
+                                                }
+                                                drawing_escape |= frame.escape_consumed;
+                                                drawing_put_down |= frame.put_down;
+                                                picture_used |= frame.content_used;
+                                                if let Some(drawing_id) = frame.replace_request {
+                                                    picture_replace = Some((chart_id, drawing_id));
+                                                }
+                                                if frame.copy_image.is_some() {
+                                                    picture_copy = frame.copy_image.take();
+                                                }
+                                                if let Some((drawing_id, request)) =
+                                                    frame.link_request
+                                                {
+                                                    link_request =
+                                                        Some((chart_id, drawing_id, request));
+                                                }
+                                                drawing_reveal |= frame.reveal_all;
+                                                drawing_copy |= frame.copy_requested;
+                                                if let Some(price) = frame.alert_price {
+                                                    drawing_alert = Some((chart_id, price));
+                                                }
+                                                if frame.style_copied.is_some() {
+                                                    drawing_style_copied = frame.style_copied;
+                                                }
+                                                if let Some(drawing_id) = frame.open_properties {
+                                                    drawing_properties_request =
+                                                        Some((chart_id, drawing_id));
+                                                }
+                                                let frame_commands =
+                                                    std::mem::take(&mut frame.commands);
+                                                if !frame_commands.is_empty() {
+                                                    drawing_commands
+                                                        .push((chart_id, frame_commands));
+                                                }
+                                                if pointer.clicked {
+                                                    action.focus_requested = true;
+                                                }
+                                                if pointer.on_overlay_card
+                                                    && crosshair_update.is_none()
+                                                {
+                                                    crosshair_update = freeze(crosshair, chart_id);
+                                                }
+                                                if let Some(overlay_action) =
+                                                    pointer.overlay_action.take()
+                                                {
+                                                    commands.push(ChartCommand::Indicator(
+                                                        chart_id,
+                                                        overlay_action,
+                                                    ));
+                                                }
+                                                if let Some(anchor) = pointer.hover_anchor {
+                                                    hover_update = Some((chart_id, anchor));
+                                                }
+                                                if let Some(request) = pointer.context.clone() {
+                                                    context_request = Some((chart_id, request));
+                                                }
+                                                if let (Some(x_fraction), Some(price)) =
+                                                    (pointer.hover_x_fraction, pointer.hover_price)
+                                                {
+                                                    crosshair_update = Some(CrosshairInfo {
+                                                        frozen: false,
+                                                        owner_id: chart_id,
+                                                        x_fraction,
+                                                        time: pointer.hover_time,
+                                                        price,
+                                                    });
+                                                }
+                                                action
+                                            })
+                                        },
+                                    );
+
+                                    if drawn.inner.focus_requested {
+                                        commands.push(ChartCommand::Focus(chart_id));
+                                    }
+                                    if drawn.inner.remove_requested {
+                                        commands.push(ChartCommand::Remove(chart_id));
+                                    }
+                                    if drawn.inner.settings_requested {
+                                        commands.push(ChartCommand::Settings(chart_id));
+                                    }
+                                    if let Some(action) = drawn.inner.indicator_action {
+                                        commands.push(ChartCommand::Indicator(chart_id, action));
+                                    }
+                                    if drawn.inner.toggle_favorite {
+                                        favorite_toggles.push(chart_id);
+                                    }
+                                    if let Some(change) = drawn.inner.watchlist_change {
+                                        watchlist_changes.push((chart_id, change));
+                                    }
+                                    if let Some(side) = drawn.inner.quick_trade {
+                                        let reference_price = displayed_candles(
+                                            &self.charts[index].candles,
+                                            replay_ms,
+                                        )
                                         .last()
                                         .map(|candle| candle.close);
-                                quick_trade = Some((chart_id, side, reference_price));
-                            }
-                            paper_actions.append(&mut self.charts[index].chart.paper.actions);
-                            live_actions.append(&mut self.charts[index].chart.live.actions);
-                            if let Some(side) = drawn.inner.live_trade {
-                                live_trade = Some((chart_id, side));
-                            }
-                            zones.cards.push((column.id, chart_id, drawn.response.rect));
+                                        quick_trade = Some((chart_id, side, reference_price));
+                                    }
+                                    paper_actions
+                                        .append(&mut self.charts[index].chart.paper.actions);
+                                    live_actions.append(&mut self.charts[index].chart.live.actions);
+                                    if let Some(side) = drawn.inner.live_trade {
+                                        live_trade = Some((chart_id, side));
+                                    }
+                                    zones.cards.push((column.id, chart_id, drawn.response.rect));
 
-                            // Horizontal splitter between rows in this column
-                            if row + 1 < row_count {
-                                let (splitter_rect, response) = column_ui.allocate_exact_size(
-                                    egui::vec2(column_ui.available_width(), ROW_SPLITTER_HEIGHT),
-                                    egui::Sense::drag(),
+                                    // Horizontal splitter between rows in this column
+                                    if row + 1 < row_count {
+                                        let (splitter_rect, response) = column_ui
+                                            .allocate_exact_size(
+                                                egui::vec2(
+                                                    column_ui.available_width(),
+                                                    ROW_SPLITTER_HEIGHT,
+                                                ),
+                                                egui::Sense::drag(),
+                                            );
+                                        if response.hovered() || response.dragged() {
+                                            column_ui
+                                                .ctx()
+                                                .set_cursor_icon(egui::CursorIcon::ResizeRow);
+                                        }
+                                        let center_y = splitter_rect.center().y;
+                                        let line_color = if response.dragged() {
+                                            ui::theme::ACCENT
+                                        } else if response.hovered() {
+                                            ui::theme::ACCENT.gamma_multiply(0.7)
+                                        } else {
+                                            egui::Color32::TRANSPARENT
+                                        };
+                                        if line_color != egui::Color32::TRANSPARENT {
+                                            column_ui.painter().line_segment(
+                                                [
+                                                    egui::pos2(
+                                                        splitter_rect.left() + 4.0,
+                                                        center_y,
+                                                    ),
+                                                    egui::pos2(
+                                                        splitter_rect.right() - 4.0,
+                                                        center_y,
+                                                    ),
+                                                ],
+                                                egui::Stroke::new(2.0, line_color),
+                                            );
+                                        }
+                                        if dragged.is_none() && response.dragged() {
+                                            row_resizes.push((
+                                                column.id,
+                                                row,
+                                                response.drag_delta().y,
+                                            ));
+                                        }
+                                    }
+                                }
+                            },
+                        );
+
+                        // Vertical splitter between columns
+                        if column_index + 1 < total_slots {
+                            let (splitter_rect, response) = ui.allocate_exact_size(
+                                egui::vec2(COLUMN_SPLITTER_WIDTH, available.y),
+                                egui::Sense::drag(),
+                            );
+                            if response.hovered() || response.dragged() {
+                                ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeColumn);
+                            }
+                            let center_x = splitter_rect.center().x;
+                            let line_color = if response.dragged() {
+                                ui::theme::ACCENT
+                            } else if response.hovered() {
+                                ui::theme::ACCENT.gamma_multiply(0.7)
+                            } else {
+                                egui::Color32::TRANSPARENT
+                            };
+                            if line_color != egui::Color32::TRANSPARENT {
+                                ui.painter().line_segment(
+                                    [
+                                        egui::pos2(center_x, splitter_rect.top() + 4.0),
+                                        egui::pos2(center_x, splitter_rect.bottom() - 4.0),
+                                    ],
+                                    egui::Stroke::new(2.0, line_color),
                                 );
-                                if response.hovered() || response.dragged() {
-                                    column_ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeRow);
-                                }
-                                let center_y = splitter_rect.center().y;
-                                let line_color = if response.dragged() {
-                                    ui::theme::ACCENT
-                                } else if response.hovered() {
-                                    ui::theme::ACCENT.gamma_multiply(0.7)
-                                } else {
-                                    egui::Color32::TRANSPARENT
-                                };
-                                if line_color != egui::Color32::TRANSPARENT {
-                                    column_ui.painter().line_segment(
-                                        [
-                                            egui::pos2(splitter_rect.left() + 4.0, center_y),
-                                            egui::pos2(splitter_rect.right() - 4.0, center_y),
-                                        ],
-                                        egui::Stroke::new(2.0, line_color),
-                                    );
-                                }
-                                if dragged.is_none() && response.dragged() {
-                                    row_resizes.push((column.id, row, response.drag_delta().y));
-                                }
+                            }
+                            if dragged.is_none()
+                                && response.dragged()
+                                && column_index + 1 < column_count
+                            {
+                                col_resizes.push((column_index, response.drag_delta().x));
                             }
                         }
-                    },
-                );
-
-                // Vertical splitter between columns
-                if column_index + 1 < total_slots {
-                    let (splitter_rect, response) = ui.allocate_exact_size(
-                        egui::vec2(COLUMN_SPLITTER_WIDTH, available.y),
-                        egui::Sense::drag(),
-                    );
-                    if response.hovered() || response.dragged() {
-                        ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeColumn);
                     }
-                    let center_x = splitter_rect.center().x;
-                    let line_color = if response.dragged() {
-                        ui::theme::ACCENT
-                    } else if response.hovered() {
-                        ui::theme::ACCENT.gamma_multiply(0.7)
-                    } else {
-                        egui::Color32::TRANSPARENT
-                    };
-                    if line_color != egui::Color32::TRANSPARENT {
-                        ui.painter().line_segment(
-                            [
-                                egui::pos2(center_x, splitter_rect.top() + 4.0),
-                                egui::pos2(center_x, splitter_rect.bottom() - 4.0),
-                            ],
-                            egui::Stroke::new(2.0, line_color),
-                        );
-                    }
-                    if dragged.is_none() && response.dragged() && column_index + 1 < column_count {
-                        col_resizes.push((column_index, response.drag_delta().x));
-                    }
-                }
-            }
-        });
+                });
+            });
 
         for (col_idx, delta_x) in col_resizes {
             self.resize_column(col_idx, delta_x, usable_width);

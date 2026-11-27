@@ -117,7 +117,7 @@ pub struct ChartLayout;
 
 impl ChartLayout {
     pub const GRID_MIN_COLUMN_WIDTH: f32 = 280.0;
-    pub const GRID_OUTER_PADDING: f32 = 4.0;
+    pub const GRID_OUTER_PADDING: f32 = 3.0;
 
     /// Equal card height for `row_count` stacked rows separated by `gap`, filling `available`
     /// exactly so the space above the first card and below the last are the panel's own margins.
