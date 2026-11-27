@@ -123,16 +123,23 @@ impl ChartWorkspace {
             .ok()
             .map(|store| self.watchlist_pane.sidebar.minimum_width(store.lists()))
             .unwrap_or(286.0);
-        egui::Panel::right("watchlist")
+        let panel = egui::Panel::right("watchlist")
             .default_size(minimum_width.max(270.0))
             .min_size(minimum_width)
             .max_size(640.0)
+            .show_separator_line(false)
             .frame(
                 egui::Frame::new()
                     .fill(crate::ui::theme::chrome())
                     .inner_margin(egui::Margin::ZERO),
             )
             .show(ui, |ui| self.show_watchlist(ui, ctx));
+        let rect = panel.response.rect;
+        let x = rect.left().round();
+        ui.painter().line_segment(
+            [egui::pos2(x, rect.top()), egui::pos2(x, rect.bottom())],
+            egui::Stroke::new(2.0, crate::ui::theme::ACCENT.gamma_multiply(0.65)),
+        );
     }
 
     fn show_watchlist(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {

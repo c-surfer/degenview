@@ -39,7 +39,7 @@ impl ChartCard {
         } else {
             BTN_SIZE
         };
-        let buttons_reserved = buttons_width + BUTTONS_GAP_AFTER;
+        let buttons_reserved = buttons_width + BUTTONS_GAP_AFTER + BUTTONS_RIGHT_PAD;
         let reserved = 108.0
             + paper_price.as_deref().map_or(0.0, |price_text| {
                 chart_trading::quick_trade_width(ui, price_text) + 8.0
@@ -252,6 +252,7 @@ impl ChartCard {
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     ui.spacing_mut().item_spacing.x = BUTTONS_GAP_AFTER;
+                    ui.add_space(BUTTONS_RIGHT_PAD);
                     let favorite_icon = if is_favorite {
                         Icon::StarFill
                     } else {
@@ -372,6 +373,9 @@ const BTN_GAP: f32 = 2.0;
 
 /// Gap after the button group before adjacent elements like trade pills.
 const BUTTONS_GAP_AFTER: f32 = 4.0;
+
+/// Extra breathing room to the right of the rightmost header button.
+const BUTTONS_RIGHT_PAD: f32 = 3.0;
 
 /// The gap between the trade pills and the price axis they must stay left of.
 const AXIS_GAP: f32 = 8.0;
