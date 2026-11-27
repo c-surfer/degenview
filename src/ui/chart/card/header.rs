@@ -365,10 +365,10 @@ impl ChartCard {
 }
 
 /// Compact size for the header buttons (favorite star and close cross).
-const BTN_SIZE: f32 = 22.0;
+const BTN_SIZE: f32 = 18.0;
 
 /// Spacing between the star and close buttons in the unified container.
-const BTN_GAP: f32 = 3.0;
+const BTN_GAP: f32 = 2.0;
 
 /// Gap after the button group before adjacent elements like trade pills.
 const BUTTONS_GAP_AFTER: f32 = 4.0;

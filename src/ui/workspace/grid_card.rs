@@ -9,7 +9,7 @@ use eframe::egui::{self, Color32, Margin, Rect, Stroke, StrokeKind, Ui, pos2};
 pub const PADDING: i8 = 7;
 
 /// How strongly an outline's colour shows: enough to find the card, not to compete with it.
-const OUTLINE_STRENGTH: f32 = 0.45;
+const OUTLINE_STRENGTH: f32 = 0.65;
 
 /// Where a card sits among the columns, to know which of its edges another card or an empty
 /// stretch of the grid lies across.
