@@ -34,7 +34,7 @@ mod i18n_tests;
 pub use chart::appearance::ChartAppearance;
 pub use chart::canvas::ChartCanvas;
 pub use chart::kind::{ChartKind, ChartStyle, ChartType};
-pub use chart::layout::{ChartColumn, ChartConfig, ChartLayout, LayoutSnapshot};
+pub use chart::layout::{ChartColumn, ChartConfig, ChartLayout, GridLayoutPreset, LayoutSnapshot};
 pub use chart::persisted::PersistedChart;
 pub use chart::price_format::{PriceFormat, SmallPrices};
 pub use chart::replay::{

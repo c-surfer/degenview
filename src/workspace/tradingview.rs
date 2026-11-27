@@ -112,6 +112,8 @@ mod tests {
             last_opened_at_ms: None,
             autosave: None,
             sync: Default::default(),
+            column_weights: None,
+            row_weights: None,
         };
 
         let mut workspace = empty_workspace(1);
@@ -131,7 +133,7 @@ mod tests {
                 .map(|chart| {
                     let mut value = serde_json::to_value(chart).unwrap();
                     let fields = value.as_object_mut().unwrap();
-                    for key in ["viewport", "candle_count", "y_zoom"] {
+                    for key in ["viewport", "candle_count", "y_zoom", "timeframe"] {
                         fields.remove(key);
                     }
                     value

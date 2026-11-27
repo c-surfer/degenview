@@ -88,6 +88,7 @@ pub enum ToolbarAction {
     CompareSymbol,
     /// A type picked from the chart-type menu, for the focused chart.
     SetChartType(ChartType),
+    ApplyGridPreset(crate::model::GridLayoutPreset),
     SaveLayout,
     ToggleAutosave,
     CopyLayout,
@@ -132,6 +133,7 @@ pub fn replay_tooltip(replay_open: bool, has_market: bool) -> &'static str {
 enum Menu {
     ChartType,
     Timeframe,
+    GridPreset,
     Layout,
     Snapshot,
 }
@@ -177,6 +179,7 @@ pub fn show(ui: &mut Ui, input: &ToolbarInput) -> Vec<ToolbarAction> {
                     None => {}
                 }
             }
+            Menu::GridPreset => grid_preset_popup(ui, response, actions),
             Menu::Layout => layout_popup(ui, response, input, actions),
             Menu::Snapshot => {
                 match crate::ui::workspace::snapshot_menu::menu(ui, response, &input.snapshot) {
@@ -353,6 +356,10 @@ fn right_items(input: &ToolbarInput) -> Vec<Item> {
     layout.menu = Some(Menu::Layout);
     layout.access = Some(tr!("Layout: {help}", help = help));
 
+    let mut grid_preset =
+        Button::new("grid-preset", tr!("Select grid layout")).icon(Icon::RectLeft);
+    grid_preset.menu = Some(Menu::GridPreset);
+
     let mut snapshot = Button::new("snapshot", tr!("Take a snapshot"))
         .icon(Icon::Camera)
         .enabled(input.chart.is_some())
@@ -370,6 +377,7 @@ fn right_items(input: &ToolbarInput) -> Vec<Item> {
         tr!("Show Market Flow")
     };
     vec![
+        Item::Button(grid_preset),
         Item::Button(layout),
         Item::Button(
             Button::new("chart-settings", tr!("Chart settings"))
@@ -403,6 +411,32 @@ fn right_items(input: &ToolbarInput) -> Vec<Item> {
                 .on_click(ToolbarAction::ToggleWatchlist),
         ),
     ]
+}
+
+/// The menu for picking a multi-chart grid preset in the style of TradingView.
+fn grid_preset_popup(ui: &mut Ui, response: &Response, actions: &mut Vec<ToolbarAction>) {
+    let presets = [
+        (crate::model::GridLayoutPreset::Single, tr!("1 chart")),
+        (crate::model::GridLayoutPreset::TwoColumns, tr!("2 charts")),
+        (
+            crate::model::GridLayoutPreset::ThreeLeftFocus,
+            tr!("3 charts"),
+        ),
+        (crate::model::GridLayoutPreset::FourGrid, tr!("4 charts")),
+        (crate::model::GridLayoutPreset::FiveSplit, tr!("5 charts")),
+    ];
+
+    let rows: Vec<(&str, Option<&str>)> = presets.iter().map(|(_, label)| (*label, None)).collect();
+
+    kit::fitted_menu_rows(ui, response, egui::RectAlign::BOTTOM_END, &rows, |ui| {
+        for (preset, label) in presets {
+            let icon = Icon::RectLeft;
+            if kit::menu_item(ui, icon, label, true, false) {
+                actions.push(ToolbarAction::ApplyGridPreset(preset));
+                ui.close();
+            }
+        }
+    });
 }
 
 /// The menu under the layout button: what can be done with the layout.

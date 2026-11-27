@@ -6,7 +6,7 @@ pub mod clipboard;
 pub mod context;
 pub mod countdown;
 pub mod kind;
-pub(in crate::model) mod layout;
+pub mod layout;
 pub mod look;
 pub mod object_tree;
 pub(in crate::model) mod persisted;

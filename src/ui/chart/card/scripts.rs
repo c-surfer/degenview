@@ -249,7 +249,7 @@ pub(super) fn pane_labels(
     plot_height: f32,
     style: &CanvasStyle,
 ) -> Vec<(f64, String)> {
-    let (low, high) = crate::ui::pine::geometry::pane_value_range(pine, shown, 0.1);
+    let (low, high) = crate::ui::pine::geometry::pane_value_range(pine, shown, 0.001);
     // A pane is short: its labels sit closer than the price chart's, and it keeps at least two.
     let budget = chart::canvas::tick_budget(plot_height, style.pane_tick_spacing()).max(2);
     let ticks = chart::canvas::price_ticks(low, high, false, budget);
@@ -288,13 +288,13 @@ pub(super) fn draw_script_pane(
 ) -> Option<HoverTarget> {
     // Top and bottom leave just enough room for the outermost axis labels.
     let plot = Rect::from_min_max(
-        Pos2::new(price_plot.left(), pane.top() + 8.0),
-        Pos2::new(price_plot.right(), pane.bottom() - 8.0),
+        Pos2::new(price_plot.left(), pane.top() + 5.0),
+        Pos2::new(price_plot.right(), pane.bottom() - 5.0),
     );
     if plot.height() <= 1.0 {
         return None;
     }
-    let (low, high) = crate::ui::pine::geometry::pane_value_range(pine, shown.len(), 0.1);
+    let (low, high) = crate::ui::pine::geometry::pane_value_range(pine, shown.len(), 0.001);
     let span = (high - low).max(f64::EPSILON);
     let y_for = |value: f64| plot.bottom() - ((value - low) / span) as f32 * plot.height();
     let labels = pane_labels(pine, shown.len(), plot.height(), style);

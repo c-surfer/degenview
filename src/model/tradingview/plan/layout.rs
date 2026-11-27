@@ -137,6 +137,7 @@ pub(super) fn plan(
             id,
             symbol: market.symbol.clone(),
             source: market.source,
+            timeframe: None,
             log_scale: false,
             scale_mode: Some(PriceScaleMode::Regular),
             y_zoom: 1.0,

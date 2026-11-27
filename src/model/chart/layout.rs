@@ -117,10 +117,16 @@ pub struct ChartLayout;
 
 impl ChartLayout {
     pub const GRID_MIN_COLUMN_WIDTH: f32 = 280.0;
+    pub const GRID_OUTER_PADDING: f32 = 4.0;
 
-    /// Equal card height for `row_count` stacked rows that together fill `available`.
-    pub fn grid_card_height(available: f32, row_count: usize) -> f32 {
-        (available / row_count.max(1) as f32).max(0.0)
+    /// Equal card height for `row_count` stacked rows separated by `gap`, filling `available`
+    /// exactly so the space above the first card and below the last are the panel's own margins.
+    pub fn grid_card_height(available: f32, row_count: usize, gap: f32) -> f32 {
+        if row_count == 0 {
+            return available.max(0.0);
+        }
+        let gaps = row_count.saturating_sub(1) as f32 * gap;
+        ((available - gaps) / row_count as f32).max(0.0)
     }
 
     /// A trailing column may be created only while every column remains usable.
@@ -129,7 +135,123 @@ impl ChartLayout {
         if candidate == 0 {
             return false;
         }
-        available_width / candidate as f32 >= Self::GRID_MIN_COLUMN_WIDTH
+        let usable = (available_width - Self::GRID_OUTER_PADDING * 2.0).max(0.0);
+        usable / candidate as f32 >= Self::GRID_MIN_COLUMN_WIDTH
+    }
+}
+
+/// Presets for multi-chart grid layouts in the style of TradingView.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
+pub enum GridLayoutPreset {
+    Single,          // 1 график
+    TwoColumns,      // 2 графика рядом (2 колонки)
+    TwoRows,         // 2 графика друг под другом (1 колонка, 2 строки)
+    ThreeLeftFocus,  // 3 графика: 1 слева во всю высоту + 2 справа друг над другом (Скриншот 3)
+    ThreeRightFocus, // 3 графика: 2 слева друг над другом + 1 справа во всю высоту
+    ThreeColumns,    // 3 графика: 3 колонки
+    FourGrid,        // 4 графика: сетка 2x2 (2 колонки по 2 графика)
+    FiveSplit,       // 5 графиков: 2 слева (65%), 3 справа (35%)
+}
+
+impl GridLayoutPreset {
+    pub fn required_charts(&self) -> usize {
+        match self {
+            Self::Single => 1,
+            Self::TwoColumns | Self::TwoRows => 2,
+            Self::ThreeLeftFocus | Self::ThreeRightFocus | Self::ThreeColumns => 3,
+            Self::FourGrid => 4,
+            Self::FiveSplit => 5,
+        }
+    }
+
+    pub fn arrange_columns(&self, chart_ids: &[u64], next_id: &mut u64) -> Vec<ChartColumn> {
+        if chart_ids.is_empty() {
+            return Vec::new();
+        }
+
+        let mut fresh = || {
+            let id = *next_id;
+            *next_id += 1;
+            id
+        };
+
+        match self {
+            Self::Single | Self::TwoRows => {
+                vec![ChartColumn::new(fresh(), chart_ids.to_vec())]
+            }
+            Self::TwoColumns => {
+                if chart_ids.len() == 1 {
+                    vec![ChartColumn::new(fresh(), chart_ids.to_vec())]
+                } else {
+                    vec![
+                        ChartColumn::new(fresh(), vec![chart_ids[0]]),
+                        ChartColumn::new(fresh(), chart_ids[1..].to_vec()),
+                    ]
+                }
+            }
+            Self::ThreeLeftFocus => {
+                if chart_ids.len() == 1 {
+                    vec![ChartColumn::new(fresh(), chart_ids.to_vec())]
+                } else {
+                    vec![
+                        ChartColumn::new(fresh(), vec![chart_ids[0]]),
+                        ChartColumn::new(fresh(), chart_ids[1..].to_vec()),
+                    ]
+                }
+            }
+            Self::ThreeRightFocus => {
+                if chart_ids.len() == 1 {
+                    vec![ChartColumn::new(fresh(), chart_ids.to_vec())]
+                } else if chart_ids.len() == 2 {
+                    vec![
+                        ChartColumn::new(fresh(), vec![chart_ids[0]]),
+                        ChartColumn::new(fresh(), vec![chart_ids[1]]),
+                    ]
+                } else {
+                    vec![
+                        ChartColumn::new(fresh(), chart_ids[..chart_ids.len() - 1].to_vec()),
+                        ChartColumn::new(fresh(), chart_ids[chart_ids.len() - 1..].to_vec()),
+                    ]
+                }
+            }
+            Self::ThreeColumns => {
+                if chart_ids.len() == 1 {
+                    vec![ChartColumn::new(fresh(), chart_ids.to_vec())]
+                } else if chart_ids.len() == 2 {
+                    vec![
+                        ChartColumn::new(fresh(), vec![chart_ids[0]]),
+                        ChartColumn::new(fresh(), vec![chart_ids[1]]),
+                    ]
+                } else {
+                    vec![
+                        ChartColumn::new(fresh(), vec![chart_ids[0]]),
+                        ChartColumn::new(fresh(), vec![chart_ids[1]]),
+                        ChartColumn::new(fresh(), chart_ids[2..].to_vec()),
+                    ]
+                }
+            }
+            Self::FourGrid => {
+                if chart_ids.len() <= 2 {
+                    vec![ChartColumn::new(fresh(), chart_ids.to_vec())]
+                } else {
+                    vec![
+                        ChartColumn::new(fresh(), chart_ids[..2].to_vec()),
+                        ChartColumn::new(fresh(), chart_ids[2..].to_vec()),
+                    ]
+                }
+            }
+            Self::FiveSplit => {
+                if chart_ids.len() <= 2 {
+                    vec![ChartColumn::new(fresh(), chart_ids.to_vec())]
+                } else {
+                    let split = chart_ids.len().min(2);
+                    vec![
+                        ChartColumn::new(fresh(), chart_ids[..split].to_vec()),
+                        ChartColumn::new(fresh(), chart_ids[split..].to_vec()),
+                    ]
+                }
+            }
+        }
     }
 }
 
@@ -168,10 +290,10 @@ mod tests {
     }
 
     #[test]
-    fn card_heights_fill_the_available_height() {
-        let height = ChartLayout::grid_card_height(500.0, 3);
-        assert!((height * 3.0 - 500.0).abs() < 0.0001);
-        assert_eq!(ChartLayout::grid_card_height(500.0, 1), 500.0);
+    fn card_heights_and_gaps_fill_the_available_height() {
+        let height = ChartLayout::grid_card_height(500.0, 3, 6.0);
+        assert!((height * 3.0 + 2.0 * 6.0 - 500.0).abs() < 0.0001);
+        assert_eq!(ChartLayout::grid_card_height(500.0, 1, 6.0), 500.0);
     }
 
     #[test]
@@ -245,6 +367,128 @@ mod tests {
         assert_eq!(
             serde_json::from_str::<LayoutSnapshot>(&encoded).unwrap(),
             other
+        );
+    }
+
+    #[test]
+    fn arrange_columns_handles_all_presets_with_exact_counts() {
+        let mut next_id = 100;
+        let mut arranged = |preset: GridLayoutPreset, ids: &[u64]| -> Vec<Vec<u64>> {
+            preset
+                .arrange_columns(ids, &mut next_id)
+                .into_iter()
+                .map(|col| col.chart_ids)
+                .collect()
+        };
+
+        // Single
+        assert_eq!(arranged(GridLayoutPreset::Single, &[1]), vec![vec![1]]);
+
+        // TwoColumns
+        assert_eq!(
+            arranged(GridLayoutPreset::TwoColumns, &[1, 2]),
+            vec![vec![1], vec![2]]
+        );
+
+        // TwoRows
+        assert_eq!(
+            arranged(GridLayoutPreset::TwoRows, &[1, 2]),
+            vec![vec![1, 2]]
+        );
+
+        // ThreeLeftFocus (1 left, 2 right)
+        assert_eq!(
+            arranged(GridLayoutPreset::ThreeLeftFocus, &[1, 2, 3]),
+            vec![vec![1], vec![2, 3]]
+        );
+
+        // ThreeRightFocus (2 left, 1 right)
+        assert_eq!(
+            arranged(GridLayoutPreset::ThreeRightFocus, &[1, 2, 3]),
+            vec![vec![1, 2], vec![3]]
+        );
+
+        // ThreeColumns
+        assert_eq!(
+            arranged(GridLayoutPreset::ThreeColumns, &[1, 2, 3]),
+            vec![vec![1], vec![2], vec![3]]
+        );
+
+        // FourGrid (2x2)
+        assert_eq!(
+            arranged(GridLayoutPreset::FourGrid, &[1, 2, 3, 4]),
+            vec![vec![1, 2], vec![3, 4]]
+        );
+
+        // FiveSplit (2 left, 3 right)
+        assert_eq!(
+            arranged(GridLayoutPreset::FiveSplit, &[1, 2, 3, 4, 5]),
+            vec![vec![1, 2], vec![3, 4, 5]]
+        );
+    }
+
+    #[test]
+    fn arrange_columns_handles_fewer_and_more_charts_than_preset_needs() {
+        let mut next_id = 100;
+        let mut arranged = |preset: GridLayoutPreset, ids: &[u64]| -> Vec<Vec<u64>> {
+            preset
+                .arrange_columns(ids, &mut next_id)
+                .into_iter()
+                .map(|col| col.chart_ids)
+                .collect()
+        };
+
+        // Empty
+        assert!(arranged(GridLayoutPreset::Single, &[]).is_empty());
+        assert!(arranged(GridLayoutPreset::FourGrid, &[]).is_empty());
+
+        // Fewer charts
+        assert_eq!(arranged(GridLayoutPreset::TwoColumns, &[1]), vec![vec![1]]);
+        assert_eq!(
+            arranged(GridLayoutPreset::ThreeLeftFocus, &[1]),
+            vec![vec![1]]
+        );
+        assert_eq!(
+            arranged(GridLayoutPreset::ThreeLeftFocus, &[1, 2]),
+            vec![vec![1], vec![2]]
+        );
+        assert_eq!(
+            arranged(GridLayoutPreset::ThreeRightFocus, &[1, 2]),
+            vec![vec![1], vec![2]]
+        );
+        assert_eq!(
+            arranged(GridLayoutPreset::ThreeColumns, &[1, 2]),
+            vec![vec![1], vec![2]]
+        );
+        assert_eq!(
+            arranged(GridLayoutPreset::FourGrid, &[1, 2, 3]),
+            vec![vec![1, 2], vec![3]]
+        );
+
+        // More charts (remaining placed in last column)
+        assert_eq!(
+            arranged(GridLayoutPreset::Single, &[1, 2, 3]),
+            vec![vec![1, 2, 3]]
+        );
+        assert_eq!(
+            arranged(GridLayoutPreset::TwoColumns, &[1, 2, 3, 4]),
+            vec![vec![1], vec![2, 3, 4]]
+        );
+        assert_eq!(
+            arranged(GridLayoutPreset::ThreeLeftFocus, &[1, 2, 3, 4]),
+            vec![vec![1], vec![2, 3, 4]]
+        );
+        assert_eq!(
+            arranged(GridLayoutPreset::ThreeRightFocus, &[1, 2, 3, 4]),
+            vec![vec![1, 2, 3], vec![4]]
+        );
+        assert_eq!(
+            arranged(GridLayoutPreset::ThreeColumns, &[1, 2, 3, 4]),
+            vec![vec![1], vec![2], vec![3, 4]]
+        );
+        assert_eq!(
+            arranged(GridLayoutPreset::FourGrid, &[1, 2, 3, 4, 5]),
+            vec![vec![1, 2], vec![3, 4, 5]]
         );
     }
 }

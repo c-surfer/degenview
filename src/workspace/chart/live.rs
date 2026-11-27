@@ -13,13 +13,13 @@ impl ChartWorkspace {
     /// the live feeds. Needs no window, so it serves a tab that is drawn and one that is only
     /// watched (a script alert on a tab that is not on screen).
     pub fn update_market_data(&mut self, ctx: &egui::Context) {
-        let timeframe = self.timeframe;
         for chart in &mut self.charts {
-            chart.receive_fetch(timeframe);
-            chart.receive_older(timeframe);
-            chart.request_older(timeframe, ctx);
+            let chart_timeframe = chart.timeframe;
+            chart.receive_fetch(chart_timeframe);
+            chart.receive_older(chart_timeframe);
+            chart.request_older(chart_timeframe, ctx);
             if chart.refresh_due() {
-                chart.fetch(timeframe, ctx);
+                chart.fetch(chart_timeframe, ctx);
             }
         }
         self.tick_link_probation(ctx);
@@ -102,7 +102,6 @@ impl ChartWorkspace {
         kline: Kline,
         now: Instant,
     ) {
-        let timeframe = self.timeframe;
         for chart in self.charts.iter_mut().filter(|chart| {
             chart.source == source
                 && InstrumentId::new(source, chart.symbol.as_str())
@@ -112,10 +111,10 @@ impl ChartWorkspace {
             if let Some(open_time) =
                 chart
                     .live_fold
-                    .apply(timeframe, base, &mut chart.candles, kline.clone())
+                    .apply(chart.timeframe, base, &mut chart.candles, kline.clone())
             {
                 chart.live = Some(LiveMark::new(open_time, now));
-                chart.note_arrival(timeframe, crate::clock::now_ms());
+                chart.note_arrival(chart.timeframe, crate::clock::now_ms());
             }
         }
     }
@@ -132,7 +131,7 @@ mod tests {
     fn a_fetch_reaches_a_chart_that_is_never_drawn() {
         let mut workspace = empty_workspace(1);
         // A source without a live stream or older pages, so nothing here reaches the network.
-        let mut chart = Chart::blank(1, "pair", DataSource::DexScreener);
+        let mut chart = Chart::blank(1, "pair", DataSource::DexScreener, Timeframe::HOUR_1);
         let (sender, receiver) = std::sync::mpsc::channel();
         sender
             .send(Ok(crate::workspace::chart::Fetched {
@@ -153,11 +152,11 @@ mod tests {
     fn every_chart_of_the_symbol_takes_the_live_bar() {
         let mut workspace = empty_workspace(1);
         for id in 1..=2 {
-            let mut chart = Chart::blank(id, "BTCUSDT", DataSource::Binance);
+            let mut chart = Chart::blank(id, "BTCUSDT", DataSource::Binance, workspace.timeframe);
             chart.candles = vec![candle(1, 1.0)];
             workspace.charts.push(chart);
         }
-        let mut other = Chart::blank(3, "ETHUSDT", DataSource::Binance);
+        let mut other = Chart::blank(3, "ETHUSDT", DataSource::Binance, workspace.timeframe);
         other.candles = vec![candle(1, 1.0)];
         workspace.charts.push(other);
 
@@ -188,9 +187,12 @@ mod tests {
     fn a_live_bar_alone_gives_a_chart_its_countdown_while_the_history_is_still_coming() {
         let mut workspace = empty_workspace(1);
         workspace.timeframe = Timeframe::MINUTE_1;
-        workspace
-            .charts
-            .push(Chart::blank(1, "BTCUSDT", DataSource::Binance));
+        workspace.charts.push(Chart::blank(
+            1,
+            "BTCUSDT",
+            DataSource::Binance,
+            workspace.timeframe,
+        ));
         let now = crate::clock::now_ms();
         assert!(
             workspace.charts[0]
@@ -217,12 +219,13 @@ mod tests {
     #[test]
     fn a_live_bar_of_a_new_timeframe_counts_down_where_old_candles_do_not() {
         let mut workspace = empty_workspace(1);
-        let mut chart = Chart::blank(1, "BTCUSDT", DataSource::Binance);
+        let mut chart = Chart::blank(1, "BTCUSDT", DataSource::Binance, workspace.timeframe);
         // The chart was fetched on 5 minutes; the workspace has moved on to 1 minute.
         chart.candles = vec![candle(1, 1.0)];
         chart.note_arrival(Timeframe::MINUTE_5, crate::clock::now_ms());
         workspace.charts.push(chart);
         workspace.timeframe = Timeframe::MINUTE_1;
+        workspace.charts[0].timeframe = Timeframe::MINUTE_1;
         let at = |workspace: &ChartWorkspace| {
             workspace.charts[0].bar_countdown(Timeframe::MINUTE_1, false, crate::clock::now_ms())
         };
@@ -245,7 +248,7 @@ mod tests {
     fn a_live_bar_the_chart_drops_records_no_arrival() {
         let mut workspace = empty_workspace(1);
         workspace.timeframe = Timeframe::MINUTE_1;
-        let mut chart = Chart::blank(1, "BTCUSDT", DataSource::Binance);
+        let mut chart = Chart::blank(1, "BTCUSDT", DataSource::Binance, workspace.timeframe);
         chart.candles = vec![candle(1_000_000_000_000, 1.0)];
         workspace.charts.push(chart);
         // Older than the newest candle: dropped.
@@ -264,11 +267,11 @@ mod tests {
     fn a_kraken_chart_takes_the_live_bar_whatever_way_its_symbol_is_spelled() {
         let mut workspace = empty_workspace(1);
         for (id, symbol) in [(1, "xbt/usd"), (2, "BTC-USD"), (3, "BTC")] {
-            let mut chart = Chart::blank(id, symbol, DataSource::Kraken);
+            let mut chart = Chart::blank(id, symbol, DataSource::Kraken, workspace.timeframe);
             chart.candles = vec![candle(1, 1.0)];
             workspace.charts.push(chart);
         }
-        let mut other = Chart::blank(4, "ETH/USD", DataSource::Kraken);
+        let mut other = Chart::blank(4, "ETH/USD", DataSource::Kraken, workspace.timeframe);
         other.candles = vec![candle(1, 1.0)];
         workspace.charts.push(other);
 
@@ -289,11 +292,11 @@ mod tests {
     fn an_okx_chart_takes_the_live_bar_whatever_way_its_symbol_is_spelled() {
         let mut workspace = empty_workspace(1);
         for (id, symbol) in [(1, "btc/usdt"), (2, "BTC-USDT"), (3, "BTC")] {
-            let mut chart = Chart::blank(id, symbol, DataSource::Okx);
+            let mut chart = Chart::blank(id, symbol, DataSource::Okx, workspace.timeframe);
             chart.candles = vec![candle(1, 1.0)];
             workspace.charts.push(chart);
         }
-        let mut other = Chart::blank(4, "ETH-USDT", DataSource::Okx);
+        let mut other = Chart::blank(4, "ETH-USDT", DataSource::Okx, workspace.timeframe);
         other.candles = vec![candle(1, 1.0)];
         workspace.charts.push(other);
 
@@ -314,11 +317,11 @@ mod tests {
     fn a_bybit_chart_takes_the_live_bar_whatever_way_its_symbol_is_spelled() {
         let mut workspace = empty_workspace(1);
         for (id, symbol) in [(1, "btc/usdt"), (2, "BTCUSDT"), (3, "BTC")] {
-            let mut chart = Chart::blank(id, symbol, DataSource::Bybit);
+            let mut chart = Chart::blank(id, symbol, DataSource::Bybit, workspace.timeframe);
             chart.candles = vec![candle(1, 1.0)];
             workspace.charts.push(chart);
         }
-        let mut other = Chart::blank(4, "ETHUSDT", DataSource::Bybit);
+        let mut other = Chart::blank(4, "ETHUSDT", DataSource::Bybit, workspace.timeframe);
         other.candles = vec![candle(1, 1.0)];
         workspace.charts.push(other);
 
@@ -339,11 +342,11 @@ mod tests {
     fn a_gate_chart_takes_the_live_bar_whatever_way_its_symbol_is_spelled() {
         let mut workspace = empty_workspace(1);
         for (id, symbol) in [(1, "btc/usdt"), (2, "BTC_USDT"), (3, "BTC")] {
-            let mut chart = Chart::blank(id, symbol, DataSource::Gate);
+            let mut chart = Chart::blank(id, symbol, DataSource::Gate, workspace.timeframe);
             chart.candles = vec![candle(1, 1.0)];
             workspace.charts.push(chart);
         }
-        let mut other = Chart::blank(4, "ETH_USDT", DataSource::Gate);
+        let mut other = Chart::blank(4, "ETH_USDT", DataSource::Gate, workspace.timeframe);
         other.candles = vec![candle(1, 1.0)];
         workspace.charts.push(other);
 
@@ -364,11 +367,11 @@ mod tests {
     fn a_mexc_chart_takes_the_live_bar_whatever_way_its_symbol_is_spelled() {
         let mut workspace = empty_workspace(1);
         for (id, symbol) in [(1, "btc/usdt"), (2, "BTCUSDT"), (3, "BTC")] {
-            let mut chart = Chart::blank(id, symbol, DataSource::Mexc);
+            let mut chart = Chart::blank(id, symbol, DataSource::Mexc, workspace.timeframe);
             chart.candles = vec![candle(1, 1.0)];
             workspace.charts.push(chart);
         }
-        let mut other = Chart::blank(4, "ETHUSDT", DataSource::Mexc);
+        let mut other = Chart::blank(4, "ETHUSDT", DataSource::Mexc, workspace.timeframe);
         other.candles = vec![candle(1, 1.0)];
         workspace.charts.push(other);
 
@@ -388,7 +391,7 @@ mod tests {
     #[test]
     fn a_late_tick_of_an_older_bar_does_not_unsort_the_chart() {
         let mut workspace = empty_workspace(1);
-        let mut chart = Chart::blank(1, "BTCUSDT", DataSource::Binance);
+        let mut chart = Chart::blank(1, "BTCUSDT", DataSource::Binance, workspace.timeframe);
         chart.candles = vec![candle(1, 1.0), candle(2, 2.0)];
         workspace.charts.push(chart);
 
@@ -414,9 +417,12 @@ mod tests {
         let mut workspace = empty_workspace(1);
         workspace.timeframe = Timeframe::parse("5m").unwrap();
         for id in 1..=2 {
-            workspace
-                .charts
-                .push(Chart::blank(id, "BTCUSDT", DataSource::Binance));
+            workspace.charts.push(Chart::blank(
+                id,
+                "BTCUSDT",
+                DataSource::Binance,
+                Timeframe::HOUR_1,
+            ));
         }
         let live = |open: i64, volume: f64| Kline {
             volume,
@@ -450,9 +456,12 @@ mod tests {
     fn a_refresh_that_replaces_the_forming_bucket_makes_the_next_live_kline_start_from_it() {
         let mut workspace = empty_workspace(1);
         workspace.timeframe = Timeframe::parse("5m").unwrap();
-        workspace
-            .charts
-            .push(Chart::blank(1, "BTCUSDT", DataSource::Binance));
+        workspace.charts.push(Chart::blank(
+            1,
+            "BTCUSDT",
+            DataSource::Binance,
+            workspace.timeframe,
+        ));
         let mut kline = candle(0, 5.0);
         kline.volume = 4.0;
         workspace.apply_live_kline(
@@ -507,7 +516,7 @@ mod tests {
     fn an_answer_with_the_buckets_base_bars_gives_the_forming_candle_what_the_socket_missed() {
         let mut workspace = empty_workspace(1);
         workspace.timeframe = Timeframe::parse("5m").unwrap();
-        let mut chart = Chart::blank(1, "BTCUSDT", DataSource::Binance);
+        let mut chart = Chart::blank(1, "BTCUSDT", DataSource::Binance, workspace.timeframe);
         // The socket was first: it saw only the bar at minute 3, 8 traded.
         chart.last_fetch = Instant::now();
         workspace.charts.push(chart);

@@ -30,6 +30,37 @@ pub struct SavedView {
     /// Which parts of horizontal navigation the charts share. Older rows have none and open linked, the default.
     #[serde(default)]
     pub sync: crate::model::ChartSyncSettings,
+    /// Normalized column width weights (sum = 1.0).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub column_weights: Option<Vec<f32>>,
+    /// Normalized row height weights per column id.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_row_weights"
+    )]
+    pub row_weights: Option<std::collections::HashMap<u64, Vec<f32>>>,
+}
+
+/// Deserializes `Option<HashMap<u64, Vec<f32>>>` via string keys so buffered/untagged JSON
+/// deserialization handles integer-keyed maps consistently with `PersistedWorkspace`.
+fn deserialize_row_weights<'de, D>(
+    deserializer: D,
+) -> Result<Option<std::collections::HashMap<u64, Vec<f32>>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let Some(raw) =
+        Option::<std::collections::HashMap<String, Vec<f32>>>::deserialize(deserializer)?
+    else {
+        return Ok(None);
+    };
+    let mut weights = std::collections::HashMap::with_capacity(raw.len());
+    for (key, value) in raw {
+        let column_id = key.parse::<u64>().map_err(serde::de::Error::custom)?;
+        weights.insert(column_id, value);
+    }
+    Ok(Some(weights))
 }
 
 #[cfg(test)]
@@ -47,6 +78,7 @@ mod tests {
                 id: 1,
                 symbol: "BTCUSDT".into(),
                 source: DataSource::Binance,
+                timeframe: None,
                 log_scale: false,
                 scale_mode: None,
                 y_zoom: 1.0,
@@ -70,6 +102,8 @@ mod tests {
                 horizontal_position: true,
                 horizontal_zoom: false,
             },
+            column_weights: None,
+            row_weights: None,
         }
     }
 

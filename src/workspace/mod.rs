@@ -146,6 +146,32 @@ pub struct PersistedWorkspace {
         deserialize_with = "LinkColor::lenient"
     )]
     pub link: Option<LinkColor>,
+    /// Normalized column width weights (sum = 1.0).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub column_weights: Vec<f32>,
+    /// Normalized row height weights per column id.
+    #[serde(
+        default,
+        skip_serializing_if = "HashMap::is_empty",
+        deserialize_with = "deserialize_row_weights"
+    )]
+    pub row_weights: HashMap<u64, Vec<f32>>,
+}
+
+/// Deserializes `HashMap<u64, Vec<f32>>` via string keys so `#[serde(untagged)]` enums (which
+/// buffer JSON through serde's internal `Content` without `serde_json`'s `MapKey` integer
+/// parsing) still restore non-empty `row_weights`.
+fn deserialize_row_weights<'de, D>(deserializer: D) -> Result<HashMap<u64, Vec<f32>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let raw = HashMap::<String, Vec<f32>>::deserialize(deserializer)?;
+    let mut weights = HashMap::with_capacity(raw.len());
+    for (key, value) in raw {
+        let column_id = key.parse::<u64>().map_err(serde::de::Error::custom)?;
+        weights.insert(column_id, value);
+    }
+    Ok(weights)
 }
 
 impl crate::store::Document for PersistedWorkspace {
@@ -222,6 +248,10 @@ pub struct ChartWorkspace {
     content: drawing::content::ContentFlow,
     /// The TradingView import, while its sheet is open.
     tradingview: Option<crate::host::tradingview::TradingViewImport>,
+    /// Normalized column width weights (sum = 1.0).
+    pub column_weights: Vec<f32>,
+    /// Normalized row height weights per column id (sum = 1.0 for each column).
+    pub row_weights: HashMap<u64, Vec<f32>>,
 }
 
 impl ChartWorkspace {
@@ -340,7 +370,19 @@ impl ChartWorkspace {
             grid_drag: ui::workspace::grid_drop::GridDrag::default(),
             content: drawing::content::ContentFlow::default(),
             tradingview: None,
+            column_weights: Vec::new(),
+            row_weights: HashMap::new(),
         }
+    }
+
+    #[allow(dead_code)]
+    pub fn column_weights(&self) -> &[f32] {
+        &self.column_weights
+    }
+
+    #[allow(dead_code)]
+    pub fn row_weights(&self, column_id: u64) -> Option<&[f32]> {
+        self.row_weights.get(&column_id).map(|w| w.as_slice())
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -392,6 +434,8 @@ impl ChartWorkspace {
             active_view,
             custom_title,
             link,
+            column_weights,
+            row_weights,
         } = saved;
 
         // The layout may have been deleted (here or on another Mac) since the tab was saved.
@@ -439,6 +483,8 @@ impl ChartWorkspace {
         {
             workspace.focused = workspace.charts.first().map(|chart| chart.id);
         }
+        workspace.column_weights = column_weights;
+        workspace.row_weights = row_weights;
         workspace.set_baseline();
         workspace
     }
@@ -477,7 +523,7 @@ impl ChartWorkspace {
             // A card has no timeframe to name.
             return chart.display_title();
         }
-        format!("{} · {}", chart.display_title(), self.timeframe.label())
+        format!("{} · {}", chart.display_title(), chart.timeframe.label())
     }
 
     /// The focused chart's market, when it is one (a portfolio card has none). The strip's
@@ -924,6 +970,7 @@ mod tests {
                     id: 1,
                     symbol: "BTCUSDT".into(),
                     source: DataSource::Binance,
+                    timeframe: None,
                     log_scale: false,
                     scale_mode: None,
                     y_zoom: 1.0,
@@ -943,6 +990,7 @@ mod tests {
                     id: 2,
                     symbol: "ETHUSDT".into(),
                     source: DataSource::Coinbase,
+                    timeframe: None,
                     log_scale: true,
                     scale_mode: None,
                     y_zoom: 1.5,
@@ -993,6 +1041,8 @@ mod tests {
             active_view: Some(42),
             custom_title: Some("Earnings".into()),
             link: Some(LinkColor::Orange),
+            column_weights: vec![0.65, 0.35],
+            row_weights: HashMap::new(),
         };
         let encoded = serde_json::to_string(&saved).expect("serialize workspace");
         let decoded: PersistedWorkspace =

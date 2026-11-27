@@ -28,6 +28,7 @@ impl ChartWorkspace {
                     id: chart.id,
                     symbol: chart.symbol.clone(),
                     source: chart.source,
+                    timeframe: Some(chart.timeframe),
                     log_scale: chart.scale_mode.is_logarithmic(),
                     scale_mode: Some(chart.scale_mode),
                     y_zoom: chart.chart.y_zoom(),
@@ -50,6 +51,8 @@ impl ChartWorkspace {
             active_view: self.layout.active_view_id,
             custom_title: self.custom_title.clone(),
             link: self.link,
+            column_weights: self.column_weights.clone(),
+            row_weights: self.row_weights.clone(),
         }
     }
 
@@ -287,6 +290,16 @@ impl ChartWorkspace {
             last_opened_at_ms,
             autosave,
             sync: persisted.sync,
+            column_weights: if persisted.column_weights.is_empty() {
+                None
+            } else {
+                Some(persisted.column_weights)
+            },
+            row_weights: if persisted.row_weights.is_empty() {
+                None
+            } else {
+                Some(persisted.row_weights)
+            },
         }
     }
 
@@ -411,6 +424,16 @@ impl ChartWorkspace {
             ChartColumn::resolved(view.columns.as_deref(), &chart_ids, &mut self.next_id);
         self.focused = self.charts.first().map(|chart| chart.id);
         self.set_sync(view.sync);
+        if let Some(weights) = &view.column_weights {
+            self.column_weights = weights.clone();
+        } else {
+            self.column_weights.clear();
+        }
+        if let Some(row_weights) = &view.row_weights {
+            self.row_weights = row_weights.clone();
+        } else {
+            self.row_weights.clear();
+        }
         self.drop_rulers();
         self.history.clear();
         self.layout.active_view_id = Some(view.id);

@@ -201,7 +201,7 @@ impl CanvasStyle {
     }
 
     pub fn price_font(&self) -> FontId {
-        FontId::monospace(self.price_size)
+        FontId::proportional(self.price_size)
     }
 
     /// How far the countdown's row is from the price's: the distance between their centres, 12
@@ -211,7 +211,7 @@ impl CanvasStyle {
     }
 
     pub fn time_font(&self) -> FontId {
-        FontId::monospace(self.time_size)
+        FontId::proportional(self.time_size)
     }
 
     /// Half the height of a price tag on the axis: the label with a margin, 9 points at the

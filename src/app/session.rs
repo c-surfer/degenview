@@ -255,6 +255,28 @@ mod tests {
     }
 
     #[test]
+    fn chart_tab_with_row_weights_restores_instead_of_landing_in_unknown() {
+        let tab = PersistedTab::Chart(PersistedWorkspace {
+            id: 7,
+            timeframe: crate::model::Timeframe::HOUR_1,
+            watchlist_visible: true,
+            charts: Vec::new(),
+            columns: Vec::new(),
+            focused: None,
+            sync: Default::default(),
+            active_view: None,
+            custom_title: None,
+            link: None,
+            column_weights: Vec::new(),
+            row_weights: std::collections::HashMap::from([(144, vec![1.0]), (145, vec![0.5, 0.5])]),
+        });
+        let encoded = serde_json::to_string(&tab).expect("serialize");
+        let decoded: PersistedTab = serde_json::from_str(&encoded).expect("deserialize");
+        assert!(matches!(decoded, PersistedTab::Chart(_)), "{decoded:?}");
+        assert_eq!(decoded, tab);
+    }
+
+    #[test]
     fn a_new_tab_never_takes_a_kept_rows_id() {
         let kept = [unknown(json!({ "id": 4, "kind": "journal" }))];
         assert_eq!(next_tab_id(3, &kept), 5);

@@ -386,16 +386,13 @@ impl ChartCard {
             .checked_sub(2)
             .map(|before| candles[before].close);
         let color = self.bar_color(last, previous_close);
-        // Dotted, so the line that follows the price reads apart from the grid and the drawings.
-        canvas::horizontal(
-            painter,
-            (plot.left(), plot.right()),
-            y,
-            canvas::LineStyle {
-                stroke: Stroke::new(1.0, color.gamma_multiply(0.65)),
-                dash: crate::model::chart::kind::LineDash::Dotted,
-            },
-        );
+        // Dashed, so the line that follows the price reads apart from the grid and the drawings.
+        painter.extend(Shape::dashed_line(
+            &[Pos2::new(plot.left(), y), Pos2::new(plot.right(), y)],
+            Stroke::new(1.0, color.gamma_multiply(0.50)),
+            3.0,
+            3.0,
+        ));
         // The price stays on the line it is the price of; the countdown hangs under it, or over
         // it where the plot ends too soon for a second row. Both rows start at the same left edge,
         // the widest of the two centred in the tag.

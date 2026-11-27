@@ -45,6 +45,7 @@ fn persisted_session_round_trips() {
                 id: 1,
                 symbol: "ETHUSDT".into(),
                 source: DataSource::Binance,
+                timeframe: None,
                 log_scale: false,
                 scale_mode: None,
                 y_zoom: 1.0,
@@ -66,6 +67,8 @@ fn persisted_session_round_trips() {
             active_view: Some(9),
             custom_title: None,
             link: None,
+            column_weights: Vec::new(),
+            row_weights: Default::default(),
         })],
     };
     let encoded = serde_json::to_string(&session).expect("serialize session");

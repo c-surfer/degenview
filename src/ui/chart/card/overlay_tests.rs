@@ -779,6 +779,7 @@ fn a_compared_chart_draws_in_the_pseudo_locale() {
                         &[],
                         &mut said,
                         1,
+                        false,
                     );
                     let mut drawing = DrawingFrame::new(&[], crate::model::Tool::Cursor, None, 1)
                         .with_view(Timeframe::HOUR_1, false);

@@ -492,6 +492,7 @@ fn pill_span(card: &ChartCard, width: f32) -> (f32, f32) {
                             &[],
                             &mut said,
                             1,
+                            false,
                         );
                     });
             });
@@ -543,4 +544,60 @@ fn the_trade_pills_stay_left_of_the_price_axis() {
             "the pills stay clear of the handle and the title: {left}"
         );
     }
+}
+
+#[test]
+fn header_close_button_sets_remove_requested_when_multi() {
+    use crate::ui::render_tests::Screen;
+    let width = 300.0;
+    let mut screen = Screen::new(Vec2::new(width, 50.0));
+    let card = ChartCard::default();
+    let indicators = IndicatorConfig::default();
+    let mut clicked = false;
+    let mut x = width - 40.0;
+    while x < width {
+        let at = Pos2::new(x, 10.0);
+        let mut action = ChartCardAction::default();
+        for (pressed_now, last) in [(true, false), (false, true)] {
+            let events = vec![
+                egui::Event::PointerMoved(at),
+                egui::Event::PointerButton {
+                    pos: at,
+                    button: egui::PointerButton::Primary,
+                    pressed: pressed_now,
+                    modifiers: egui::Modifiers::NONE,
+                },
+            ];
+            let mut said = ChartCardAction::default();
+            screen.run(events, |ui| {
+                theme::sync(ui.ctx());
+                egui::CentralPanel::default()
+                    .frame(egui::Frame::NONE)
+                    .show(ui, |ui| {
+                        card.header(
+                            ui,
+                            "BTC-USD",
+                            DataSource::Coinbase,
+                            &indicators,
+                            &[],
+                            false,
+                            false,
+                            &[],
+                            &mut said,
+                            1,
+                            true,
+                        );
+                    });
+            });
+            if last {
+                action = said;
+            }
+        }
+        if action.remove_requested {
+            clicked = true;
+            break;
+        }
+        x += 2.0;
+    }
+    assert!(clicked, "clicking close button sets remove_requested");
 }

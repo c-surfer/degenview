@@ -303,7 +303,7 @@ impl ChartCard {
                 }
                 let shown = view.end - view.start;
                 for (pane_rect, (_, pine)) in pane_rects.iter().zip(&pane_outputs) {
-                    let height = (pane_rect.height() - 16.0).max(0.0);
+                    let height = (pane_rect.height() - 10.0).max(0.0);
                     for (_, label) in pane_labels(pine, shown, height, style) {
                         widest = widest.max(measure(&label));
                     }

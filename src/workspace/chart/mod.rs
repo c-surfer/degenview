@@ -42,6 +42,7 @@ pub(super) struct Chart {
     pub(super) id: u64,
     pub(super) symbol: String,
     pub(super) source: DataSource,
+    pub(super) timeframe: Timeframe,
     pub(super) candles: Vec<Kline>,
     pub(super) loading: bool,
     pub(super) error: Option<ProviderError>,
@@ -129,17 +130,23 @@ impl Chart {
         timeframe: Timeframe,
         ctx: &egui::Context,
     ) -> Self {
-        let mut chart = Self::blank(id, symbol, source);
+        let mut chart = Self::blank(id, symbol, source, timeframe);
         chart.fetch(timeframe, ctx);
         chart
     }
 
     /// A chart that has not fetched yet, for callers that set up its prediction choices first.
-    fn blank(id: u64, symbol: impl Into<String>, source: DataSource) -> Self {
+    pub(super) fn blank(
+        id: u64,
+        symbol: impl Into<String>,
+        source: DataSource,
+        timeframe: Timeframe,
+    ) -> Self {
         Self {
             id,
             symbol: symbol.into(),
             source,
+            timeframe,
             candles: Vec::new(),
             loading: false,
             error: None,
@@ -169,7 +176,7 @@ impl Chart {
 
     /// A portfolio card. It has no market data, so it never fetches.
     pub(super) fn portfolio_card(id: u64, card: PortfolioCard) -> Self {
-        let mut chart = Self::blank(id, card.key(), DataSource::Binance);
+        let mut chart = Self::blank(id, card.key(), DataSource::Binance, Timeframe::HOUR_1);
         chart.card = Some(card);
         chart
     }
@@ -294,15 +301,16 @@ impl Chart {
         timeframe: Timeframe,
         ctx: &egui::Context,
     ) -> Self {
+        let chart_timeframe = saved.timeframe.unwrap_or(timeframe);
         let instances = saved.instances();
         let scale_mode = saved.price_scale_mode();
-        let mut chart = Self::blank(saved.id, saved.symbol, saved.source);
+        let mut chart = Self::blank(saved.id, saved.symbol, saved.source, chart_timeframe);
         chart.card = saved.card;
         chart.chart.set_title(saved.title);
         chart.pm_series = saved.pm_series;
         chart.overlays = saved.overlays;
         chart.image_url = saved.image_url;
-        chart.fetch(timeframe, ctx);
+        chart.fetch(chart_timeframe, ctx);
         chart.scale_mode = scale_mode;
         chart.chart.set_y_zoom(saved.y_zoom);
         chart.chart.set_appearance(saved.appearance);
@@ -606,7 +614,7 @@ mod tests {
 
     /// A chart holding `times`, with a request for older candles outstanding that answers `page`.
     fn chart_awaiting_older(times: &[i64], page: Result<Vec<Kline>, ProviderError>) -> Chart {
-        let mut chart = Chart::blank(1, "BTCUSDT", DataSource::Binance);
+        let mut chart = Chart::blank(1, "BTCUSDT", DataSource::Binance, Timeframe::HOUR_1);
         chart.candles = times.iter().map(|time| candle(*time, 1.0)).collect();
         let (sender, receiver) = mpsc::channel();
         sender.send(page).unwrap();
@@ -625,7 +633,7 @@ mod tests {
     /// A Binance chart of 5-minute bars whose newest candle is the bar of `NOW`, answered a
     /// second ago.
     fn live_chart() -> Chart {
-        let mut chart = Chart::blank(1, "BTCUSDT", DataSource::Binance);
+        let mut chart = Chart::blank(1, "BTCUSDT", DataSource::Binance, Timeframe::HOUR_1);
         let open = crate::model::market::bucket::bucket_start_ms(Timeframe::MINUTE_5, NOW);
         let mut newest = candle(open, 1.0);
         newest.close_time = open + 5 * 60_000 - 1;
@@ -693,8 +701,8 @@ mod tests {
 
     #[test]
     fn rate_limited_sources_refresh_less_often_and_back_off_after_an_error() {
-        let mut binance = Chart::blank(1, "BTCUSDT", DataSource::Binance);
-        let mut dex = Chart::blank(2, "0xpool", DataSource::DexScreener);
+        let mut binance = Chart::blank(1, "BTCUSDT", DataSource::Binance, Timeframe::HOUR_1);
+        let mut dex = Chart::blank(2, "0xpool", DataSource::DexScreener, Timeframe::HOUR_1);
         assert_eq!(binance.refresh_after(), REFRESH_INTERVAL);
         assert_eq!(dex.refresh_after(), SLOW_REFRESH_INTERVAL);
         binance.error = Some(ProviderError::other("down"));
@@ -707,7 +715,7 @@ mod tests {
 
     #[test]
     fn kraken_charts_refresh_slowly_because_the_socket_keeps_them_live() {
-        let mut kraken = Chart::blank(1, "BTC/USD", DataSource::Kraken);
+        let mut kraken = Chart::blank(1, "BTC/USD", DataSource::Kraken, Timeframe::HOUR_1);
         assert_eq!(kraken.refresh_after(), SLOW_REFRESH_INTERVAL);
         kraken.error = Some(ProviderError::Network(
             crate::service::net::http::Error::Status(429),
@@ -717,7 +725,7 @@ mod tests {
 
     #[test]
     fn a_source_with_no_such_timeframe_is_not_refreshed_until_something_changes() {
-        let mut chart = Chart::blank(1, "bitcoin", DataSource::CoinGecko);
+        let mut chart = Chart::blank(1, "bitcoin", DataSource::CoinGecko, Timeframe::HOUR_1);
         chart.last_fetch = Instant::now() - SLOW_REFRESH_INTERVAL - Duration::from_secs(1);
         assert!(chart.refresh_due());
 
@@ -772,7 +780,7 @@ mod tests {
 
     #[test]
     fn a_refresh_replaces_the_candles_while_no_older_page_was_loaded() {
-        let mut chart = Chart::blank(1, "BTCUSDT", DataSource::Binance);
+        let mut chart = Chart::blank(1, "BTCUSDT", DataSource::Binance, Timeframe::HOUR_1);
         chart.candles = vec![candle(1, 1.0), candle(2, 1.0)];
         let (sender, receiver) = mpsc::channel();
         sender
@@ -791,7 +799,7 @@ mod tests {
     /// answers bar 2 closing 2.0; the live bar arrived `live_after` after the fetch began.
     fn refreshed_over_live_bar(live_after: Duration, quiet: bool) -> Chart {
         let begun = Instant::now();
-        let mut chart = Chart::blank(1, "BTCUSDT", DataSource::Binance);
+        let mut chart = Chart::blank(1, "BTCUSDT", DataSource::Binance, Timeframe::HOUR_1);
         chart.candles = vec![candle(1, 1.0), candle(2, 9.0)];
         chart.last_fetch = begun;
         let arrived = if quiet {
@@ -861,7 +869,12 @@ mod tests {
 
     #[test]
     fn replacing_a_chart_from_a_watchlist_updates_its_market_metadata() {
-        let mut chart = Chart::blank(1, "OldPairAddress", DataSource::DexScreener);
+        let mut chart = Chart::blank(
+            1,
+            "OldPairAddress",
+            DataSource::DexScreener,
+            Timeframe::HOUR_1,
+        );
         chart.chart.set_title(Some("OLD/USDC".into()));
         chart.pm_series.push(PmSeries {
             token_id: "old-choice".into(),
@@ -919,6 +932,7 @@ mod tests {
             id: 1,
             symbol: "111".into(),
             source: DataSource::Polymarket,
+            timeframe: None,
             log_scale: false,
             scale_mode: None,
             y_zoom: 1.0,

@@ -66,6 +66,8 @@ mod tests {
             last_opened_at_ms: None,
             autosave: None,
             sync: Default::default(),
+            column_weights: None,
+            row_weights: None,
         }
     }
 

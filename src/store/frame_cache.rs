@@ -266,6 +266,8 @@ mod tests {
             last_opened_at_ms: None,
             autosave: None,
             sync: Default::default(),
+            column_weights: None,
+            row_weights: None,
         };
         store
             .write_raw_rows("saved_view", &[serde_json::to_value(view).unwrap()])
