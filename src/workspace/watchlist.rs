@@ -493,6 +493,7 @@ mod tests {
         let select = |ctx: &egui::Context, workspace: &mut ChartWorkspace| {
             frame(ctx, workspace, &paper, Vec::new());
             workspace.watchlist_pane.sidebar.selected_entry = Some(entry);
+            workspace.watchlist_pane.sidebar.keyboard_active = true;
             frame(ctx, workspace, &paper, Vec::new());
         };
 

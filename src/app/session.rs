@@ -104,6 +104,8 @@ impl SessionSaveError {
     }
 }
 
+const SAVE_EVERY: Duration = Duration::from_secs(2);
+
 /// The saved session: when it was last written, what was written (so an unchanged one is not
 /// written again), and why the last write failed.
 pub(super) struct SessionState {
@@ -128,9 +130,9 @@ impl SessionState {
         &self.error
     }
 
-    /// Ten seconds have passed since the last save.
+    /// `SAVE_EVERY` has passed since the last save.
     pub(super) fn is_due(&self) -> bool {
-        self.last_saved_at.elapsed() >= Duration::from_secs(10)
+        self.last_saved_at.elapsed() >= SAVE_EVERY
     }
 
     /// Writes `session` unless it is the one written last, and remembers why that failed if it
@@ -264,6 +266,7 @@ mod tests {
             columns: Vec::new(),
             focused: None,
             sync: Default::default(),
+            sync_drawings: false,
             active_view: None,
             custom_title: None,
             link: None,

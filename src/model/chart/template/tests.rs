@@ -432,7 +432,7 @@ fn applying_to_all_skips_the_source_and_gives_each_chart_what_its_market_allows(
         (5, DataSource::CoinGecko),
     ];
     let look = styled();
-    let plan = plan_apply_to_all(&charts, &look, ApplyScope::AppearanceAndCanvas, 1);
+    let plan = plan_apply_to_all(&charts, &look, ApplyScope::AppearanceAndCanvas, Some(1));
     let ids: Vec<u64> = plan.steps.iter().map(|(id, _)| *id).collect();
     assert_eq!(ids, [2, 3, 4, 5], "the source keeps what it has");
     let scope_of = |id| {
@@ -467,7 +467,7 @@ fn applying_to_all_skips_the_source_and_gives_each_chart_what_its_market_allows(
 #[test]
 fn applying_colors_only_to_all_never_reports_a_kept_type() {
     let charts = [(1, DataSource::Binance), (2, DataSource::Coinbase)];
-    let plan = plan_apply_to_all(&charts, &styled(), ApplyScope::ColorsAndCanvas, 1);
+    let plan = plan_apply_to_all(&charts, &styled(), ApplyScope::ColorsAndCanvas, Some(1));
     assert_eq!(plan.steps, vec![(2, ApplyScope::ColorsAndCanvas)]);
     assert_eq!(plan.kept_type, 0);
 }
@@ -478,7 +478,7 @@ fn the_apply_to_all_message_counts_and_explains() {
         &[(1, DataSource::Binance)],
         &styled(),
         ApplyScope::AppearanceAndCanvas,
-        1,
+        Some(1),
     );
     assert_eq!(
         none.message("Renko"),

@@ -20839,3 +20839,93 @@ msgstr "此 Flatpak 无法自行查找 TradingView 的数据。"
 
 msgid "Choose TradingView’s data folder: usually snap/tradingview/current/.config/TradingView or .config/TradingView in your home folder. Press Ctrl+H to see hidden folders."
 msgstr "请选择 TradingView 的数据文件夹：通常是主文件夹中的 snap/tradingview/current/.config/TradingView 或 .config/TradingView。按 Ctrl+H 可显示隐藏文件夹。"
+
+msgid "1 chart"
+msgstr "1 个图表"
+
+msgid "1 time"
+msgstr "1 次"
+
+msgid "2 charts"
+msgstr "2 个图表"
+
+msgid "2 times"
+msgstr "2 次"
+
+msgid "3 charts"
+msgstr "3 个图表"
+
+msgid "3 times"
+msgstr "3 次"
+
+msgid "4 charts"
+msgstr "4 个图表"
+
+msgid "5 charts"
+msgstr "5 个图表"
+
+msgid "5 times"
+msgstr "5 次"
+
+msgid "About Surfer PRO"
+msgstr "关于 Surfer PRO"
+
+msgid "Close chart"
+msgstr "关闭图表"
+
+msgid "Combines RSI, Stochastic, ATR Stop-Loss, and Pro multi-timeframe background, cloud ranges, and divergence detection."
+msgstr "结合了 RSI、随机指标、ATR 止损以及 Pro 多周期背景、云图区间和背离检测。"
+
+msgid "Could not remove the license: {error}"
+msgstr "无法移除许可证：{error}"
+
+msgid "Duplicate chart"
+msgstr "复制图表"
+
+msgid "Inactive"
+msgstr "未激活"
+
+msgid "License Key"
+msgstr "许可证密钥"
+
+msgid "License active until {end_date} (User: {nickname})"
+msgstr "许可证有效期至 {end_date}（用户：{nickname}）"
+
+msgid "License removed. Basic RSI mode is active."
+msgstr "许可证已移除。基础 RSI 模式已启用。"
+
+msgid "License verification failed"
+msgstr "许可证验证失败"
+
+msgid "Mode: show all elements on all charts"
+msgstr "模式：在所有图表上显示所有元素"
+
+msgid "Play a sound when this alert triggers."
+msgstr "此警报触发时播放提示音。"
+
+msgid "RSI oscillator with Stochastic, ATR Stop-Loss, and Pro Clouds & Divergences."
+msgstr "带有随机指标、ATR 止损以及 Pro 云图和背离的 RSI 振荡器。"
+
+msgid "Remove License"
+msgstr "移除许可证"
+
+msgid "Select grid layout"
+msgstr "选择网格布局"
+
+msgid "Sound alert"
+msgstr "声音警报"
+
+msgid "Surfer License"
+msgstr "Surfer 许可证"
+
+msgid "Surfer PRO indicators license & cloud authentication."
+msgstr "Surfer PRO 指标许可证与云端认证。"
+
+msgid "Sync drawings across charts"
+msgstr "跨图表同步绘图"
+
+msgid "Without a license, the [Surfer] RSI indicator operates in basic mode (RSI + Stochastic + ATR). A valid license unlocks Clouds (MRC), MTF Background, Extra Signals, and Divergence Validation."
+msgstr "没有许可证时，[Surfer] RSI 指标以基础模式（RSI + 随机指标 + ATR）运行。有效许可证可解锁云图（MRC）、多周期背景、额外信号和背离验证。"
+
+msgid "[Surfer] RSI v1"
+msgstr "[Surfer] RSI v1"

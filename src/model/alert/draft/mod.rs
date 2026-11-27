@@ -6,7 +6,8 @@
 use crate::i18n::tr;
 use crate::model::alert::message::AlertMessageContext;
 use crate::model::alert::{
-    AlertAsset, AlertCondition, AlertCurrency, AlertFrequency, AlertState, PriceAlert,
+    AlertAsset, AlertCondition, AlertCurrency, AlertFrequency, AlertSound, AlertSoundRepeat,
+    AlertState, PriceAlert,
 };
 use crate::model::watchlist::quote::{Freshness, WatchlistQuote};
 use crate::model::webhook::EndpointId;
@@ -85,6 +86,9 @@ pub struct PriceAlertDraft {
     pub sends_to_webhooks: bool,
     pub webhook_ids: Vec<EndpointId>,
     pub webhook_message: String,
+    pub sound_enabled: bool,
+    pub sound: AlertSound,
+    pub sound_repeat: AlertSoundRepeat,
     /// The price a percentage alert counts from; fixed when the sheet opens (or kept from
     /// the saved alert).
     reference: Option<f64>,
@@ -110,6 +114,9 @@ impl PriceAlertDraft {
             sends_to_webhooks: false,
             webhook_ids: Vec::new(),
             webhook_message: String::new(),
+            sound_enabled: false,
+            sound: AlertSound::LiteHammer,
+            sound_repeat: AlertSoundRepeat::Once,
             reference: None,
             current_price: None,
             existing: None,
@@ -121,6 +128,9 @@ impl PriceAlertDraft {
             state.sends_to_webhooks = !alert.webhook_endpoint_ids.is_empty();
             state.webhook_ids = alert.webhook_endpoint_ids.clone();
             state.webhook_message = alert.webhook_message.clone().unwrap_or_default();
+            state.sound_enabled = alert.sound_enabled;
+            state.sound = alert.sound;
+            state.sound_repeat = alert.sound_repeat;
             match &alert.condition {
                 AlertCondition::CrossesAbove { target } => state.target = plain(*target),
                 AlertCondition::CrossesBelow { target } => {
@@ -367,6 +377,9 @@ impl PriceAlertDraft {
         };
         let message = self.webhook_message.trim();
         alert.webhook_message = (!message.is_empty()).then(|| self.webhook_message.clone());
+        alert.sound_enabled = self.sound_enabled;
+        alert.sound = self.sound;
+        alert.sound_repeat = self.sound_repeat;
         alert.state = AlertState::Active;
         Some(alert)
     }

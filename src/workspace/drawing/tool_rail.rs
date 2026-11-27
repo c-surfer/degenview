@@ -34,6 +34,7 @@ impl ChartWorkspace {
             magnet: self.tools.prefs.magnet,
             keep_drawing: self.tools.prefs.keep_drawing,
             hide_all: self.tools.hide_all,
+            sync_drawings: self.sync_drawings,
             all_locked,
             has_drawings,
             paper_open: self.trade.is_panel_open(),
@@ -68,6 +69,7 @@ impl ChartWorkspace {
                     self.tools.prefs.keep_drawing = !self.tools.prefs.keep_drawing
                 }
                 ToolSidebarAction::ToggleHideAll => self.tools.hide_all = !self.tools.hide_all,
+                ToolSidebarAction::ToggleSyncDrawings => self.toggle_sync_drawings(),
                 ToolSidebarAction::ToggleLockAll => {
                     let (_, all_locked) = self.drawing_lock_state();
                     self.set_all_locked(!all_locked);

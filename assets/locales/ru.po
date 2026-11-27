@@ -22780,3 +22780,93 @@ msgstr "Будет сохранён как «{name}»."
 
 msgid "The script’s file would land outside the library."
 msgstr "Файл скрипта оказался бы вне библиотеки."
+
+msgid "1 chart"
+msgstr "1 график"
+
+msgid "1 time"
+msgstr "1 раз"
+
+msgid "2 charts"
+msgstr "2 графика"
+
+msgid "2 times"
+msgstr "2 раза"
+
+msgid "3 charts"
+msgstr "3 графика"
+
+msgid "3 times"
+msgstr "3 раза"
+
+msgid "4 charts"
+msgstr "4 графика"
+
+msgid "5 charts"
+msgstr "5 графиков"
+
+msgid "5 times"
+msgstr "5 раз"
+
+msgid "About Surfer PRO"
+msgstr "О Surfer PRO"
+
+msgid "Close chart"
+msgstr "Закрыть график"
+
+msgid "Combines RSI, Stochastic, ATR Stop-Loss, and Pro multi-timeframe background, cloud ranges, and divergence detection."
+msgstr "Объединяет RSI, Stochastic, ATR Stop-Loss, а также Pro-функции: мультитаймфреймовый фон, облачные диапазоны и поиск дивергенций."
+
+msgid "Could not remove the license: {error}"
+msgstr "Не удалось удалить лицензию: {error}"
+
+msgid "Duplicate chart"
+msgstr "Дублировать график"
+
+msgid "Inactive"
+msgstr "Не активна"
+
+msgid "License Key"
+msgstr "Лицензионный ключ"
+
+msgid "License active until {end_date} (User: {nickname})"
+msgstr "Лицензия активна до {end_date} (Пользователь: {nickname})"
+
+msgid "License removed. Basic RSI mode is active."
+msgstr "Лицензия удалена. Включён базовый режим RSI."
+
+msgid "License verification failed"
+msgstr "Ошибка проверки лицензии"
+
+msgid "Mode: show all elements on all charts"
+msgstr "Режим: отображать все элементы на всех графиках"
+
+msgid "Play a sound when this alert triggers."
+msgstr "Проигрывать звуковой сигнал при срабатывании оповещения."
+
+msgid "RSI oscillator with Stochastic, ATR Stop-Loss, and Pro Clouds & Divergences."
+msgstr "Осциллятор RSI со Stochastic, ATR Stop-Loss и Pro-облаками и дивергенциями."
+
+msgid "Remove License"
+msgstr "Удалить лицензию"
+
+msgid "Select grid layout"
+msgstr "Выбрать сетку графиков"
+
+msgid "Sound alert"
+msgstr "Звуковое оповещение"
+
+msgid "Surfer License"
+msgstr "Лицензия Surfer"
+
+msgid "Surfer PRO indicators license & cloud authentication."
+msgstr "Лицензия индикатора Surfer PRO и подключение к сервису."
+
+msgid "Sync drawings across charts"
+msgstr "Синхронизация рисунков на всех графиках"
+
+msgid "Without a license, the [Surfer] RSI indicator operates in basic mode (RSI + Stochastic + ATR). A valid license unlocks Clouds (MRC), MTF Background, Extra Signals, and Divergence Validation."
+msgstr "Без лицензии индикатор [Surfer] RSI работает в базовом режиме (RSI + Stochastic + ATR). Валидная лицензия открывает Облака (MRC), MTF Background, Экстра-сигналы и валидацию дивергенций."
+
+msgid "[Surfer] RSI v1"
+msgstr "[Surfer] RSI v1"

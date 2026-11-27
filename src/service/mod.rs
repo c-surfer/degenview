@@ -13,6 +13,7 @@ pub mod portfolio;
 pub mod snapshot;
 pub mod sound;
 pub mod stream;
+pub mod surfer;
 pub mod system;
 pub mod taker_flow;
 pub mod tradingview;

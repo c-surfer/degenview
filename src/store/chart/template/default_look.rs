@@ -9,6 +9,9 @@ use crate::store::Store;
 /// Where the choice is kept (`sync::record::policy` lists it as a portable setting).
 pub const KEY: &str = "chart.defaultTemplate";
 
+/// Where the latest user-chosen chart appearance is kept so new charts and tabs inherit it.
+pub const GLOBAL_APPEARANCE_KEY: &str = "chart.globalAppearance";
+
 /// The template new charts start from, as far as it can be resolved.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct DefaultTemplate {
@@ -38,12 +41,40 @@ impl Store {
     }
 
     /// Makes `id` the template new charts start from, or with `None` puts that back to the app's
-    /// own look.
+    /// own look. Clears any global appearance override so the explicit template choice wins.
     pub fn set_default_chart_template(&self, id: Option<TemplateId>) -> rusqlite::Result<()> {
+        self.clear_global_chart_appearance()?;
         match id {
             Some(id) => self.set_setting(KEY, &id),
             None => self.remove_setting(KEY),
         }
+    }
+
+    /// The global chart appearance saved from chart settings, if any.
+    pub fn global_chart_appearance(&self) -> Option<ChartAppearance> {
+        self.setting::<ChartAppearance>(GLOBAL_APPEARANCE_KEY)
+    }
+
+    /// Saves `appearance` as the global chart appearance for new charts and tabs.
+    /// Clears any starred default template so Manage Templates does not show a stale star.
+    pub fn set_global_chart_appearance(
+        &self,
+        appearance: &ChartAppearance,
+    ) -> rusqlite::Result<()> {
+        self.remove_setting(KEY)?;
+        self.set_setting(GLOBAL_APPEARANCE_KEY, appearance)
+    }
+
+    /// Clears the global chart appearance override.
+    pub fn clear_global_chart_appearance(&self) -> rusqlite::Result<()> {
+        self.remove_setting(GLOBAL_APPEARANCE_KEY)
+    }
+
+    /// The look new charts start from: the global appearance if set, otherwise the default
+    /// template's look.
+    pub fn default_chart_appearance(&self) -> Option<ChartAppearance> {
+        self.global_chart_appearance()
+            .or_else(|| self.default_chart_template().look)
     }
 }
 
@@ -129,5 +160,61 @@ mod tests {
             .expect("set");
         store.set_default_chart_template(None).expect("cleared");
         assert_eq!(store.default_chart_template(), DefaultTemplate::default());
+    }
+
+    #[test]
+    fn global_appearance_overrides_default_template_and_clears_on_template_pick() {
+        let store = Store::open_in_memory().expect("open");
+        assert_eq!(store.global_chart_appearance(), None);
+        assert_eq!(store.default_chart_appearance(), None);
+
+        let preset = &BUILT_INS[1];
+        store
+            .set_default_chart_template(Some(preset.id))
+            .expect("set template");
+        assert_eq!(store.default_chart_appearance(), Some(preset.appearance()));
+
+        let mut custom = ChartAppearance {
+            bullish: [11, 22, 33],
+            ..Default::default()
+        };
+        custom.canvas.margins.right = 44;
+        store
+            .set_global_chart_appearance(&custom)
+            .expect("set global");
+        assert_eq!(store.global_chart_appearance(), Some(custom));
+        assert_eq!(store.default_chart_appearance(), Some(custom));
+        assert_eq!(
+            store.default_chart_template(),
+            DefaultTemplate::default(),
+            "setting a global appearance clears the starred template"
+        );
+
+        // Explicit template pick clears the global override so the star choice wins.
+        let other_preset = &BUILT_INS[0];
+        store
+            .set_default_chart_template(Some(other_preset.id))
+            .expect("pick template");
+        assert_eq!(store.global_chart_appearance(), None);
+        assert_eq!(
+            store.default_chart_appearance(),
+            Some(other_preset.appearance())
+        );
+
+        // Clearing the global appearance directly also works.
+        store
+            .set_global_chart_appearance(&custom)
+            .expect("set global again");
+        store.clear_global_chart_appearance().expect("clear");
+        assert_eq!(store.global_chart_appearance(), None);
+        assert_eq!(store.default_chart_appearance(), None);
+
+        // Clearing the default template also clears any global appearance.
+        store
+            .set_global_chart_appearance(&custom)
+            .expect("set global third");
+        store.set_default_chart_template(None).expect("clear all");
+        assert_eq!(store.global_chart_appearance(), None);
+        assert_eq!(store.default_chart_appearance(), None);
     }
 }

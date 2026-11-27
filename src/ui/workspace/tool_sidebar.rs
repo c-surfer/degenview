@@ -48,6 +48,7 @@ pub struct ToolSidebarInput {
     pub magnet: MagnetMode,
     pub keep_drawing: bool,
     pub hide_all: bool,
+    pub sync_drawings: bool,
     /// Every drawing on the tab is locked (and there is at least one).
     pub all_locked: bool,
     /// There is at least one drawing to lock or hide.
@@ -79,6 +80,7 @@ pub enum ToolSidebarAction {
     ToggleKeepDrawing,
     ToggleLockAll,
     ToggleHideAll,
+    ToggleSyncDrawings,
     TogglePaper,
     OpenAlerts,
     SetSync(ChartSyncSettings),
@@ -534,6 +536,18 @@ pub fn show(ui: &mut Ui, input: &ToolSidebarInput) -> Vec<ToolSidebarAction> {
                 None,
             ),
             ToolSidebarAction::ToggleHideAll,
+        ),
+        (
+            toggle(
+                Icon::Globe,
+                tr!("Sync drawings across charts"),
+                tr!("Mode: show all elements on all charts"),
+                "sync_drawings",
+                input.sync_drawings,
+                true,
+                None,
+            ),
+            ToolSidebarAction::ToggleSyncDrawings,
         ),
     ];
     let mut all_options_fit = true;
@@ -1359,6 +1373,7 @@ mod tests {
                 magnet: MagnetMode::Weak,
                 keep_drawing: true,
                 hide_all: false,
+                sync_drawings: false,
                 all_locked: false,
                 has_drawings: true,
                 paper_open: paper,
@@ -1400,6 +1415,7 @@ mod tests {
             magnet: MagnetMode::Off,
             keep_drawing: true,
             hide_all: false,
+            sync_drawings: false,
             all_locked: false,
             has_drawings: true,
             paper_open: false,

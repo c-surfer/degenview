@@ -108,6 +108,12 @@ enum AppAction {
         baseline: Option<f64>,
     },
     OpenWatchlistInNewTab(WatchlistInstrument),
+    /// Apply one chart's appearance to every other open chart tab.
+    ApplyAppearanceToAllTabs {
+        source_tab_id: u64,
+        appearance: Box<crate::model::ChartAppearance>,
+        scope: crate::model::chart::template::ApplyScope,
+    },
     /// Add a Pine script to the focused chart (the Pine Studio's "Add to Chart").
     AddPineScript {
         script_id: Option<String>,
@@ -423,6 +429,19 @@ impl DegenViewApp {
             root_hidden: false,
         }
     }
+
+    /// Flushes pending editor themes, chart layout autosaves, and the session snapshot so no
+    /// debounced state is lost on exit.
+    pub(super) fn save_all(&mut self) {
+        if let Ok(store) = self.store.lock() {
+            self.editor_themes.flush(&store);
+        }
+        // A layout with Autosave on is written before the session goes, even mid-debounce.
+        self.tabs.each_chart(|workspace| {
+            workspace.flush_autosave();
+        });
+        self.save_session();
+    }
 }
 
 impl eframe::App for DegenViewApp {
@@ -490,6 +509,9 @@ impl eframe::App for DegenViewApp {
     /// was not called off. Only here is exit certain; starting it earlier left a second instance
     /// beside this one whenever the quit was cancelled or slow.
     fn on_exit(&mut self) {
+        // Persist all pending state before tearing down background services, in case `save` was
+        // skipped or happened before the final edits.
+        self.save_all();
         // Stops the MCP server and writes the activity log's last rows (they are otherwise
         // written about once a second, so a quit would lose the final moments).
         self.mcp.shutdown();
@@ -504,14 +526,7 @@ impl eframe::App for DegenViewApp {
     }
 
     fn save(&mut self, _storage: &mut dyn eframe::Storage) {
-        if let Ok(store) = self.store.lock() {
-            self.editor_themes.flush(&store);
-        }
-        // A layout with Autosave on is written before the session goes, even mid-debounce.
-        self.tabs.each_chart(|workspace| {
-            workspace.flush_autosave();
-        });
-        self.save_session();
+        self.save_all();
     }
 }
 

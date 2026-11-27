@@ -64,6 +64,7 @@ fn persisted_session_round_trips() {
             columns: vec![ChartColumn::new(10, vec![1])],
             focused: Some(1),
             sync: Default::default(),
+            sync_drawings: false,
             active_view: Some(9),
             custom_title: None,
             link: None,

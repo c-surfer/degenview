@@ -48,6 +48,7 @@ impl ChartWorkspace {
             columns: self.columns.clone(),
             focused: self.focused,
             sync: self.sync,
+            sync_drawings: self.sync_drawings,
             active_view: self.layout.active_view_id,
             custom_title: self.custom_title.clone(),
             link: self.link,

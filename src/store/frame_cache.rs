@@ -9,10 +9,10 @@
 
 use super::Store;
 use super::chart::template::default_look::DefaultTemplate;
-use crate::model::Timeframe;
 use crate::model::alert::pine::PineAlertSubscription;
 use crate::model::drawings::favorites::{BarPrefs, Favorite};
 use crate::model::webhook::WebhookEndpoint;
+use crate::model::{ChartAppearance, Timeframe};
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -115,6 +115,8 @@ pub(crate) struct FrameCaches {
     favorites_bar: ChangeCached<BarPrefs>,
     /// The template new charts start from, which every added chart and the template manager read.
     default_chart_template: ChangeCached<DefaultTemplate>,
+    /// The resolved look new charts start from (`global_chart_appearance` or default template).
+    default_chart_appearance: ChangeCached<Option<ChartAppearance>>,
 }
 
 impl Store {
@@ -186,6 +188,13 @@ impl Store {
         self.frame_caches
             .default_chart_template
             .get(self.change_stamp(), || self.default_chart_template())
+    }
+
+    /// `default_chart_appearance`, read again only after a write.
+    pub fn default_chart_appearance_cached(&self) -> Arc<Option<ChartAppearance>> {
+        self.frame_caches
+            .default_chart_appearance
+            .get(self.change_stamp(), || self.default_chart_appearance())
     }
 
     /// How many of `event_id`'s webhook deliveries arrived, of how many were attempted; `None`
@@ -338,5 +347,42 @@ mod tests {
         let chosen = store.default_chart_template_cached();
         assert_eq!(chosen.id, Some(BUILT_INS[0].id));
         assert_eq!(chosen.look, Some(BUILT_INS[0].appearance()));
+    }
+
+    #[test]
+    fn default_chart_appearance_is_reused_until_it_changes() {
+        use crate::model::chart::template::BUILT_INS;
+        let store = Store::open_in_memory().expect("open");
+        let none = store.default_chart_appearance_cached();
+        assert_eq!(*none, None);
+        assert!(Arc::ptr_eq(&none, &store.default_chart_appearance_cached()));
+
+        let mut custom = ChartAppearance {
+            bullish: [5, 6, 7],
+            ..Default::default()
+        };
+        custom.canvas.margins.right = 19;
+        store
+            .set_global_chart_appearance(&custom)
+            .expect("set global");
+        let global = store.default_chart_appearance_cached();
+        assert!(!Arc::ptr_eq(&none, &global));
+        assert_eq!(*global, Some(custom));
+        assert!(Arc::ptr_eq(
+            &global,
+            &store.default_chart_appearance_cached()
+        ));
+
+        store.clear_global_chart_appearance().expect("clear global");
+        let cleared = store.default_chart_appearance_cached();
+        assert!(!Arc::ptr_eq(&global, &cleared));
+        assert_eq!(*cleared, None);
+
+        store
+            .set_default_chart_template(Some(BUILT_INS[0].id))
+            .expect("set template");
+        let from_template = store.default_chart_appearance_cached();
+        assert!(!Arc::ptr_eq(&cleared, &from_template));
+        assert_eq!(*from_template, Some(BUILT_INS[0].appearance()));
     }
 }

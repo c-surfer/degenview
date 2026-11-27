@@ -6,7 +6,7 @@ use super::chart::{Chart, MarketState};
 use super::drawing::is_ruler;
 use crate::model::overlay::OverlayId;
 use crate::model::watchlist::WatchlistInstrument;
-use crate::model::{Drawing, DrawingCommand, IndicatorConfig};
+use crate::model::{Drawing, DrawingCommand, DrawingStyle, IndicatorConfig, Tool};
 use crate::ui::{ViewMove, ViewStep};
 use eframe::egui;
 use std::time::{Duration, Instant};
@@ -70,6 +70,15 @@ impl Snapshot {
             Self::View { .. } => false,
             Self::All(parts) => parts.iter().any(Self::changes_layout),
             _ => true,
+        }
+    }
+
+    /// Whether restoring this changes the chart's drawings directly.
+    fn changes_drawings(&self) -> bool {
+        match self {
+            Self::Drawings(_) => true,
+            Self::All(parts) => parts.iter().any(Self::changes_drawings),
+            _ => false,
         }
     }
 
@@ -195,6 +204,12 @@ impl UndoHistory {
         self.forget(|entry| {
             entry.chart_id == chart_id && matches!(entry.before, Snapshot::Drawings(_))
         });
+        if self
+            .last_restyle
+            .is_some_and(|(chart, _, _)| chart == chart_id)
+        {
+            self.last_restyle = None;
+        }
     }
 
     /// Drops the steps, undoable or redoable, that `gone` matches.
@@ -279,6 +294,32 @@ impl UndoHistory {
     }
 }
 
+/// Collects `(tool, style)` pairs for non-ruler drawings whose style actually changed in `commands`.
+fn changed_styles(existing: &[Drawing], commands: &[DrawingCommand]) -> Vec<(Tool, DrawingStyle)> {
+    let mut styles = Vec::new();
+    for command in commands {
+        let (DrawingCommand::Style { id, drawing } | DrawingCommand::Replace { id, drawing }) =
+            command
+        else {
+            continue;
+        };
+        if is_ruler(drawing) {
+            continue;
+        }
+        let (Some(tool), Some(&new_style)) = (drawing.tool(), drawing.style()) else {
+            continue;
+        };
+        if existing
+            .iter()
+            .find(|d| d.id() == *id)
+            .is_some_and(|d| d.style() != Some(&new_style))
+        {
+            styles.push((tool, new_style));
+        }
+    }
+    styles
+}
+
 impl ChartWorkspace {
     pub(super) fn apply_drawing_commands(&mut self, chart_id: u64, commands: Vec<DrawingCommand>) {
         if commands.is_empty() {
@@ -301,6 +342,7 @@ impl ChartWorkspace {
                 .cloned()
                 .collect()
         };
+        let updated_styles = changed_styles(&chart.drawings, &commands);
         // One batch is one undo step, and a batch that changes nothing (or only a ruler) none.
         if crate::model::drawings::apply_commands(&mut chart.drawings, commands) {
             self.layout.drawings_edited();
@@ -310,6 +352,13 @@ impl ChartWorkspace {
                 (!merge).then_some(Snapshot::Drawings(before)),
                 restyled.map(|id| (id, now)),
             );
+            for (tool, style) in updated_styles {
+                let templates = self.drawing_templates();
+                if templates.defaults().get(&tool) != Some(&style.sanitized()) {
+                    let _ = templates.set_default(tool, &style);
+                }
+            }
+            self.mirror_drawings_from(chart_id);
         } else if restyled.is_none() {
             self.history.end_restyle_run();
         }
@@ -381,6 +430,7 @@ impl ChartWorkspace {
             };
             let layout = entry.before.changes_layout();
             let reloads = entry.before.changes_market();
+            let drawings = entry.before.changes_drawings();
             let Some(after) = entry.before.swap_into(chart) else {
                 continue;
             };
@@ -398,6 +448,8 @@ impl ChartWorkspace {
                     let item = self.favorite_item(chart);
                     self.announce_market(&item);
                 }
+            } else if drawings {
+                self.mirror_drawings_from(entry.chart_id);
             }
             return;
         }
@@ -413,7 +465,6 @@ impl ChartWorkspace {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::Tool;
     use crate::model::pine::instance::PineInstance;
     use crate::workspace::test_support::{
         chart_with_drawings, drawing_ids, empty_workspace, rectangle,
@@ -1030,5 +1081,214 @@ mod tests {
         assert!(workspace.history.redo.is_empty());
         workspace.undo(&ctx);
         assert_eq!(market(&workspace), (DataSource::Binance, "BTCUSDT".into()));
+    }
+
+    fn two_anchors(left: i64) -> [crate::model::Anchor; 2] {
+        [
+            crate::model::Anchor {
+                time_ms: left,
+                price: 100.0,
+            },
+            crate::model::Anchor {
+                time_ms: left + 10,
+                price: 110.0,
+            },
+        ]
+    }
+
+    #[test]
+    fn restyling_trend_line_saves_its_style_as_tool_default() {
+        let mut workspace = empty_workspace(20);
+        let chart = chart_with_drawings(&mut workspace, "BTCUSDT", &[]);
+        let line = Drawing::build(
+            Tool::TrendLine,
+            1,
+            &two_anchors(100),
+            Tool::TrendLine.default_style(),
+        )
+        .expect("trend line");
+        workspace.apply_drawing_commands(chart, vec![DrawingCommand::Add(line.clone())]);
+
+        let mut updated = line;
+        let mut style = *updated.style().expect("style");
+        style.stroke.width = 5.0;
+        style.extend_right = true;
+        updated.set_style(style);
+
+        workspace.apply_drawing_commands(
+            chart,
+            vec![DrawingCommand::Style {
+                id: 1,
+                drawing: updated,
+            }],
+        );
+
+        let saved = workspace
+            .drawing_templates()
+            .defaults()
+            .get(&Tool::TrendLine)
+            .copied();
+        assert_eq!(saved, Some(style.sanitized()));
+    }
+
+    #[test]
+    fn replacing_fib_retracement_with_new_style_saves_tool_default() {
+        let mut workspace = empty_workspace(21);
+        let chart = chart_with_drawings(&mut workspace, "BTCUSDT", &[]);
+        let fib = Drawing::build(
+            Tool::FibRetracement,
+            1,
+            &two_anchors(100),
+            Tool::FibRetracement.default_style(),
+        )
+        .expect("fib");
+        workspace.apply_drawing_commands(chart, vec![DrawingCommand::Add(fib.clone())]);
+
+        let mut updated = fib;
+        let mut style = *updated.style().expect("style");
+        style.stroke.width = 3.0;
+        let mut fib_style = style.fib.unwrap_or_default();
+        fib_style.reverse = !fib_style.reverse;
+        style.fib = Some(fib_style);
+        updated.set_style(style);
+
+        workspace.apply_drawing_commands(
+            chart,
+            vec![DrawingCommand::Replace {
+                id: 1,
+                drawing: updated,
+            }],
+        );
+
+        let saved = workspace
+            .drawing_templates()
+            .defaults()
+            .get(&Tool::FibRetracement)
+            .copied();
+        assert_eq!(saved, Some(style.sanitized()));
+    }
+
+    #[test]
+    fn moving_or_locking_drawing_without_style_change_does_not_overwrite_default() {
+        let mut workspace = empty_workspace(22);
+        let chart = chart_with_drawings(&mut workspace, "BTCUSDT", &[1]);
+
+        let mut custom_default = Tool::Rectangle.default_style();
+        custom_default.stroke.width = 7.0;
+        workspace
+            .drawing_templates()
+            .set_default(Tool::Rectangle, &custom_default)
+            .expect("set default");
+
+        // Drawing 1 still has the built-in default style; move and lock it via Replace.
+        let mut moved_and_locked = rectangle(1, 500);
+        moved_and_locked.set_locked(true);
+        workspace.apply_drawing_commands(
+            chart,
+            vec![DrawingCommand::Replace {
+                id: 1,
+                drawing: moved_and_locked,
+            }],
+        );
+
+        let saved = workspace
+            .drawing_templates()
+            .defaults()
+            .get(&Tool::Rectangle)
+            .copied();
+        assert_eq!(saved, Some(custom_default.sanitized()));
+    }
+
+    #[test]
+    fn undo_and_redo_do_not_overwrite_tool_default() {
+        let ctx = egui::Context::default();
+        let mut workspace = empty_workspace(23);
+        let chart = chart_with_drawings(&mut workspace, "BTCUSDT", &[1]);
+
+        let mut styled = rectangle(1, 100);
+        let mut new_style = *styled.style().expect("style");
+        new_style.stroke.width = 6.0;
+        styled.set_style(new_style);
+
+        workspace.apply_drawing_commands(
+            chart,
+            vec![DrawingCommand::Style {
+                id: 1,
+                drawing: styled,
+            }],
+        );
+        assert_eq!(
+            workspace
+                .drawing_templates()
+                .defaults()
+                .get(&Tool::Rectangle)
+                .copied(),
+            Some(new_style.sanitized())
+        );
+
+        workspace.undo(&ctx);
+        assert_eq!(
+            workspace
+                .drawing_templates()
+                .defaults()
+                .get(&Tool::Rectangle)
+                .copied(),
+            Some(new_style.sanitized()),
+            "undo must not revert the remembered tool default"
+        );
+
+        // Set a different default before redo, then verify redo does not overwrite it.
+        let mut newer_default = Tool::Rectangle.default_style();
+        newer_default.stroke.width = 9.0;
+        workspace
+            .drawing_templates()
+            .set_default(Tool::Rectangle, &newer_default)
+            .expect("set default");
+
+        workspace.redo(&ctx);
+        assert_eq!(
+            workspace
+                .drawing_templates()
+                .defaults()
+                .get(&Tool::Rectangle)
+                .copied(),
+            Some(newer_default.sanitized()),
+            "redo must not overwrite the current tool default"
+        );
+    }
+
+    #[test]
+    fn restyling_brush_saves_updated_stroke_width_as_tool_default() {
+        let mut workspace = empty_workspace(24);
+        let chart = chart_with_drawings(&mut workspace, "BTCUSDT", &[]);
+        let brush = Drawing::build(
+            Tool::Brush,
+            1,
+            &two_anchors(100),
+            Tool::Brush.default_style(),
+        )
+        .expect("brush");
+        workspace.apply_drawing_commands(chart, vec![DrawingCommand::Add(brush.clone())]);
+
+        let mut updated = brush;
+        let mut style = *updated.style().expect("style");
+        style.stroke.width = 8.0;
+        updated.set_style(style);
+
+        workspace.apply_drawing_commands(
+            chart,
+            vec![DrawingCommand::Style {
+                id: 1,
+                drawing: updated,
+            }],
+        );
+
+        let saved = workspace
+            .drawing_templates()
+            .defaults()
+            .get(&Tool::Brush)
+            .copied();
+        assert_eq!(saved, Some(style.sanitized()));
+        assert_eq!(saved.unwrap().stroke.width, 8.0);
     }
 }

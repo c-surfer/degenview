@@ -14,6 +14,7 @@ use crate::platform;
 use crate::service::keychain::api_keys::{
     AlpacaCredentialsStore, CoinMarketCapKeyStore, OandaCredentialsStore,
 };
+use crate::service::surfer::SurferKeyStore;
 use crate::ui::icons::{self, Icon};
 use crate::ui::kit::{Tone, time_text::relative_time};
 use crate::ui::settings::api_keys::{self, ApiKeysState};
@@ -29,7 +30,7 @@ pub const SIDEBAR_WIDTH: f32 = 224.0;
 /// The Settings window: the sidebar and a 616-point page.
 pub const WINDOW_SIZE: Vec2 = Vec2::new(840.0, 600.0);
 /// The smallest the window can be made: tall enough for every sidebar row.
-pub const MIN_SIZE: Vec2 = Vec2::new(520.0, 480.0);
+pub const MIN_SIZE: Vec2 = Vec2::new(520.0, 500.0);
 
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub enum SettingsSection {
@@ -40,6 +41,7 @@ pub enum SettingsSection {
     Oanda,
     Brokers,
     CoinMarketCap,
+    Surfer,
     Ai,
     Notifications,
     Webhooks,
@@ -52,13 +54,14 @@ pub enum SettingsSection {
 }
 
 impl SettingsSection {
-    pub const ALL: [Self; 15] = [
+    pub const ALL: [Self; 16] = [
         Self::Appearance,
         Self::PineStudio,
         Self::Alpaca,
         Self::Oanda,
         Self::Brokers,
         Self::CoinMarketCap,
+        Self::Surfer,
         Self::Ai,
         Self::Notifications,
         Self::Webhooks,
@@ -85,6 +88,7 @@ impl SettingsSection {
             Self::Oanda => "Oanda",
             Self::Brokers => tr!("Brokers"),
             Self::CoinMarketCap => "CoinMarketCap",
+            Self::Surfer => "Surfer",
             Self::Ai => tr!("AI Assistant"),
             Self::Notifications => tr!("Notifications"),
             Self::Webhooks => tr!("Webhooks"),
@@ -106,6 +110,7 @@ impl SettingsSection {
             Self::Oanda => Color32::from_rgb(0, 166, 81),
             Self::Brokers => Color32::from_rgb(255, 112, 67),
             Self::CoinMarketCap => Color32::from_rgb(10, 132, 255),
+            Self::Surfer => Color32::from_rgb(0, 199, 190),
             Self::Ai => Color32::from_rgb(255, 214, 10),
             Self::Notifications => Color32::from_rgb(48, 209, 88),
             Self::Webhooks => Color32::from_rgb(48, 176, 199),
@@ -127,6 +132,7 @@ impl SettingsSection {
             Self::Oanda => "oanda",
             Self::Brokers => "brokers",
             Self::CoinMarketCap => "coinmarketcap",
+            Self::Surfer => "surfer",
             Self::Ai => "ai",
             Self::Notifications => "notifications",
             Self::Webhooks => "webhooks",
@@ -151,6 +157,8 @@ pub enum SettingsAction {
     SetTabTitleStyle(crate::model::tab::title::TabTitleStyle),
     /// A language on the Appearance page was picked; it applies at the next start.
     SetLanguage(crate::i18n::Preference),
+    /// A chart time zone on the Appearance page was picked.
+    SetChartTimezone(crate::model::timezone::ChartTimezone),
     /// The language prompt's Restart Now: quit and open the app again.
     Restart,
     /// A switch on the Notifications page changed: the whole new settings value.
@@ -357,6 +365,7 @@ impl SettingsSection {
             Self::Oanda => Icon::Banknote,
             Self::Brokers => Icon::ArrowLeftRight,
             Self::CoinMarketCap => Icon::Gauge,
+            Self::Surfer => Icon::Key,
             Self::Ai => Icon::Sparkles,
             Self::Notifications => Icon::BellBadge,
             Self::Webhooks => Icon::ArrowUpRightSquare,
@@ -454,6 +463,12 @@ pub fn show(
                         // Going back to the language in use asks nothing.
                         state.restart_prompt = language != crate::i18n::preference();
                     }
+                    if let Some(timezone) = crate::ui::settings::appearance::timezone(
+                        ui,
+                        crate::model::timezone::active_timezone(),
+                    ) {
+                        actions.push(SettingsAction::SetChartTimezone(timezone));
+                    }
                 },
             );
         }
@@ -508,6 +523,15 @@ pub fn show(
                 section,
                 tr!("Market sentiment charts, with optional higher API rate limits."),
                 |ui| api_keys::coinmarketcap_body(ui, &mut state.api_keys, store),
+            );
+        }
+        SettingsSection::Surfer => {
+            let store = SurferKeyStore::shared();
+            page_shell(
+                &mut page,
+                section,
+                tr!("Surfer PRO indicators license & cloud authentication."),
+                |ui| api_keys::surfer_body(ui, &mut state.api_keys, store),
             );
         }
         SettingsSection::Ai => {

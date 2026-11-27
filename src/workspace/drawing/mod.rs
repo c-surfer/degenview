@@ -325,6 +325,183 @@ impl ChartWorkspace {
             self.apply_drawing_commands(id, commands);
         }
     }
+
+    /// Toggles drawing synchronization across charts of the same market within this tab.
+    /// Turning it on merges all non-ruler drawings per market (focused chart first), deduplicates
+    /// identical shapes, resolves id collisions, and updates each chart in that market.
+    pub(in crate::workspace) fn toggle_sync_drawings(&mut self) {
+        self.sync_drawings = !self.sync_drawings;
+        if !self.sync_drawings {
+            return;
+        }
+        let mut by_market: HashMap<String, Vec<usize>> = HashMap::new();
+        for (idx, chart) in self.charts.iter().enumerate() {
+            if chart.is_market() {
+                by_market
+                    .entry(chart.drawing_market())
+                    .or_default()
+                    .push(idx);
+            }
+        }
+        let mut changed_charts = Vec::new();
+        for mut indices in by_market.into_values() {
+            if let Some(focused) = self.focused
+                && let Some(pos) = indices
+                    .iter()
+                    .position(|&idx| self.charts[idx].id == focused)
+            {
+                let focused_idx = indices.remove(pos);
+                indices.insert(0, focused_idx);
+            }
+            let mut max_id = indices
+                .iter()
+                .map(|&idx| &self.charts[idx])
+                .flat_map(|c| {
+                    c.drawings
+                        .iter()
+                        .filter(|d| !is_ruler(d))
+                        .map(Drawing::stored_id)
+                        .chain(std::iter::once(c.next_drawing_id.saturating_sub(1)))
+                })
+                .max()
+                .unwrap_or(0);
+            let mut used_ids: std::collections::HashSet<u64> = indices
+                .iter()
+                .flat_map(|&idx| self.charts[idx].drawings.iter())
+                .filter(|d| !is_ruler(d) && matches!(d, Drawing::Unreadable(_)))
+                .map(Drawing::stored_id)
+                .filter(|&id| id != 0)
+                .collect();
+            let mut merged: Vec<Drawing> = Vec::new();
+            let mut signatures: Vec<Drawing> = Vec::new();
+
+            for &idx in &indices {
+                for drawing in self.charts[idx].drawings.iter().filter(|d| !is_ruler(d)) {
+                    let sig = drawing.clone().with_id(0);
+                    if signatures.contains(&sig) {
+                        continue;
+                    }
+                    signatures.push(sig);
+                    let resolved = if matches!(drawing, Drawing::Unreadable(_)) {
+                        drawing.clone()
+                    } else {
+                        let id = drawing.stored_id();
+                        if id == 0 || !used_ids.insert(id) {
+                            max_id += 1;
+                            used_ids.insert(max_id);
+                            drawing.clone().with_id(max_id)
+                        } else {
+                            max_id = max_id.max(id);
+                            drawing.clone()
+                        }
+                    };
+                    merged.push(resolved);
+                }
+            }
+
+            let next_id = max_id + 1;
+            for &idx in &indices {
+                let chart = &mut self.charts[idx];
+                let current_non_rulers: Vec<&Drawing> =
+                    chart.drawings.iter().filter(|d| !is_ruler(d)).collect();
+                if current_non_rulers.len() != merged.len()
+                    || current_non_rulers.iter().zip(&merged).any(|(a, b)| *a != b)
+                {
+                    changed_charts.push(chart.id);
+                }
+                replace_non_rulers(chart, merged.clone(), next_id);
+            }
+        }
+        if !changed_charts.is_empty() {
+            self.layout.drawings_edited();
+            for chart_id in changed_charts {
+                self.history.forget_drawings(chart_id);
+                self.tools.forget_chart(chart_id);
+            }
+        }
+    }
+
+    /// Mirrors non-ruler drawings and `next_drawing_id` from `source_chart_id` to all other
+    /// market charts in this tab showing the same `drawing_market()`.
+    pub(in crate::workspace) fn mirror_drawings_from(&mut self, source_chart_id: u64) {
+        if !self.sync_drawings {
+            return;
+        }
+        let Some(source) = self
+            .charts
+            .iter()
+            .find(|c| c.id == source_chart_id && c.is_market())
+        else {
+            return;
+        };
+        let market = source.drawing_market();
+        let next_drawing_id = source.next_drawing_id;
+        let mirrored = non_rulers(source);
+        let mut overwritten = Vec::new();
+        for chart in &mut self.charts {
+            if chart.id != source_chart_id && chart.is_market() && chart.drawing_market() == market
+            {
+                replace_non_rulers(chart, mirrored.clone(), next_drawing_id);
+                overwritten.push(chart.id);
+            }
+        }
+        for chart_id in overwritten {
+            self.tools.forget_chart(chart_id);
+        }
+    }
+
+    /// Pulls non-ruler drawings and `next_drawing_id` into `target_chart_id` from another market
+    /// chart in this tab showing the same `drawing_market()`, if sync is enabled.
+    pub(in crate::workspace) fn sync_drawings_to_chart(&mut self, target_chart_id: u64) {
+        if !self.sync_drawings {
+            return;
+        }
+        let Some(target) = self
+            .charts
+            .iter()
+            .find(|c| c.id == target_chart_id && c.is_market())
+        else {
+            return;
+        };
+        let market = target.drawing_market();
+        let Some(source) = self
+            .charts
+            .iter()
+            .find(|c| c.id != target_chart_id && c.is_market() && c.drawing_market() == market)
+        else {
+            return;
+        };
+        let next_drawing_id = source.next_drawing_id;
+        let pulled = non_rulers(source);
+        if let Some(target) = self.charts.iter_mut().find(|c| c.id == target_chart_id) {
+            replace_non_rulers(target, pulled, next_drawing_id);
+        }
+    }
+}
+
+fn non_rulers(chart: &super::chart::Chart) -> Vec<Drawing> {
+    chart
+        .drawings
+        .iter()
+        .filter(|d| !is_ruler(d))
+        .cloned()
+        .collect()
+}
+
+fn replace_non_rulers(
+    chart: &mut super::chart::Chart,
+    non_rulers: Vec<Drawing>,
+    next_drawing_id: u64,
+) {
+    let rulers: Vec<Drawing> = chart
+        .drawings
+        .iter()
+        .filter(|d| is_ruler(d))
+        .cloned()
+        .collect();
+    chart.drawings = non_rulers;
+    chart.drawings.extend(rulers);
+    chart.next_drawing_id = chart.next_drawing_id.max(next_drawing_id);
 }
 
 #[cfg(test)]
@@ -623,5 +800,315 @@ mod tests {
                 .map(|dialog| dialog.draft().text().to_owned()),
             Some("edited".to_owned())
         );
+    }
+
+    fn ruler(id: u64) -> Drawing {
+        Drawing::Ruler {
+            id,
+            a: crate::model::Anchor {
+                time_ms: 0,
+                price: 1.0,
+            },
+            b: crate::model::Anchor {
+                time_ms: 10,
+                price: 2.0,
+            },
+        }
+    }
+
+    #[test]
+    fn sync_drawings_mirrors_add_edit_remove_within_same_market_only() {
+        let ctx = egui::Context::default();
+        let mut workspace = empty_workspace(20);
+        let btc = crate::model::InstrumentId::new(crate::model::DataSource::Binance, "BTCUSDT");
+        let eth = crate::model::InstrumentId::new(crate::model::DataSource::Binance, "ETHUSDT");
+        let c1 = workspace.force_add_chart_for(&btc, &ctx).chart_id;
+        let c2 = workspace.force_add_chart_for(&btc, &ctx).chart_id;
+        let c3 = workspace.force_add_chart_for(&eth, &ctx).chart_id;
+
+        workspace.toggle_sync_drawings();
+        assert!(workspace.sync_drawings);
+
+        // Keep a ruler on c2 to verify it is preserved across mirrors.
+        workspace
+            .charts
+            .iter_mut()
+            .find(|c| c.id == c2)
+            .unwrap()
+            .drawings
+            .push(ruler(99));
+
+        // Add on c1 -> mirrored to c2, not c3.
+        workspace.apply_drawing_commands(c1, vec![DrawingCommand::Add(rectangle(1, 100))]);
+        assert_eq!(drawing_ids(&workspace, c1), [1]);
+        assert_eq!(drawing_ids(&workspace, c2), [1, 99]);
+        assert!(drawing_ids(&workspace, c3).is_empty());
+
+        // Edit on c2 -> mirrored to c1.
+        workspace.apply_drawing_commands(
+            c2,
+            vec![DrawingCommand::Replace {
+                id: 1,
+                drawing: rectangle(1, 250),
+            }],
+        );
+        assert_eq!(
+            workspace
+                .charts
+                .iter()
+                .find(|c| c.id == c1)
+                .unwrap()
+                .drawings[0],
+            rectangle(1, 250)
+        );
+
+        // Remove on c1 -> mirrored to c2 (c2 keeps its ruler).
+        workspace.apply_drawing_commands(c1, vec![DrawingCommand::Remove(1)]);
+        assert!(drawing_ids(&workspace, c1).is_empty());
+        assert_eq!(drawing_ids(&workspace, c2), [99]);
+    }
+
+    #[test]
+    fn toggle_sync_drawings_merges_deduplicates_and_resolves_id_collisions() {
+        let ctx = egui::Context::default();
+        let mut workspace = empty_workspace(21);
+        let btc = crate::model::InstrumentId::new(crate::model::DataSource::Binance, "BTCUSDT");
+        let c1 = workspace.force_add_chart_for(&btc, &ctx).chart_id;
+        let c2 = workspace.force_add_chart_for(&btc, &ctx).chart_id;
+
+        // c1 (not focused) has id=1 (at 100) and id=2 (at 200).
+        // c2 (focused) has id=1 (at 300, collides with c1's id=1), id=5 (at 500),
+        // and a duplicate of c1's at 100 with id=7.
+        {
+            let ch1 = workspace.charts.iter_mut().find(|c| c.id == c1).unwrap();
+            ch1.drawings = vec![rectangle(1, 100), rectangle(2, 200)];
+            ch1.next_drawing_id = 3;
+        }
+        {
+            let ch2 = workspace.charts.iter_mut().find(|c| c.id == c2).unwrap();
+            ch2.drawings = vec![
+                rectangle(1, 300),
+                rectangle(5, 500),
+                rectangle(7, 100),
+                ruler(88),
+            ];
+            ch2.next_drawing_id = 8;
+        }
+        workspace.focused = Some(c2);
+
+        workspace.toggle_sync_drawings();
+        assert!(workspace.sync_drawings);
+
+        // Focused c2 comes first: keeps id=1 (at 300), id=5 (at 500), id=7 (at 100).
+        // c1's at 100 is deduplicated; c1's id=2 (at 200) keeps id=2.
+        // All non-ruler drawings are identical on both charts, c2 keeps ruler 88,
+        // and next_drawing_id is max_id + 1 = 8.
+        assert_eq!(drawing_ids(&workspace, c1), [1, 5, 7, 2]);
+        assert_eq!(drawing_ids(&workspace, c2), [1, 5, 7, 2, 88]);
+        for chart in &workspace.charts {
+            assert_eq!(chart.next_drawing_id, 8);
+        }
+    }
+
+    #[test]
+    fn sync_drawings_mirrors_undo_and_redo() {
+        let ctx = egui::Context::default();
+        let mut workspace = empty_workspace(22);
+        let btc = crate::model::InstrumentId::new(crate::model::DataSource::Binance, "BTCUSDT");
+        let c1 = workspace.force_add_chart_for(&btc, &ctx).chart_id;
+        let c2 = workspace.force_add_chart_for(&btc, &ctx).chart_id;
+        workspace.toggle_sync_drawings();
+
+        workspace.apply_drawing_commands(c1, vec![DrawingCommand::Add(rectangle(1, 100))]);
+        assert_eq!(drawing_ids(&workspace, c2), [1]);
+
+        workspace.undo(&ctx);
+        assert!(drawing_ids(&workspace, c1).is_empty());
+        assert!(drawing_ids(&workspace, c2).is_empty());
+
+        workspace.redo(&ctx);
+        assert_eq!(drawing_ids(&workspace, c1), [1]);
+        assert_eq!(drawing_ids(&workspace, c2), [1]);
+    }
+
+    #[test]
+    fn sync_drawings_pulls_when_switching_chart_or_adding_new_chart() {
+        let ctx = egui::Context::default();
+        let mut workspace = empty_workspace(23);
+        let btc = crate::model::InstrumentId::new(crate::model::DataSource::Binance, "BTCUSDT");
+        let eth = crate::model::InstrumentId::new(crate::model::DataSource::Binance, "ETHUSDT");
+        let c1 = workspace.force_add_chart_for(&btc, &ctx).chart_id;
+        let c2 = workspace.force_add_chart_for(&eth, &ctx).chart_id;
+
+        workspace.toggle_sync_drawings();
+        workspace.apply_drawing_commands(c1, vec![DrawingCommand::Add(rectangle(1, 100))]);
+        workspace
+            .charts
+            .iter_mut()
+            .find(|c| c.id == c1)
+            .unwrap()
+            .next_drawing_id = 4;
+
+        // Switching c2 to BTCUSDT pulls BTCUSDT drawings and next_drawing_id from c1.
+        let btc_item = crate::model::watchlist::WatchlistInstrument::from_market(
+            crate::model::DataSource::Binance,
+            "BTCUSDT",
+            "BTCUSDT",
+        );
+        assert!(workspace.switch_chart(c2, &btc_item, &ctx));
+        assert_eq!(drawing_ids(&workspace, c2), [1]);
+        assert_eq!(
+            workspace
+                .charts
+                .iter()
+                .find(|c| c.id == c2)
+                .unwrap()
+                .next_drawing_id,
+            4
+        );
+
+        // Adding a new chart for BTCUSDT also pulls from existing BTCUSDT charts.
+        let c3 = workspace.force_add_chart_for(&btc, &ctx).chart_id;
+        assert_eq!(drawing_ids(&workspace, c3), [1]);
+        assert_eq!(
+            workspace
+                .charts
+                .iter()
+                .find(|c| c.id == c3)
+                .unwrap()
+                .next_drawing_id,
+            4
+        );
+    }
+
+    #[test]
+    fn persisted_workspace_round_trips_sync_drawings_and_defaults_false_for_old_rows() {
+        let mut workspace = empty_workspace(24);
+        workspace.toggle_sync_drawings();
+        let saved = workspace.persisted();
+        assert!(saved.sync_drawings);
+
+        let json = serde_json::to_string(&saved).unwrap();
+        let decoded: PersistedWorkspace = serde_json::from_str(&json).unwrap();
+        assert!(decoded.sync_drawings);
+
+        // Older rows without `sync_drawings` default to false.
+        let mut value: serde_json::Value = serde_json::from_str(&json).unwrap();
+        value.as_object_mut().unwrap().remove("sync_drawings");
+        let old: PersistedWorkspace = serde_json::from_value(value).unwrap();
+        assert!(!old.sync_drawings);
+    }
+
+    #[test]
+    fn sync_drawings_never_lowers_next_drawing_id() {
+        let ctx = egui::Context::default();
+        let mut workspace = empty_workspace(25);
+        let btc = crate::model::InstrumentId::new(crate::model::DataSource::Binance, "BTCUSDT");
+        let c1 = workspace.force_add_chart_for(&btc, &ctx).chart_id;
+        let c2 = workspace.force_add_chart_for(&btc, &ctx).chart_id;
+
+        workspace
+            .charts
+            .iter_mut()
+            .find(|c| c.id == c1)
+            .unwrap()
+            .next_drawing_id = 10;
+        {
+            let ch2 = workspace.charts.iter_mut().find(|c| c.id == c2).unwrap();
+            ch2.drawings = vec![rectangle(1, 100)];
+            ch2.next_drawing_id = 2;
+        }
+
+        workspace.toggle_sync_drawings();
+        for chart in &workspace.charts {
+            assert_eq!(chart.next_drawing_id, 10);
+        }
+
+        // Mirroring from a chart with a smaller next_drawing_id never lowers a peer's counter.
+        workspace
+            .charts
+            .iter_mut()
+            .find(|c| c.id == c2)
+            .unwrap()
+            .next_drawing_id = 3;
+        workspace.mirror_drawings_from(c2);
+        assert_eq!(
+            workspace
+                .charts
+                .iter()
+                .find(|c| c.id == c1)
+                .unwrap()
+                .next_drawing_id,
+            10
+        );
+    }
+
+    #[test]
+    fn undoing_market_switch_with_sync_drawings_pulls_peer_drawings_instead_of_overwriting_them() {
+        let ctx = egui::Context::default();
+        let mut workspace = empty_workspace(26);
+        let btc = crate::model::InstrumentId::new(crate::model::DataSource::Binance, "BTCUSDT");
+        let c1 = workspace.force_add_chart_for(&btc, &ctx).chart_id;
+        let c2 = workspace.force_add_chart_for(&btc, &ctx).chart_id;
+        workspace.toggle_sync_drawings();
+
+        workspace.apply_drawing_commands(c1, vec![DrawingCommand::Add(rectangle(1, 100))]);
+        assert_eq!(drawing_ids(&workspace, c2), [1]);
+
+        let eth_item = crate::model::watchlist::WatchlistInstrument::from_market(
+            crate::model::DataSource::Binance,
+            "ETHUSDT",
+            "ETHUSDT",
+        );
+        assert!(workspace.replace_chart_market(c2, &eth_item, &ctx));
+
+        // While c2 is on ETHUSDT (with [1] parked under BTCUSDT), c1 gains drawing 2 on BTCUSDT.
+        workspace
+            .charts
+            .iter_mut()
+            .find(|c| c.id == c1)
+            .unwrap()
+            .drawings
+            .push(rectangle(2, 200));
+        assert_eq!(drawing_ids(&workspace, c1), [1, 2]);
+
+        // Undoing c2's market switch brings c2 back to BTCUSDT and pulls [1, 2] from c1
+        // instead of overwriting c1 with c2's stale parked [1].
+        workspace.undo(&ctx);
+        assert_eq!(drawing_ids(&workspace, c1), [1, 2]);
+        assert_eq!(drawing_ids(&workspace, c2), [1, 2]);
+    }
+
+    #[test]
+    fn toggle_sync_drawings_forgets_stale_undo_and_preserves_unreadable_ids() {
+        let ctx = egui::Context::default();
+        let mut workspace = empty_workspace(27);
+        let btc = crate::model::InstrumentId::new(crate::model::DataSource::Binance, "BTCUSDT");
+        let c1 = workspace.force_add_chart_for(&btc, &ctx).chart_id;
+        let c2 = workspace.force_add_chart_for(&btc, &ctx).chart_id;
+
+        // c1 has a readable drawing with id=50 and an undo step for it.
+        workspace.apply_drawing_commands(c1, vec![DrawingCommand::Add(rectangle(50, 100))]);
+        assert!(workspace.history.can_undo());
+
+        // c2 (focused) has an unreadable drawing whose stored_id is also 50.
+        {
+            let ch2 = workspace.charts.iter_mut().find(|c| c.id == c2).unwrap();
+            ch2.drawings = vec![unreadable(50)];
+            ch2.next_drawing_id = 51;
+        }
+        workspace.focused = Some(c2);
+
+        workspace.toggle_sync_drawings();
+
+        // Unreadable keeps stored_id 50; c1's readable drawing is renumbered to 51.
+        let ch1 = workspace.charts.iter().find(|c| c.id == c1).unwrap();
+        assert_eq!(ch1.drawings.len(), 2);
+        assert_eq!(ch1.drawings[0], unreadable(50));
+        assert_eq!(ch1.drawings[1].id(), 51);
+        assert_eq!(ch1.next_drawing_id, 52);
+
+        // Stale undo steps for charts whose drawings were rewritten are dropped.
+        assert!(!workspace.history.can_undo());
     }
 }

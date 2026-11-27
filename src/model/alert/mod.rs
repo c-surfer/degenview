@@ -36,6 +36,57 @@ pub enum AlertState {
     Unsupported,
 }
 
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub enum AlertSound {
+    #[default]
+    LiteHammer,
+    Piano,
+    YourSuffer,
+}
+
+impl AlertSound {
+    pub const ALL: [Self; 3] = [Self::LiteHammer, Self::Piano, Self::YourSuffer];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::LiteHammer => "Lite Hammer",
+            Self::Piano => "Piano",
+            Self::YourSuffer => "Your Suffer",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub enum AlertSoundRepeat {
+    #[default]
+    Once,
+    Twice,
+    ThreeTimes,
+    FiveTimes,
+}
+
+impl AlertSoundRepeat {
+    pub const ALL: [Self; 4] = [Self::Once, Self::Twice, Self::ThreeTimes, Self::FiveTimes];
+
+    pub fn count(self) -> u8 {
+        match self {
+            Self::Once => 1,
+            Self::Twice => 2,
+            Self::ThreeTimes => 3,
+            Self::FiveTimes => 5,
+        }
+    }
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Once => crate::i18n::tr!("1 time"),
+            Self::Twice => crate::i18n::tr!("2 times"),
+            Self::ThreeTimes => crate::i18n::tr!("3 times"),
+            Self::FiveTimes => crate::i18n::tr!("5 times"),
+        }
+    }
+}
+
 /// What an alert watches for. `RisesBy`/`FallsBy` carry the reference price and the
 /// target derived from it when the alert was made, so only `target` is evaluated.
 #[derive(Clone, Debug, PartialEq)]
@@ -363,6 +414,12 @@ pub struct PriceAlert {
     /// The webhook body with `{{placeholders}}`; `None` sends the default template.
     #[serde(default)]
     pub webhook_message: Option<String>,
+    #[serde(default)]
+    pub sound_enabled: bool,
+    #[serde(default)]
+    pub sound: AlertSound,
+    #[serde(default)]
+    pub sound_repeat: AlertSoundRepeat,
 }
 
 fn yes() -> bool {
@@ -386,6 +443,9 @@ impl PriceAlert {
             updated_at_ms: now_ms,
             webhook_endpoint_ids: Vec::new(),
             webhook_message: None,
+            sound_enabled: false,
+            sound: AlertSound::default(),
+            sound_repeat: AlertSoundRepeat::default(),
         }
     }
 
@@ -403,6 +463,9 @@ impl PriceAlert {
             && self.note == other.note
             && self.webhook_endpoint_ids == other.webhook_endpoint_ids
             && self.webhook_message == other.webhook_message
+            && self.sound_enabled == other.sound_enabled
+            && self.sound == other.sound
+            && self.sound_repeat == other.sound_repeat
     }
 }
 
@@ -779,6 +842,9 @@ mod tests {
         assert_eq!(alert.currency, AlertCurrency::Usd);
         assert!(alert.webhook_endpoint_ids.is_empty());
         assert_eq!(alert.webhook_message, None);
+        assert!(!alert.sound_enabled);
+        assert_eq!(alert.sound, AlertSound::LiteHammer);
+        assert_eq!(alert.sound_repeat, AlertSoundRepeat::Once);
     }
 
     #[test]

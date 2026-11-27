@@ -6,7 +6,9 @@
 
 use crate::i18n::tr;
 use crate::model::alert::draft::{Direction, HintTone, PriceAlertDraft};
-use crate::model::alert::{AlertAsset, AlertCurrency, AlertFrequency, PriceAlert};
+use crate::model::alert::{
+    AlertAsset, AlertCurrency, AlertFrequency, AlertSound, AlertSoundRepeat, PriceAlert,
+};
 use crate::model::webhook::WebhookEndpoint;
 use crate::service::watchlist_quotes::WatchlistQuoteBook;
 use crate::ui::icons::{self, Icon};
@@ -262,6 +264,9 @@ fn form(
     });
     ui.add_space(18.0);
 
+    sound_section(ui, &mut state.draft);
+    ui.add_space(18.0);
+
     let context = state.draft.example_context(now_ms);
     let mut message = std::mem::take(&mut state.draft.webhook_message);
     let open_settings = picker::send_section(
@@ -286,6 +291,174 @@ fn form(
         );
     }
     open_settings
+}
+
+fn sound_section(ui: &mut egui::Ui, draft: &mut PriceAlertDraft) {
+    let id = Id::new("price-alert-sound");
+    let (rect, _) = ui.allocate_exact_size(Vec2::new(ui.available_width(), 50.0), Sense::hover());
+    let response = ui
+        .interact(rect, id.with("card"), Sense::click())
+        .on_hover_cursor(egui::CursorIcon::PointingHand);
+    let painter = ui.painter();
+    painter.rect_filled(
+        rect,
+        12.0,
+        theme::quaternary(if response.hovered() { 0.45 } else { 0.3 }),
+    );
+    painter.rect_stroke(
+        rect,
+        12.0,
+        Stroke::new(1.0, kit::hairline()),
+        egui::StrokeKind::Inside,
+    );
+    let icon_rect = Rect::from_min_size(
+        Pos2::new(rect.left() + 12.0, rect.center().y - 15.0),
+        Vec2::splat(30.0),
+    );
+    let tint = if draft.sound_enabled {
+        theme::text_primary()
+    } else {
+        theme::text_secondary()
+    };
+    painter.rect_filled(icon_rect, 8.0, theme::with_alpha(tint, 0.14));
+    icons::paint(
+        painter,
+        Rect::from_center_size(icon_rect.center(), Vec2::splat(13.0)),
+        Icon::Waveform,
+        tint,
+    );
+    let left = icon_rect.right() + 12.0;
+    let title = kit::galley(
+        ui,
+        tr!("Sound alert"),
+        size::SUBHEADLINE + 1.0,
+        SEMIBOLD,
+        theme::text_primary(),
+        rect.width(),
+    );
+    let detail = kit::galley(
+        ui,
+        tr!("Play a sound when this alert triggers."),
+        size::CAPTION + 0.5,
+        kit::REGULAR,
+        theme::text_secondary(),
+        rect.right() - 60.0 - left,
+    );
+    let top = rect.center().y - (title.size().y + 2.0 + detail.size().y) / 2.0;
+    let title_height = title.size().y;
+    painter.galley(Pos2::new(left, top), title, theme::text_primary());
+    painter.galley(
+        Pos2::new(left, top + title_height + 2.0),
+        detail,
+        theme::text_secondary(),
+    );
+    let switch_rect = Rect::from_min_size(
+        Pos2::new(rect.right() - 12.0 - 32.0, rect.center().y - 9.0),
+        Vec2::new(32.0, 18.0),
+    );
+    let mut child = ui.new_child(egui::UiBuilder::new().max_rect(switch_rect));
+    let flipped = kit::switch(&mut child, &mut draft.sound_enabled, tr!("Sound alert")).clicked();
+    if response.clicked() && !flipped {
+        draft.sound_enabled = !draft.sound_enabled;
+    }
+
+    if !draft.sound_enabled {
+        return;
+    }
+
+    ui.add_space(10.0);
+    let gap = 8.0;
+    let col_width = ((ui.available_width() - gap) / 2.0).max(80.0);
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing.x = gap;
+        let sound_labels: Vec<&str> = AlertSound::ALL.iter().map(|s| s.label()).collect();
+        let sound_idx = AlertSound::ALL
+            .iter()
+            .position(|s| *s == draft.sound)
+            .unwrap_or(0);
+        if let Some(chosen) =
+            sound_dropdown(ui, col_width, draft.sound.label(), &sound_labels, sound_idx)
+        {
+            draft.sound = AlertSound::ALL[chosen];
+        }
+
+        let repeat_labels: Vec<&str> = AlertSoundRepeat::ALL.iter().map(|r| r.label()).collect();
+        let repeat_idx = AlertSoundRepeat::ALL
+            .iter()
+            .position(|r| *r == draft.sound_repeat)
+            .unwrap_or(0);
+        if let Some(chosen) = sound_dropdown(
+            ui,
+            col_width,
+            draft.sound_repeat.label(),
+            &repeat_labels,
+            repeat_idx,
+        ) {
+            draft.sound_repeat = AlertSoundRepeat::ALL[chosen];
+        }
+    });
+}
+
+fn sound_dropdown(
+    ui: &mut egui::Ui,
+    width: f32,
+    current: &str,
+    labels: &[&str],
+    selected: usize,
+) -> Option<usize> {
+    let (rect, response) = ui.allocate_exact_size(Vec2::new(width, 34.0), Sense::click());
+    let response = response.on_hover_cursor(egui::CursorIcon::PointingHand);
+    let painter = ui.painter();
+    painter.rect_filled(
+        rect,
+        8.0,
+        theme::quaternary(if response.hovered() { 0.45 } else { 0.3 }),
+    );
+    painter.rect_stroke(
+        rect,
+        8.0,
+        Stroke::new(1.0, kit::hairline()),
+        egui::StrokeKind::Inside,
+    );
+    let text = kit::galley(
+        ui,
+        current,
+        size::BODY - 0.5,
+        kit::REGULAR,
+        theme::text_primary(),
+        (width - 36.0).max(20.0),
+    );
+    painter.galley(
+        Pos2::new(rect.left() + 12.0, rect.center().y - text.size().y / 2.0),
+        text,
+        theme::text_primary(),
+    );
+    icons::paint(
+        painter,
+        Rect::from_center_size(
+            Pos2::new(rect.right() - 14.0, rect.center().y),
+            Vec2::splat(10.0),
+        ),
+        Icon::ChevronUpDown,
+        theme::text_secondary(),
+    );
+    let mut chosen = None;
+    let string_labels: Vec<String> = labels.iter().map(|s| (*s).to_owned()).collect();
+    kit::fitted_menu(
+        ui,
+        &response,
+        egui::RectAlign::BOTTOM_START,
+        &string_labels,
+        |ui| {
+            for (index, label) in string_labels.iter().enumerate() {
+                if kit::menu_item_marked(ui, Icon::Check, label, index == selected) {
+                    chosen = Some(index);
+                    ui.close();
+                }
+            }
+        },
+    );
+    chosen
 }
 
 fn header(ui: &mut egui::Ui, state: &PriceAlertEditorState) {

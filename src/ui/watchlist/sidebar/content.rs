@@ -47,6 +47,16 @@ pub(super) fn content(
     // A hairline parts two symbol rows unless either is lit (selected or hovered), so a lit
     // row's rounded fill never sits against a line.
     let mut previous_symbol_unlit = false;
+    let list_rect = ui.available_rect_before_wrap();
+    if ui.input(|input| {
+        input.pointer.any_pressed()
+            && input
+                .pointer
+                .interact_pos()
+                .is_some_and(|pos| list_rect.contains(pos))
+    }) {
+        state.keyboard_active = true;
+    }
 
     egui::ScrollArea::vertical()
         .auto_shrink([false, false])
@@ -127,6 +137,7 @@ pub(super) fn content(
                         }
                         if response.clicked() && !more.clicked() {
                             state.selected_entry = Some(item.id);
+                            state.keyboard_active = true;
                             actions.push(WatchlistAction::Open(item.clone()));
                         }
                         popup.show(|ui| instrument_menu(ui, state, input, list, item, actions));
@@ -194,9 +205,12 @@ pub(super) fn content(
         if ui.input(|input| input.key_pressed(egui::Key::Enter)) {
             actions.push(WatchlistAction::Open(item.clone()));
         }
-        if ui.input(|input| {
-            input.key_pressed(egui::Key::Delete) || input.key_pressed(egui::Key::Backspace)
-        }) {
+        if state.keyboard_active
+            && ui.input_mut(|input| {
+                input.consume_key(egui::Modifiers::NONE, egui::Key::Delete)
+                    || input.consume_key(egui::Modifiers::NONE, egui::Key::Backspace)
+            })
+        {
             actions.push(WatchlistAction::RemoveEntry {
                 list: list.id,
                 entry: item.id,

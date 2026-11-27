@@ -116,12 +116,20 @@ msgstr ""
 msgid "1 bar"
 msgstr ""
 
+#: src/ui/workspace/toolbar.rs
+msgid "1 chart"
+msgstr ""
+
 #: src/service/snapshot/providers/imgbb.rs
 msgid "1 day"
 msgstr ""
 
 #: src/ui/mcp/confirmation.rs
 msgid "1 of {waiting} waiting. Expires in {time}."
+msgstr ""
+
+#: src/model/alert/mod.rs
+msgid "1 time"
 msgstr ""
 
 #: src/service/snapshot/providers/imgbb.rs
@@ -134,6 +142,14 @@ msgstr ""
 
 #: src/service/snapshot/providers/imgbb.rs
 msgid "180 days"
+msgstr ""
+
+#: src/ui/workspace/toolbar.rs
+msgid "2 charts"
+msgstr ""
+
+#: src/model/alert/mod.rs
+msgid "2 times"
 msgstr ""
 
 #: src/ui/portfolio/overview/hero.rs
@@ -149,6 +165,14 @@ msgstr ""
 msgid "24h volume"
 msgstr ""
 
+#: src/ui/workspace/toolbar.rs
+msgid "3 charts"
+msgstr ""
+
+#: src/model/alert/mod.rs
+msgid "3 times"
+msgstr ""
+
 #: src/model/portfolio/statistics.rs
 #: src/service/snapshot/providers/imgbb.rs
 msgid "30 days"
@@ -158,9 +182,21 @@ msgstr ""
 msgid "30D Range"
 msgstr ""
 
+#: src/ui/workspace/toolbar.rs
+msgid "4 charts"
+msgstr ""
+
+#: src/ui/workspace/toolbar.rs
+msgid "5 charts"
+msgstr ""
+
 #: src/ui/market_flow/flow.rs
 #: src/ui/market_flow/mod.rs
 msgid "5 minutes"
+msgstr ""
+
+#: src/model/alert/mod.rs
+msgid "5 times"
 msgstr ""
 
 #: src/pine_studio/drawer/simulation.rs
@@ -522,6 +558,10 @@ msgstr ""
 msgid "About"
 msgstr ""
 
+#: src/ui/settings/api_keys.rs
+msgid "About Surfer PRO"
+msgstr ""
+
 #: src/ui/settings/brokers.rs
 msgid "About this key"
 msgstr ""
@@ -598,6 +638,7 @@ msgstr ""
 
 #: src/ui/alert/center.rs
 #: src/ui/alert/script_list.rs
+#: src/ui/settings/api_keys.rs
 #: src/ui/settings/provider_card.rs
 msgid "Active"
 msgstr ""
@@ -1143,6 +1184,7 @@ msgid "All outcomes"
 msgstr ""
 
 #: src/ui/drawing/properties/visibility.rs
+#: src/ui/workspace/toolbar.rs
 msgid "All timeframes"
 msgstr ""
 
@@ -3445,6 +3487,10 @@ msgstr ""
 msgid "Close at market"
 msgstr ""
 
+#: src/model/chart/context/mod.rs
+msgid "Close chart"
+msgstr ""
+
 #: src/ui/paper/header.rs
 msgid "Close every open position at market"
 msgstr ""
@@ -3626,6 +3672,12 @@ msgstr ""
 
 #: src/model/chart/kind.rs
 msgid "Columns"
+msgstr ""
+
+#: src/model/pine/bundled/mod.rs
+msgid ""
+"Combines RSI, Stochastic, ATR Stop-Loss, and Pro multi-timeframe background, "
+"cloud ranges, and divergence detection."
 msgstr ""
 
 #: src/model/drawings/style.rs
@@ -4199,6 +4251,10 @@ msgstr ""
 
 #: src/ui/settings/api_keys.rs
 msgid "Could not remove the keys: {error}"
+msgstr ""
+
+#: src/ui/settings/api_keys.rs
+msgid "Could not remove the license: {error}"
 msgstr ""
 
 #: src/platform.rs
@@ -5589,6 +5645,10 @@ msgstr ""
 
 #: src/ui/portfolio/transaction_editor.rs
 msgid "Duplicate Transaction"
+msgstr ""
+
+#: src/model/chart/context/mod.rs
+msgid "Duplicate chart"
 msgstr ""
 
 #: src/ui/chart/settings/templates/mod.rs
@@ -7826,6 +7886,10 @@ msgstr ""
 msgid "In-App Banners"
 msgstr ""
 
+#: src/ui/settings/api_keys.rs
+msgid "Inactive"
+msgstr ""
+
 #: src/ui/snapshot_studio/window/tests.rs
 #: src/ui/snapshot_studio/window/toolbar.rs
 msgid "Include"
@@ -8514,6 +8578,22 @@ msgstr ""
 
 #: src/ui/settings/about.rs
 msgid "License"
+msgstr ""
+
+#: src/ui/settings/api_keys.rs
+msgid "License Key"
+msgstr ""
+
+#: src/ui/settings/api_keys.rs
+msgid "License active until {end_date} (User: {nickname})"
+msgstr ""
+
+#: src/ui/settings/api_keys.rs
+msgid "License removed. Basic RSI mode is active."
+msgstr ""
+
+#: src/ui/settings/api_keys.rs
+msgid "License verification failed"
 msgstr ""
 
 #: src/ui/theme/mod.rs
@@ -9473,6 +9553,10 @@ msgstr ""
 
 #: src/ui/drawing/properties/forecast_pages.rs
 msgid "Mode"
+msgstr ""
+
+#: src/ui/workspace/tool_sidebar.rs
+msgid "Mode: show all elements on all charts"
 msgstr ""
 
 #: src/pine_studio/ai/panel.rs
@@ -11895,6 +11979,10 @@ msgstr ""
 msgid "Play a sound when a paper order is filled."
 msgstr ""
 
+#: src/ui/alert/editor.rs
+msgid "Play a sound when this alert triggers."
+msgstr ""
+
 #: src/ui/settings/window.rs
 msgid "Play an alert sound when a notification is delivered."
 msgstr ""
@@ -12473,6 +12561,11 @@ msgstr ""
 msgid "RSI"
 msgstr ""
 
+#: src/model/pine/bundled/mod.rs
+msgid ""
+"RSI oscillator with Stochastic, ATR Stop-Loss, and Pro Clouds & Divergences."
+msgstr ""
+
 #: src/model/drawings/style.rs
 msgid "Radiation"
 msgstr ""
@@ -12828,6 +12921,10 @@ msgstr ""
 
 #: src/ui/settings/api_keys.rs
 msgid "Remove Keys"
+msgstr ""
+
+#: src/ui/settings/api_keys.rs
+msgid "Remove License"
 msgstr ""
 
 #: src/pine_studio/debug/panel/lists.rs
@@ -14271,6 +14368,10 @@ msgstr ""
 msgid "Select bar on chart"
 msgstr ""
 
+#: src/ui/workspace/toolbar.rs
+msgid "Select grid layout"
+msgstr ""
+
 #: src/ui/tradingview/choose/cards.rs
 msgid "Select none"
 msgstr ""
@@ -15013,6 +15114,10 @@ msgstr ""
 msgid "Sound"
 msgstr ""
 
+#: src/ui/alert/editor.rs
+msgid "Sound alert"
+msgstr ""
+
 #: src/ui/chart/settings/style.rs
 #: src/ui/drawing/properties/coordinates.rs
 #: src/ui/drawing/properties/forecast_pages.rs
@@ -15530,6 +15635,14 @@ msgstr ""
 msgid "Support this project by buying me a coffee"
 msgstr ""
 
+#: src/ui/settings/api_keys.rs
+msgid "Surfer License"
+msgstr ""
+
+#: src/ui/settings/window.rs
+msgid "Surfer PRO indicators license & cloud authentication."
+msgstr ""
+
 #: src/model/alert/mod.rs
 #: src/model/portfolio/mod.rs
 msgid "Swiss Franc"
@@ -15585,6 +15698,10 @@ msgstr ""
 
 #: src/ui/settings/sync.rs
 msgid "Sync Now"
+msgstr ""
+
+#: src/ui/workspace/tool_sidebar.rs
+msgid "Sync drawings across charts"
 msgstr ""
 
 #: src/ui/workspace/link_charts.rs
@@ -19025,6 +19142,13 @@ msgstr ""
 msgid "Win rate"
 msgstr ""
 
+#: src/ui/settings/api_keys.rs
+msgid ""
+"Without a license, the [Surfer] RSI indicator operates in basic mode (RSI + "
+"Stochastic + ATR). A valid license unlocks Clouds (MRC), MTF Background, Extra"
+" Signals, and Divergence Validation."
+msgstr ""
+
 #: src/ui/portfolio/cmc_import.rs
 msgid "Won’t be imported"
 msgstr ""
@@ -19249,6 +19373,10 @@ msgstr ""
 
 #: src/ui/workspace/link_charts.rs
 msgid "Zooming one chart adjusts the others."
+msgstr ""
+
+#: src/model/pine/bundled/mod.rs
+msgid "[Surfer] RSI v1"
 msgstr ""
 
 #: src/ui/settings/mcp/security.rs

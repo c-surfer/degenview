@@ -30,6 +30,7 @@ pub fn paint(ui: &Ui, rect: Rect, section: SettingsSection) {
         SettingsSection::Oanda => art.oanda(),
         SettingsSection::Brokers => art.brokers(),
         SettingsSection::CoinMarketCap => art.coinmarketcap(),
+        SettingsSection::Surfer => art.surfer(),
         SettingsSection::Ai => art.ai(),
         SettingsSection::Notifications => art.notifications(),
         SettingsSection::Webhooks => art.webhooks(),
@@ -303,6 +304,34 @@ impl Art<'_> {
         );
         let dot = centre + vec2(0.0, -15.0);
         self.painter.circle_filled(dot, 3.2, self.tint);
+    }
+
+    /// A surfer wave / indicator band with a key chip hanging off the corner.
+    fn surfer(&self) {
+        let card = self.scene();
+        let centre = card.center();
+        let base_y = centre.y;
+        for (i, (y_off, alpha)) in [(-7.0, 0.22), (0.0, 0.4), (7.0, 0.22)]
+            .into_iter()
+            .enumerate()
+        {
+            let y = base_y + y_off;
+            let stroke_color = self.tint.gamma_multiply(alpha);
+            let mut points = Vec::new();
+            for step in 0..=8 {
+                let x = card.left() + 8.0 + (card.width() - 16.0) * (step as f32 / 8.0);
+                let phase = step as f32 * 0.8 + i as f32 * 0.5;
+                let wave_y = y + phase.sin() * 4.0;
+                points.push(pos2(x, wave_y));
+            }
+            for window in points.windows(2) {
+                self.painter
+                    .line_segment([window[0], window[1]], Stroke::new(1.8, stroke_color));
+            }
+        }
+        let chip = Rect::from_center_size(card.right_bottom() + vec2(-3.0, -1.0), vec2(24.0, 15.0));
+        self.chip(chip);
+        self.glyph(Icon::Key, chip.center(), 9.0, Color32::WHITE);
     }
 
     /// A prompt, the change it asked for as a diff, and sparkles.

@@ -188,6 +188,21 @@ impl DegenViewApp {
                     }
                 }
                 AppAction::OpenWatchlistInNewTab(item) => self.add_watchlist_tab(item, ctx),
+                AppAction::ApplyAppearanceToAllTabs {
+                    source_tab_id,
+                    appearance,
+                    scope,
+                } => {
+                    for tab in self.tabs.slots() {
+                        if let Ok(mut content) = tab.content.lock()
+                            && content.id() != source_tab_id
+                            && let TabContent::Chart(workspace) = &mut *content
+                        {
+                            workspace.apply_appearance_to_all_charts(&appearance, scope);
+                        }
+                    }
+                    self.tabs.repaint_windows(ctx);
+                }
                 AppAction::AddPineScript {
                     script_id,
                     name,
@@ -276,7 +291,12 @@ impl DegenViewApp {
                 });
         match asking {
             Some(id) => self.tabs.show(ctx, id),
-            None => ctx.send_viewport_cmd_to(egui::ViewportId::ROOT, egui::ViewportCommand::Close),
+            None => {
+                // Save before closing the root viewport so nothing depends on `eframe::App::save`
+                // firing reliably during shutdown.
+                self.save_all();
+                ctx.send_viewport_cmd_to(egui::ViewportId::ROOT, egui::ViewportCommand::Close);
+            }
         }
     }
 

@@ -632,19 +632,19 @@ pub fn scope_for_new_chart(look: &ChartAppearance, market: DataSource) -> ApplyS
     }
 }
 
-/// Plans giving `look` to every chart in `charts` (id and market) except `source`. A chart whose
-/// market cannot draw the look's chart type, or is drawn as a line and has no types at all, takes
-/// the colors and canvas only; the first kind is counted so it can be reported.
+/// Plans giving `look` to every chart in `charts` (id and market) except `source` (if any). A
+/// chart whose market cannot draw the look's chart type, or is drawn as a line and has no types
+/// at all, takes the colors and canvas only; the first kind is counted so it can be reported.
 pub fn plan_apply_to_all(
     charts: &[(u64, DataSource)],
     look: &ChartAppearance,
     scope: ApplyScope,
-    source: u64,
+    source: Option<u64>,
 ) -> ApplyPlan {
     let mut kept_type = 0;
     let steps = charts
         .iter()
-        .filter(|(id, _)| *id != source)
+        .filter(|(id, _)| Some(*id) != source)
         .map(|(id, market)| {
             let takes_type =
                 scope == ApplyScope::AppearanceAndCanvas && takes_chart_type(look, *market);

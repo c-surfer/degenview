@@ -121,6 +121,15 @@ pub(super) fn show_tab(
                     WorkspaceAction::OpenWatchlistInNewTab(item) => {
                         AppAction::OpenWatchlistInNewTab(item)
                     }
+                    WorkspaceAction::ApplyAppearanceToAllTabs {
+                        source_tab_id,
+                        appearance,
+                        scope,
+                    } => AppAction::ApplyAppearanceToAllTabs {
+                        source_tab_id,
+                        appearance,
+                        scope,
+                    },
                     WorkspaceAction::OpenAlpacaSettings => AppAction::OpenAlpacaSettings,
                     WorkspaceAction::OpenOandaSettings => AppAction::OpenOandaSettings,
                     WorkspaceAction::OpenBrokerSettings => AppAction::OpenBrokerSettings,
@@ -321,6 +330,8 @@ pub(super) struct TabState {
     broker_revision: u64,
     /// The interface language's revision they were last repainted for.
     language_revision: u64,
+    /// The chart time zone's revision they were last repainted for.
+    timezone_revision: u64,
 }
 
 impl TabState {
@@ -357,6 +368,7 @@ impl TabState {
             title_revision: 0,
             broker_revision: 0,
             language_revision: 0,
+            timezone_revision: 0,
         }
     }
 
@@ -536,15 +548,18 @@ impl TabState {
         let revision = quote_book.revision();
         let style_revision = self.shared.titles.revision();
         let language_revision = crate::i18n::revision();
+        let timezone_revision = crate::model::timezone::revision();
         if revision != self.quote_revision
             || style_revision != self.title_revision
             || broker_revision != self.broker_revision
             || language_revision != self.language_revision
+            || timezone_revision != self.timezone_revision
         {
             self.quote_revision = revision;
             self.title_revision = style_revision;
             self.broker_revision = broker_revision;
             self.language_revision = language_revision;
+            self.timezone_revision = timezone_revision;
             self.repaint_windows(ctx);
         }
     }

@@ -233,6 +233,12 @@ pub struct WatchlistSidebarState {
     /// The list drawn this frame shows the month's chart, so `demand` also wants closes.
     demands_trends: bool,
     filter_blurred: bool,
+    /// True only after explicit interaction inside the watchlist sidebar; cleared when clicking
+    /// outside or when chart focus switches the synced selection.
+    #[cfg(test)]
+    pub(crate) keyboard_active: bool,
+    #[cfg(not(test))]
+    keyboard_active: bool,
 }
 
 impl Default for WatchlistSidebarState {
@@ -257,6 +263,7 @@ impl Default for WatchlistSidebarState {
             demand: Vec::new(),
             demands_trends: false,
             filter_blurred: false,
+            keyboard_active: false,
         }
     }
 }
@@ -346,11 +353,15 @@ impl WatchlistSidebarState {
         }
         self.synced_focus = key.clone();
         self.synced_list = Some(list.id);
-        self.selected_entry = key.and_then(|key| {
+        let next = key.and_then(|key| {
             list.instruments()
                 .find(|item| item.instrument.key() == key)
                 .map(|item| item.id)
         });
+        if next != self.selected_entry {
+            self.selected_entry = next;
+            self.keyboard_active = false;
+        }
     }
 }
 
@@ -374,6 +385,16 @@ pub fn show(
     state.demand.clear();
     state.demands_trends = false;
     state.filter_blurred = false;
+    let sidebar_rect = ui.max_rect();
+    if ui.input(|input| {
+        input.pointer.any_pressed()
+            && input
+                .pointer
+                .interact_pos()
+                .is_some_and(|pos| !sidebar_rect.contains(pos))
+    }) {
+        state.keyboard_active = false;
+    }
     let list = state.resolved(input.lists);
 
     header(ui, state, input, list, &mut actions);

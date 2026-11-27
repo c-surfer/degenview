@@ -365,6 +365,7 @@ fn primed(ctx: &egui::Context, lists: &[Watchlist], selected: EntryId) -> Watchl
     state.select_list(lists[0].id);
     show_frame(ctx, &mut state, lists, Vec::new());
     state.selected_entry = Some(selected);
+    state.keyboard_active = true;
     state
 }
 
@@ -613,4 +614,156 @@ fn the_detail_card_is_as_tall_as_it_says_whatever_the_quote_holds() {
     let with_note = detail_card_height(Some(noted.clone()));
     assert_eq!(with_note, detail_height(Some(&noted)));
     assert!(with_note > plain, "a note takes a band of its own");
+}
+
+fn show_frame_with_focus(
+    ctx: &egui::Context,
+    state: &mut WatchlistSidebarState,
+    lists: &[Watchlist],
+    focused_market: Option<&InstrumentId>,
+    events: Vec<egui::Event>,
+) -> Vec<WatchlistAction> {
+    let flags = Flags::default();
+    let quote = |_: &InstrumentId| None;
+    let input = WatchlistSidebarInput {
+        lists,
+        flags: &flags,
+        quote: &quote,
+        trends: &HashMap::new(),
+        focused_market,
+        load_failed: false,
+        error: None,
+        import_report: None,
+    };
+    let mut actions = Vec::new();
+    let mut output = ctx.run_ui(
+        egui::RawInput {
+            screen_rect: Some(Rect::from_min_size(Pos2::ZERO, egui::vec2(320.0, 600.0))),
+            events,
+            ..Default::default()
+        },
+        |ui| actions = show(ui, state, &input),
+    );
+    output.textures_delta.clear();
+    actions
+}
+
+#[test]
+fn delete_does_not_remove_auto_synced_entry_without_watchlist_click() {
+    let (list, [btc, ..], _) = sample_list();
+    let lists = vec![list];
+    let focused = InstrumentId::new(DataSource::Binance, "BTCUSDT");
+    let ctx = egui::Context::default();
+    let mut state = WatchlistSidebarState::default();
+    state.select_list(lists[0].id);
+
+    // Auto-sync selects BTCUSDT when the chart focuses it, without activating keyboard deletion.
+    show_frame_with_focus(&ctx, &mut state, &lists, Some(&focused), Vec::new());
+    assert_eq!(state.selected_entry, Some(btc));
+    assert!(!state.keyboard_active);
+
+    for delete_key in [egui::Key::Delete, egui::Key::Backspace] {
+        let actions =
+            show_frame_with_focus(&ctx, &mut state, &lists, Some(&focused), key(delete_key));
+        assert!(
+            !actions
+                .iter()
+                .any(|action| matches!(action, WatchlistAction::RemoveEntry { .. })),
+            "{delete_key:?} must not remove an auto-synced entry without watchlist focus"
+        );
+        assert_eq!(state.selected_entry, Some(btc));
+    }
+}
+
+#[test]
+fn delete_removes_entry_only_while_watchlist_is_active() {
+    let (list, ..) = sample_list();
+    let lists = vec![list];
+    let focused = InstrumentId::new(DataSource::Binance, "BTCUSDT");
+    let ctx = egui::Context::default();
+    let mut state = WatchlistSidebarState::default();
+    state.select_list(lists[0].id);
+    show_frame_with_focus(&ctx, &mut state, &lists, Some(&focused), Vec::new());
+
+    // Clicking inside the watchlist list area activates keyboard handling.
+    let inside = Pos2::new(80.0, 120.0);
+    let click_inside = vec![
+        egui::Event::PointerMoved(inside),
+        egui::Event::PointerButton {
+            pos: inside,
+            button: egui::PointerButton::Primary,
+            pressed: true,
+            modifiers: egui::Modifiers::NONE,
+        },
+        egui::Event::PointerButton {
+            pos: inside,
+            button: egui::PointerButton::Primary,
+            pressed: false,
+            modifiers: egui::Modifiers::NONE,
+        },
+    ];
+    show_frame_with_focus(&ctx, &mut state, &lists, Some(&focused), click_inside);
+    assert!(state.keyboard_active);
+
+    // Clicking outside the sidebar clears keyboard_active.
+    let outside = Pos2::new(400.0, 120.0);
+    let click_outside = vec![
+        egui::Event::PointerMoved(outside),
+        egui::Event::PointerButton {
+            pos: outside,
+            button: egui::PointerButton::Primary,
+            pressed: true,
+            modifiers: egui::Modifiers::NONE,
+        },
+    ];
+    show_frame_with_focus(&ctx, &mut state, &lists, Some(&focused), click_outside);
+    assert!(!state.keyboard_active);
+
+    let actions = show_frame_with_focus(
+        &ctx,
+        &mut state,
+        &lists,
+        Some(&focused),
+        key(egui::Key::Delete),
+    );
+    assert!(
+        !actions
+            .iter()
+            .any(|action| matches!(action, WatchlistAction::RemoveEntry { .. }))
+    );
+
+    // Re-activating by clicking inside allows Delete to remove the selected entry.
+    show_frame_with_focus(
+        &ctx,
+        &mut state,
+        &lists,
+        Some(&focused),
+        vec![
+            egui::Event::PointerMoved(inside),
+            egui::Event::PointerButton {
+                pos: inside,
+                button: egui::PointerButton::Primary,
+                pressed: true,
+                modifiers: egui::Modifiers::NONE,
+            },
+            egui::Event::PointerButton {
+                pos: inside,
+                button: egui::PointerButton::Primary,
+                pressed: false,
+                modifiers: egui::Modifiers::NONE,
+            },
+        ],
+    );
+    assert!(state.keyboard_active);
+    let selected = state.selected_entry.expect("an entry is selected");
+    let actions = show_frame_with_focus(
+        &ctx,
+        &mut state,
+        &lists,
+        Some(&focused),
+        key(egui::Key::Delete),
+    );
+    assert!(actions.iter().any(
+        |action| matches!(action, WatchlistAction::RemoveEntry { entry, .. } if *entry == selected)
+    ));
 }

@@ -96,6 +96,9 @@ fn a_saved_alert_reopens_exactly_as_it_was_made() {
     saved.note = "swing".into();
     saved.webhook_endpoint_ids = vec![3, 4];
     saved.webhook_message = Some("{{ticker}} up".into());
+    saved.sound_enabled = true;
+    saved.sound = AlertSound::Piano;
+    saved.sound_repeat = AlertSoundRepeat::ThreeTimes;
     let state = PriceAlertDraft::new(asset(), Some(saved.clone()), None);
     assert!(!state.is_new());
     assert_eq!(state.direction, Direction::Rises);
@@ -108,11 +111,17 @@ fn a_saved_alert_reopens_exactly_as_it_was_made() {
     assert_eq!(state.currency(), AlertCurrency::Eur);
     assert!(state.sends_to_webhooks);
     assert_eq!(state.webhook_ids, vec![3, 4]);
+    assert!(state.sound_enabled);
+    assert_eq!(state.sound, AlertSound::Piano);
+    assert_eq!(state.sound_repeat, AlertSoundRepeat::ThreeTimes);
     let result = state.result(99).unwrap();
     assert_eq!(result.id, saved.id);
     assert_eq!(result.created_at_ms, 7, "editing keeps the creation time");
     assert_eq!(result.condition, saved.condition);
     assert_eq!(result.note, "swing");
+    assert!(result.sound_enabled);
+    assert_eq!(result.sound, AlertSound::Piano);
+    assert_eq!(result.sound_repeat, AlertSoundRepeat::ThreeTimes);
     assert_eq!(
         result.state,
         AlertState::Active,

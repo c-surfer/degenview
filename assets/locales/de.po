@@ -21095,3 +21095,93 @@ msgstr "Dieses Flatpak kann die Daten von TradingView nicht selbst suchen."
 
 msgid "Choose TradingView’s data folder: usually snap/tradingview/current/.config/TradingView or .config/TradingView in your home folder. Press Ctrl+H to see hidden folders."
 msgstr "Wähle den Datenordner von TradingView: meist snap/tradingview/current/.config/TradingView oder .config/TradingView in deinem persönlichen Ordner. Drücke Strg+H, um versteckte Ordner zu sehen."
+
+msgid "1 chart"
+msgstr "1 Chart"
+
+msgid "1 time"
+msgstr "1 Mal"
+
+msgid "2 charts"
+msgstr "2 Charts"
+
+msgid "2 times"
+msgstr "2 Mal"
+
+msgid "3 charts"
+msgstr "3 Charts"
+
+msgid "3 times"
+msgstr "3 Mal"
+
+msgid "4 charts"
+msgstr "4 Charts"
+
+msgid "5 charts"
+msgstr "5 Charts"
+
+msgid "5 times"
+msgstr "5 Mal"
+
+msgid "About Surfer PRO"
+msgstr "Über Surfer PRO"
+
+msgid "Close chart"
+msgstr "Chart schließen"
+
+msgid "Combines RSI, Stochastic, ATR Stop-Loss, and Pro multi-timeframe background, cloud ranges, and divergence detection."
+msgstr "Kombiniert RSI, Stochastic, ATR Stop-Loss sowie Pro-Multi-Timeframe-Hintergrund, Cloud-Bereiche und Divergenzerkennung."
+
+msgid "Could not remove the license: {error}"
+msgstr "Lizenz konnte nicht entfernt werden: {error}"
+
+msgid "Duplicate chart"
+msgstr "Chart duplizieren"
+
+msgid "Inactive"
+msgstr "Inaktiv"
+
+msgid "License Key"
+msgstr "Lizenzschlüssel"
+
+msgid "License active until {end_date} (User: {nickname})"
+msgstr "Lizenz aktiv bis {end_date} (Benutzer: {nickname})"
+
+msgid "License removed. Basic RSI mode is active."
+msgstr "Lizenz entfernt. Basis-RSI-Modus ist aktiv."
+
+msgid "License verification failed"
+msgstr "Lizenzprüfung fehlgeschlagen"
+
+msgid "Mode: show all elements on all charts"
+msgstr "Modus: alle Elemente auf allen Charts anzeigen"
+
+msgid "Play a sound when this alert triggers."
+msgstr "Beim Auslösen dieses Alarms einen Ton abspielen."
+
+msgid "RSI oscillator with Stochastic, ATR Stop-Loss, and Pro Clouds & Divergences."
+msgstr "RSI-Oszillator mit Stochastic, ATR Stop-Loss sowie Pro Clouds & Divergenzen."
+
+msgid "Remove License"
+msgstr "Lizenz entfernen"
+
+msgid "Select grid layout"
+msgstr "Rasterlayout auswählen"
+
+msgid "Sound alert"
+msgstr "Tonalarm"
+
+msgid "Surfer License"
+msgstr "Surfer-Lizenz"
+
+msgid "Surfer PRO indicators license & cloud authentication."
+msgstr "Surfer PRO-Indikatorlizenz & Cloud-Authentifizierung."
+
+msgid "Sync drawings across charts"
+msgstr "Zeichnungen über Charts synchronisieren"
+
+msgid "Without a license, the [Surfer] RSI indicator operates in basic mode (RSI + Stochastic + ATR). A valid license unlocks Clouds (MRC), MTF Background, Extra Signals, and Divergence Validation."
+msgstr "Ohne Lizenz arbeitet der [Surfer] RSI-Indikator im Basismodus (RSI + Stochastic + ATR). Eine gültige Lizenz schaltet Clouds (MRC), MTF-Hintergrund, Extrasignale und Divergenzvalidierung frei."
+
+msgid "[Surfer] RSI v1"
+msgstr "[Surfer] RSI v1"

@@ -313,7 +313,7 @@ impl ChartWorkspace {
     }
 
     /// A chart on `symbol` that starts fetching, in the look the user chose for new charts (see
-    /// `default_chart_template`), or the app's own when none is chosen. Charts that are restored
+    /// `default_chart_appearance`), or the app's own when none is chosen. Charts that are restored
     /// or duplicated keep their own look and do not come through here.
     pub(in crate::workspace) fn new_chart(
         &self,
@@ -323,8 +323,8 @@ impl ChartWorkspace {
         ctx: &egui::Context,
     ) -> Chart {
         let mut chart = Chart::new(id, symbol, source, self.timeframe, ctx);
-        let chosen = crate::lock::lock(&self.store).default_chart_template_cached();
-        if let Some(look) = &chosen.look {
+        let look = crate::lock::lock(&self.store).default_chart_appearance_cached();
+        if let Some(look) = look.as_ref() {
             let scope = crate::model::chart::template::scope_for_new_chart(look, source);
             chart.chart.apply_template(look, scope);
         }
@@ -335,6 +335,7 @@ impl ChartWorkspace {
         let id = self.fresh_id();
         let chart = self.new_chart(id, symbol, source, ctx);
         self.charts.push(chart);
+        self.sync_drawings_to_chart(id);
         self.place_in_grid(id);
         self.focused = Some(id);
     }
@@ -552,6 +553,7 @@ impl ChartWorkspace {
             chart.fetch(timeframe, ctx);
         }
         self.tools.forget_chart(chart_id);
+        self.sync_drawings_to_chart(chart_id);
         self.link_state.series_changed();
         self.forget_views(Some(chart_id));
         self.focus_chart(chart_id);
@@ -696,6 +698,38 @@ mod tests {
             ChartType::Renko,
             "a line has no types"
         );
+    }
+
+    #[test]
+    #[allow(clippy::field_reassign_with_default)]
+    fn a_new_chart_on_a_new_tab_inherits_the_global_appearance() {
+        use crate::model::chart::canvas::BackgroundMode;
+        use crate::service::watchlist_quotes::{WatchlistQuoteBook, WatchlistQuoteCoordinator};
+        use crate::store::watchlist::WatchlistStore;
+        use std::sync::{Arc, Mutex};
+
+        let ctx = egui::Context::default();
+        let tab_one = empty_workspace(10);
+        let mut custom = crate::model::ChartAppearance::default();
+        custom.bullish = [12, 34, 56];
+        custom.canvas.background.mode = BackgroundMode::Gradient;
+        custom.canvas.margins.right = 27;
+        crate::lock::lock(&tab_one.store)
+            .set_global_chart_appearance(&custom)
+            .expect("set global");
+
+        let book = WatchlistQuoteBook::default();
+        let tab_two = ChartWorkspace::empty(
+            11,
+            Timeframe::DAY_1,
+            Arc::new(Mutex::new(WatchlistStore::new(tab_one.store.clone()))),
+            book.clone(),
+            WatchlistQuoteCoordinator::new(book, Arc::new(|| {})),
+            tab_one.store.clone(),
+        );
+        let chart = tab_two.new_chart(1, "BTCUSDT", DataSource::Binance, &ctx);
+        assert_eq!(chart.chart.appearance().bullish, [12, 34, 56]);
+        assert_eq!(chart.chart.appearance().canvas, custom.canvas);
     }
 
     #[test]

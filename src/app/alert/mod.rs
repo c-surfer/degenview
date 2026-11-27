@@ -176,6 +176,15 @@ impl AlertCoordinator {
         {
             for event in &events {
                 self.banner.show_price(event, host.settings(), now);
+                if let Some(alert) = host
+                    .snapshot()
+                    .alerts
+                    .iter()
+                    .find(|alert| alert.id == event.alert_id)
+                    && alert.sound_enabled
+                {
+                    crate::service::sound::play_alert_sound(alert.sound, alert.sound_repeat);
+                }
             }
         }
     }

@@ -110,6 +110,12 @@ pub enum WorkspaceAction {
         baseline: Option<f64>,
     },
     OpenWatchlistInNewTab(WatchlistInstrument),
+    /// Propagate one chart's appearance to every other open chart tab.
+    ApplyAppearanceToAllTabs {
+        source_tab_id: u64,
+        appearance: Box<crate::model::ChartAppearance>,
+        scope: crate::model::chart::template::ApplyScope,
+    },
     /// An import added Pine scripts to the library, which iCloud Sync should look at.
     ScriptsImported,
 }
@@ -130,6 +136,9 @@ pub struct PersistedWorkspace {
     /// have none and open linked, the default.
     #[serde(default)]
     pub sync: ChartSyncSettings,
+    /// Whether drawings on the same market are mirrored across charts in this tab.
+    #[serde(default)]
+    pub sync_drawings: bool,
     /// The saved layout this tab has open, so a restart shows its name again instead of
     /// "Unnamed". Rows from before this field, and tabs on no layout, have none.
     #[serde(default)]
@@ -187,6 +196,8 @@ pub struct ChartWorkspace {
     columns: Vec<ChartColumn>,
     /// Which parts of horizontal navigation the charts share. Saved with the layout.
     sync: ChartSyncSettings,
+    /// Whether drawings on the same market are mirrored across charts in this tab.
+    sync_drawings: bool,
     /// Carries one chart's navigation to the others of this workspace, and no further.
     sync_hub: SyncHub,
     focused: Option<u64>,
@@ -199,6 +210,9 @@ pub struct ChartWorkspace {
     /// The candles of every overlay market on this workspace's charts, fetched once per market.
     overlay_hub: overlay::OverlayHub,
     settings_chart: Option<u64>,
+    /// The chart appearance when the settings sheet opened (or last applied to all), so `Done`
+    /// only writes a global appearance when the user actually changed it.
+    settings_baseline: Option<(u64, crate::model::ChartAppearance)>,
     /// The Inputs and Style popover of an applied script, up beside its chip or settings row.
     script_popover: Option<PineSettingsPopover>,
     /// The settings of a compared market, up beside its row on the chart's overlay card.
@@ -334,6 +348,7 @@ impl ChartWorkspace {
             charts: Vec::new(),
             columns: Vec::new(),
             sync: ChartSyncSettings::default(),
+            sync_drawings: false,
             sync_hub: SyncHub::default(),
             focused: None,
             next_id: 1,
@@ -343,6 +358,7 @@ impl ChartWorkspace {
             live_feeds: HashMap::new(),
             overlay_hub: overlay::OverlayHub::new(),
             settings_chart: None,
+            settings_baseline: None,
             script_popover: None,
             overlay_popover: None,
             tools: DrawingTools::default(),
@@ -431,6 +447,7 @@ impl ChartWorkspace {
             columns,
             focused,
             sync,
+            sync_drawings,
             active_view,
             custom_title,
             link,
@@ -458,6 +475,7 @@ impl ChartWorkspace {
         );
         workspace.watchlist_pane.set_visible(watchlist_visible);
         workspace.sync = sync;
+        workspace.sync_drawings = sync_drawings;
         workspace.focused = focused;
         workspace.custom_title = custom_title.filter(|title| !title.trim().is_empty());
         workspace.link = link;
@@ -1038,6 +1056,7 @@ mod tests {
                 horizontal_position: true,
                 horizontal_zoom: false,
             },
+            sync_drawings: false,
             active_view: Some(42),
             custom_title: Some("Earnings".into()),
             link: Some(LinkColor::Orange),
