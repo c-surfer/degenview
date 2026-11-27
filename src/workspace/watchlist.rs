@@ -136,9 +136,20 @@ impl ChartWorkspace {
             .show(ui, |ui| self.show_watchlist(ui, ctx));
         let rect = panel.response.rect;
         let x = rect.left().round();
+        let resize_zone =
+            egui::Rect::from_x_y_ranges((x - 4.0)..=(x + 4.0), rect.top()..=rect.bottom());
+        let resizing = ui.rect_contains_pointer(resize_zone)
+            || ui
+                .ctx()
+                .output(|o| o.cursor_icon == egui::CursorIcon::ResizeHorizontal);
+        let stroke = if resizing {
+            egui::Stroke::new(2.0, crate::ui::theme::ACCENT.gamma_multiply(0.7))
+        } else {
+            egui::Stroke::new(1.0, crate::ui::theme::border())
+        };
         ui.painter().line_segment(
             [egui::pos2(x, rect.top()), egui::pos2(x, rect.bottom())],
-            egui::Stroke::new(2.0, crate::ui::theme::ACCENT.gamma_multiply(0.65)),
+            stroke,
         );
     }
 
