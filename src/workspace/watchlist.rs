@@ -397,17 +397,6 @@ impl ChartWorkspace {
             self.add_card(card);
             return;
         }
-        let instrument = &item.instrument;
-        if let Some(existing) = self.charts.iter().position(|chart| {
-            InstrumentId::new(chart.source, &chart.symbol).is_same_market(instrument)
-        }) {
-            let chart_id = self.charts[existing].id;
-            self.charts[existing].apply_watchlist_metadata(item);
-            self.focus_chart(chart_id);
-            // The focused market is the tab's leader: this is a change of it like any other.
-            self.announce_market(item);
-            return;
-        }
         if let Some(focused) = self.resolved_focused_id() {
             self.replace_chart_market(focused, item, ctx);
             self.announce_market(item);
