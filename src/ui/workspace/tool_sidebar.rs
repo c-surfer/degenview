@@ -15,9 +15,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 pub const WIDTH: f32 = 44.0;
-const BUTTON: f32 = 28.0;
+const BUTTON: f32 = 32.0;
 const ICON: f32 = 18.0;
-const SPACING: f32 = 3.0;
+const SPACING: f32 = 4.0;
 /// How long the pointer rests on a tile before its label appears beside the strip.
 const TOOLTIP_DELAY: Duration = Duration::from_millis(250);
 
@@ -610,14 +610,14 @@ pub fn show(ui: &mut Ui, input: &ToolSidebarInput) -> Vec<ToolSidebarAction> {
         actions.push(ToolSidebarAction::OpenAlerts);
     }
 
-    // A short inset rule between the groups.
-    y -= SPACING + 1.0 + 1.0;
+    // A short inset rule between the groups (3px + 1px rule + 3px = 7px total).
+    y -= 3.0 + 1.0;
     ui.painter().rect_filled(
         Rect::from_center_size(pos2(strip.center().x, y + 0.5), vec2(22.0, 1.0)),
         0.5,
         theme::separator(),
     );
-    y -= 1.0 + SPACING + BUTTON;
+    y -= 3.0 + BUTTON;
 
     let paper = Rect::from_min_size(pos2(x, y), Vec2::splat(BUTTON));
     if tile_button(
