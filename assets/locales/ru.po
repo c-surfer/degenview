@@ -22809,7 +22809,7 @@ msgid "6 charts"
 msgstr "6 графиков"
 
 msgid "Sync Symbol"
-msgstr "Синхронизация символа"
+msgstr "Синхр. символ"
 
 msgid "5 times"
 msgstr "5 раз"

@@ -552,6 +552,9 @@ impl ChartWorkspace {
         for other_id in other_ids {
             self.switch_chart_without_sync(other_id, item, ctx);
         }
+        if let Some(first_id) = self.charts.iter().find(|c| c.is_market()).map(|c| c.id) {
+            self.focus_chart(first_id);
+        }
     }
 
     fn switch_chart_without_sync(
