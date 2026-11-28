@@ -65,6 +65,7 @@ fn persisted_session_round_trips() {
             focused: Some(1),
             sync: Default::default(),
             sync_drawings: false,
+            sync_symbol: false,
             active_view: Some(9),
             custom_title: None,
             link: None,

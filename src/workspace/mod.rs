@@ -139,6 +139,9 @@ pub struct PersistedWorkspace {
     /// Whether drawings on the same market are mirrored across charts in this tab.
     #[serde(default)]
     pub sync_drawings: bool,
+    /// Whether changing the market on one chart switches all other market charts in this tab.
+    #[serde(default)]
+    pub sync_symbol: bool,
     /// The saved layout this tab has open, so a restart shows its name again instead of
     /// "Unnamed". Rows from before this field, and tabs on no layout, have none.
     #[serde(default)]
@@ -197,7 +200,8 @@ pub struct ChartWorkspace {
     /// Which parts of horizontal navigation the charts share. Saved with the layout.
     sync: ChartSyncSettings,
     /// Whether drawings on the same market are mirrored across charts in this tab.
-    sync_drawings: bool,
+    pub sync_drawings: bool,
+    pub(crate) sync_symbol: bool,
     /// Carries one chart's navigation to the others of this workspace, and no further.
     sync_hub: SyncHub,
     focused: Option<u64>,
@@ -349,6 +353,7 @@ impl ChartWorkspace {
             columns: Vec::new(),
             sync: ChartSyncSettings::default(),
             sync_drawings: false,
+            sync_symbol: false,
             sync_hub: SyncHub::default(),
             focused: None,
             next_id: 1,
@@ -448,6 +453,7 @@ impl ChartWorkspace {
             focused,
             sync,
             sync_drawings,
+            sync_symbol,
             active_view,
             custom_title,
             link,
@@ -476,6 +482,7 @@ impl ChartWorkspace {
         workspace.watchlist_pane.set_visible(watchlist_visible);
         workspace.sync = sync;
         workspace.sync_drawings = sync_drawings;
+        workspace.sync_symbol = sync_symbol;
         workspace.focused = focused;
         workspace.custom_title = custom_title.filter(|title| !title.trim().is_empty());
         workspace.link = link;
@@ -1057,6 +1064,7 @@ mod tests {
                 horizontal_zoom: false,
             },
             sync_drawings: false,
+            sync_symbol: false,
             active_view: Some(42),
             custom_title: Some("Earnings".into()),
             link: Some(LinkColor::Orange),

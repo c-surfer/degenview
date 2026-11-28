@@ -267,6 +267,7 @@ mod tests {
             focused: None,
             sync: Default::default(),
             sync_drawings: false,
+            sync_symbol: false,
             active_view: None,
             custom_title: None,
             link: None,

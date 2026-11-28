@@ -20864,6 +20864,12 @@ msgstr "4 个图表"
 msgid "5 charts"
 msgstr "5 个图表"
 
+msgid "6 charts"
+msgstr "6 个图表"
+
+msgid "Sync Symbol"
+msgstr "同步品种"
+
 msgid "5 times"
 msgstr "5 次"
 

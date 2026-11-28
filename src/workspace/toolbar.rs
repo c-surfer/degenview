@@ -100,6 +100,7 @@ impl ChartWorkspace {
                 .charts
                 .iter()
                 .any(|chart| chart.is_market() && chart.source != DataSource::CoinMarketCap),
+            sync_symbol: self.sync_symbol,
             snapshot: crate::ui::workspace::snapshot_menu::SnapshotMenu {
                 busy: self.snapshot_busy(),
                 working: self.snapshot_working(),
@@ -141,6 +142,9 @@ impl ChartWorkspace {
                 }
                 ToolbarAction::ApplyGridPreset(preset) => {
                     self.apply_grid_preset(preset, ctx);
+                }
+                ToolbarAction::ToggleSyncSymbol => {
+                    self.toggle_sync_symbol(ctx);
                 }
                 ToolbarAction::OpenChartSettings => self.open_focused_chart_settings(),
                 ToolbarAction::ToggleReplay => self.toggle_replay(),
@@ -184,6 +188,26 @@ impl ChartWorkspace {
     /// Puts the active chart (or all charts if none is focused) on `timeframe`, as the timeframe
     /// picker does, and tells the tabs linked to it.
     /// Picking the timeframe it is on reloads the chart and announces nothing.
+    fn toggle_sync_symbol(&mut self, ctx: &egui::Context) {
+        self.sync_symbol = !self.sync_symbol;
+        if self.sync_symbol
+            && let Some(focused_id) = self.resolved_focused_id()
+            && let Some(item) = self
+                .charts
+                .iter()
+                .find(|chart| chart.id == focused_id && chart.is_market())
+                .map(|chart| {
+                    crate::model::watchlist::WatchlistInstrument::from_market(
+                        chart.source,
+                        &chart.symbol,
+                        chart.chart.title().unwrap_or(&chart.symbol),
+                    )
+                })
+        {
+            self.sync_other_market_charts(focused_id, &item, ctx);
+        }
+    }
+
     fn set_timeframe(&mut self, timeframe: Timeframe, ctx: &egui::Context) {
         let changed = self
             .focused_market_chart()
@@ -419,6 +443,76 @@ mod tests {
 
         workspace.apply_grid_preset(crate::model::GridLayoutPreset::TwoColumns, &ctx);
         assert!(workspace.focused.is_some());
+    }
+
+    #[test]
+    fn apply_grid_preset_six_grid_creates_three_by_two_with_equal_weights() {
+        let mut workspace = empty_workspace(1);
+        let first = chart_with_drawings(&mut workspace, "BTCUSDT", &[]);
+        let ctx = egui::Context::default();
+        workspace.focused = Some(first);
+
+        workspace.apply_grid_preset(crate::model::GridLayoutPreset::SixGrid, &ctx);
+
+        assert_eq!(workspace.charts.len(), 6);
+        assert_eq!(workspace.columns.len(), 3);
+        for col in &workspace.columns {
+            assert_eq!(col.chart_ids.len(), 2);
+            let row_w = workspace.row_weights.get(&col.id).expect("row weights");
+            assert_eq!(row_w.len(), 2);
+            assert!((row_w[0] - 0.5).abs() < 1e-5);
+            assert!((row_w[1] - 0.5).abs() < 1e-5);
+        }
+        assert_eq!(workspace.column_weights.len(), 3);
+        for w in &workspace.column_weights {
+            assert!((*w - 1.0 / 3.0).abs() < 1e-5);
+        }
+    }
+
+    #[test]
+    fn toggle_sync_symbol_and_switch_chart_syncs_other_market_charts_preserving_timeframes() {
+        let mut workspace = empty_workspace(1);
+        let c1 = chart_with_drawings(&mut workspace, "BTCUSDT", &[]);
+        let c2 = chart_with_drawings(&mut workspace, "ETHUSDT", &[]);
+        let ctx = egui::Context::default();
+        workspace.charts[0].timeframe = Timeframe::HOUR_1;
+        workspace.charts[1].timeframe = Timeframe::DAY_1;
+        workspace.focused = Some(c1);
+
+        workspace.toggle_sync_symbol(&ctx);
+        assert!(workspace.sync_symbol);
+        assert_eq!(workspace.charts[0].symbol, "BTCUSDT");
+        assert_eq!(workspace.charts[1].symbol, "BTCUSDT");
+        assert_eq!(workspace.charts[0].timeframe, Timeframe::HOUR_1);
+        assert_eq!(workspace.charts[1].timeframe, Timeframe::DAY_1);
+
+        let sol = crate::model::watchlist::WatchlistInstrument::from_market(
+            crate::model::DataSource::Binance,
+            "SOLUSDT",
+            "SOLUSDT",
+        );
+        assert!(workspace.switch_chart(c2, &sol, &ctx));
+        assert_eq!(workspace.charts[0].symbol, "SOLUSDT");
+        assert_eq!(workspace.charts[1].symbol, "SOLUSDT");
+        assert_eq!(workspace.charts[0].timeframe, Timeframe::HOUR_1);
+        assert_eq!(workspace.charts[1].timeframe, Timeframe::DAY_1);
+    }
+
+    #[test]
+    fn persisted_workspace_sync_symbol_defaults_false_and_roundtrips() {
+        let workspace = empty_workspace(1);
+        let mut value = serde_json::to_value(workspace.persisted()).expect("serialize");
+        value.as_object_mut().expect("object").remove("sync_symbol");
+        let legacy: crate::workspace::PersistedWorkspace =
+            serde_json::from_value(value).expect("deserialize legacy");
+        assert!(!legacy.sync_symbol);
+
+        let mut workspace = empty_workspace(1);
+        workspace.sync_symbol = true;
+        let roundtrip: crate::workspace::PersistedWorkspace =
+            serde_json::from_value(serde_json::to_value(workspace.persisted()).expect("serialize"))
+                .expect("deserialize");
+        assert!(roundtrip.sync_symbol);
     }
 
     #[test]

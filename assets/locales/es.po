@@ -21058,6 +21058,12 @@ msgstr "4 gráficos"
 msgid "5 charts"
 msgstr "5 gráficos"
 
+msgid "6 charts"
+msgstr "6 gráficos"
+
+msgid "Sync Symbol"
+msgstr "Sincronizar símbolo"
+
 msgid "5 times"
 msgstr "5 veces"
 

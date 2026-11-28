@@ -21120,6 +21120,12 @@ msgstr "4 Charts"
 msgid "5 charts"
 msgstr "5 Charts"
 
+msgid "6 charts"
+msgstr "6 Charts"
+
+msgid "Sync Symbol"
+msgstr "Symbol synchronisieren"
+
 msgid "5 times"
 msgstr "5 Mal"
 

@@ -151,6 +151,7 @@ pub enum GridLayoutPreset {
     ThreeColumns,    // 3 графика: 3 колонки
     FourGrid,        // 4 графика: сетка 2x2 (2 колонки по 2 графика)
     FiveSplit,       // 5 графиков: 2 слева (65%), 3 справа (35%)
+    SixGrid,         // 6 charts: 3 columns x 2 rows
 }
 
 impl GridLayoutPreset {
@@ -161,6 +162,7 @@ impl GridLayoutPreset {
             Self::ThreeLeftFocus | Self::ThreeRightFocus | Self::ThreeColumns => 3,
             Self::FourGrid => 4,
             Self::FiveSplit => 5,
+            Self::SixGrid => 6,
         }
     }
 
@@ -251,6 +253,10 @@ impl GridLayoutPreset {
                     ]
                 }
             }
+            Self::SixGrid => chart_ids
+                .chunks(2)
+                .map(|chunk| ChartColumn::new(fresh(), chunk.to_vec()))
+                .collect(),
         }
     }
 }
@@ -424,6 +430,12 @@ mod tests {
         assert_eq!(
             arranged(GridLayoutPreset::FiveSplit, &[1, 2, 3, 4, 5]),
             vec![vec![1, 2], vec![3, 4, 5]]
+        );
+
+        // SixGrid (3x2)
+        assert_eq!(
+            arranged(GridLayoutPreset::SixGrid, &[1, 2, 3, 4, 5, 6]),
+            vec![vec![1, 2], vec![3, 4], vec![5, 6]]
         );
     }
 

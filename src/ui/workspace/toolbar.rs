@@ -44,6 +44,8 @@ pub struct ToolbarInput<'a> {
     pub replay_open: bool,
     /// There is a market to replay (or a replay to close).
     pub can_replay: bool,
+    /// Whether changing the market on one chart switches all other market charts in this tab.
+    pub sync_symbol: bool,
     /// What the camera menu needs: whether a snapshot is under way, and what the hosted rows lack.
     pub snapshot: crate::ui::workspace::snapshot_menu::SnapshotMenu<'a>,
 }
@@ -89,6 +91,7 @@ pub enum ToolbarAction {
     /// A type picked from the chart-type menu, for the focused chart.
     SetChartType(ChartType),
     ApplyGridPreset(crate::model::GridLayoutPreset),
+    ToggleSyncSymbol,
     SaveLayout,
     ToggleAutosave,
     CopyLayout,
@@ -179,7 +182,7 @@ pub fn show(ui: &mut Ui, input: &ToolbarInput) -> Vec<ToolbarAction> {
                     None => {}
                 }
             }
-            Menu::GridPreset => grid_preset_popup(ui, response, actions),
+            Menu::GridPreset => grid_preset_popup(ui, response, input, actions),
             Menu::Layout => layout_popup(ui, response, input, actions),
             Menu::Snapshot => {
                 match crate::ui::workspace::snapshot_menu::menu(ui, response, &input.snapshot) {
@@ -414,7 +417,12 @@ fn right_items(input: &ToolbarInput) -> Vec<Item> {
 }
 
 /// The menu for picking a multi-chart grid preset in the style of TradingView.
-fn grid_preset_popup(ui: &mut Ui, response: &Response, actions: &mut Vec<ToolbarAction>) {
+fn grid_preset_popup(
+    ui: &mut Ui,
+    response: &Response,
+    input: &ToolbarInput,
+    actions: &mut Vec<ToolbarAction>,
+) {
     let presets = [
         (crate::model::GridLayoutPreset::Single, tr!("1 chart")),
         (crate::model::GridLayoutPreset::TwoColumns, tr!("2 charts")),
@@ -424,9 +432,12 @@ fn grid_preset_popup(ui: &mut Ui, response: &Response, actions: &mut Vec<Toolbar
         ),
         (crate::model::GridLayoutPreset::FourGrid, tr!("4 charts")),
         (crate::model::GridLayoutPreset::FiveSplit, tr!("5 charts")),
+        (crate::model::GridLayoutPreset::SixGrid, tr!("6 charts")),
     ];
 
-    let rows: Vec<(&str, Option<&str>)> = presets.iter().map(|(_, label)| (*label, None)).collect();
+    let mut rows: Vec<(&str, Option<&str>)> =
+        presets.iter().map(|(_, label)| (*label, None)).collect();
+    rows.push((tr!("Sync Symbol"), None));
 
     kit::fitted_menu_rows(ui, response, egui::RectAlign::BOTTOM_END, &rows, |ui| {
         for (preset, label) in presets {
@@ -436,7 +447,41 @@ fn grid_preset_popup(ui: &mut Ui, response: &Response, actions: &mut Vec<Toolbar
                 ui.close();
             }
         }
+        kit::menu_separator(ui);
+        if sync_symbol_row(ui, input.sync_symbol) {
+            actions.push(ToolbarAction::ToggleSyncSymbol);
+            ui.close();
+        }
     });
+}
+
+fn sync_symbol_row(ui: &mut Ui, checked: bool) -> bool {
+    let width = ui.available_width();
+    let (rect, response) = ui.allocate_exact_size(vec2(width, 24.0), Sense::click());
+    let painter = ui.painter();
+    if response.hovered() {
+        painter.rect_filled(rect, 5.0, theme::selected_tint(true));
+    }
+    let color = theme::text_primary();
+    if checked {
+        icons::paint(
+            painter,
+            Rect::from_center_size(pos2(rect.left() + 16.0, rect.center().y), Vec2::splat(11.0)),
+            Icon::Check,
+            color,
+        );
+    }
+    let label = kit::galley(
+        ui,
+        tr!("Sync Symbol"),
+        size::BODY,
+        REGULAR,
+        color,
+        f32::INFINITY,
+    );
+    let label_y = rect.center().y - label.size().y * 0.5;
+    painter.galley(pos2(rect.left() + 28.0, label_y), label, color);
+    response.clicked()
 }
 
 /// The menu under the layout button: what can be done with the layout.
@@ -715,6 +760,7 @@ mod tests {
             can_redo: false,
             replay_open: false,
             can_replay: focused,
+            sync_symbol: false,
             snapshot: crate::ui::workspace::snapshot_menu::SnapshotMenu {
                 busy: false,
                 working: false,

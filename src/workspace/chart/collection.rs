@@ -528,6 +528,38 @@ impl ChartWorkspace {
         item: &WatchlistInstrument,
         ctx: &egui::Context,
     ) -> bool {
+        if !self.switch_chart_without_sync(chart_id, item, ctx) {
+            return false;
+        }
+        if self.sync_symbol {
+            self.sync_other_market_charts(chart_id, item, ctx);
+        }
+        true
+    }
+
+    pub(in crate::workspace) fn sync_other_market_charts(
+        &mut self,
+        source_chart_id: u64,
+        item: &WatchlistInstrument,
+        ctx: &egui::Context,
+    ) {
+        let other_ids: Vec<u64> = self
+            .charts
+            .iter()
+            .filter(|chart| chart.id != source_chart_id && chart.is_market())
+            .map(|chart| chart.id)
+            .collect();
+        for other_id in other_ids {
+            self.switch_chart_without_sync(other_id, item, ctx);
+        }
+    }
+
+    fn switch_chart_without_sync(
+        &mut self,
+        chart_id: u64,
+        item: &WatchlistInstrument,
+        ctx: &egui::Context,
+    ) -> bool {
         let Some(chart) = self.charts.iter_mut().find(|chart| chart.id == chart_id) else {
             return false;
         };

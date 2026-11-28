@@ -190,6 +190,14 @@ msgstr ""
 msgid "5 charts"
 msgstr ""
 
+#: src/ui/workspace/toolbar.rs
+msgid "6 charts"
+msgstr ""
+
+#: src/ui/workspace/toolbar.rs
+msgid "Sync Symbol"
+msgstr ""
+
 #: src/ui/market_flow/flow.rs
 #: src/ui/market_flow/mod.rs
 msgid "5 minutes"
