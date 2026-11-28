@@ -284,6 +284,11 @@ impl SettingsHost {
                     crate::model::timezone::set_active_timezone(tz);
                     let _ = store.set_chart_timezone(tz);
                 }
+                SettingsAction::SetToolRailStyle(style) => {
+                    // Applied in memory even when the save fails, like the theme and language.
+                    crate::model::tool_rail::set_active_tool_rail_style(style);
+                    let _ = store.set_tool_rail_style(style);
+                }
                 SettingsAction::Restart => out.push(SettingsHostAction::Restart),
                 SettingsAction::UpdateNotifications(settings) => {
                     out.push(SettingsHostAction::UpdateNotifications(settings));

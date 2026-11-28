@@ -53,24 +53,24 @@ impl ChartTimezone {
     ];
 
     /// Human-readable label shown in Settings.
-    pub const fn label(self) -> &'static str {
+    pub fn label(self) -> &'static str {
         match self {
-            Self::System => "Same as system",
-            Self::Utc => "(UTC+0) UTC",
-            Self::LosAngeles => "(UTC-8) Los Angeles",
-            Self::Chicago => "(UTC-6) Chicago",
-            Self::NewYork => "(UTC-5) New York",
-            Self::SaoPaulo => "(UTC-3) São Paulo",
-            Self::London => "(UTC+0) London",
-            Self::Frankfurt => "(UTC+1) Frankfurt",
-            Self::Athens => "(UTC+2) Athens",
-            Self::Moscow => "(UTC+3) Moscow",
-            Self::Dubai => "(UTC+4) Dubai",
-            Self::Mumbai => "(UTC+5:30) Mumbai",
-            Self::Bangkok => "(UTC+7) Bangkok",
-            Self::Singapore => "(UTC+8) Singapore",
-            Self::Tokyo => "(UTC+9) Tokyo",
-            Self::Sydney => "(UTC+10) Sydney",
+            Self::System => crate::i18n::tr!("Same as system"),
+            Self::Utc => crate::i18n::tr!("(UTC+0) UTC"),
+            Self::LosAngeles => crate::i18n::tr!("(UTC-8) Los Angeles"),
+            Self::Chicago => crate::i18n::tr!("(UTC-6) Chicago"),
+            Self::NewYork => crate::i18n::tr!("(UTC-5) New York"),
+            Self::SaoPaulo => crate::i18n::tr!("(UTC-3) São Paulo"),
+            Self::London => crate::i18n::tr!("(UTC+0) London"),
+            Self::Frankfurt => crate::i18n::tr!("(UTC+1) Frankfurt"),
+            Self::Athens => crate::i18n::tr!("(UTC+2) Athens"),
+            Self::Moscow => crate::i18n::tr!("(UTC+3) Moscow"),
+            Self::Dubai => crate::i18n::tr!("(UTC+4) Dubai"),
+            Self::Mumbai => crate::i18n::tr!("(UTC+5:30) Mumbai"),
+            Self::Bangkok => crate::i18n::tr!("(UTC+7) Bangkok"),
+            Self::Singapore => crate::i18n::tr!("(UTC+8) Singapore"),
+            Self::Tokyo => crate::i18n::tr!("(UTC+9) Tokyo"),
+            Self::Sydney => crate::i18n::tr!("(UTC+10) Sydney"),
         }
     }
 

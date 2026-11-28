@@ -3,6 +3,7 @@
 use crate::i18n::{Locale, Preference, tr};
 use crate::model::tab::title::TabTitleStyle;
 use crate::model::timezone::ChartTimezone;
+use crate::model::tool_rail::ToolRailStyle;
 use crate::ui::icons::{self, Icon};
 use crate::ui::kit;
 use crate::ui::theme::{self, AppTheme};
@@ -171,18 +172,52 @@ pub fn timezone(ui: &mut egui::Ui, current: ChartTimezone) -> Option<ChartTimezo
         .position(|tz| *tz == current)
         .unwrap_or(0);
     let mut picked = None;
-    super::window::section(ui, "Time zone", None, |ui| {
+    super::window::section(ui, tr!("Time zone"), None, |ui| {
         super::card::card_reserving(
             ui,
             Icon::Clock,
-            "Chart time zone",
-            Some("Time zone shown on chart scales and tooltips."),
+            tr!("Chart time zone"),
+            Some(tr!("Time zone shown on chart scales and tooltips.")),
             TIMEZONE_PICKER_WIDTH,
             |ui| {
                 if let Some(index) =
                     kit::menu_picker(ui, TIMEZONE_PICKER_WIDTH, &labels, selected, true)
                 {
                     picked = Some(ChartTimezone::ALL[index]);
+                }
+            },
+        );
+    });
+    picked.filter(|choice| *choice != current)
+}
+
+/// Width of the toolbar icon style pull-down.
+const TOOL_RAIL_PICKER_WIDTH: f32 = 220.0;
+
+/// The icon style card: "Default" and "Compact". Returns the choice made this frame.
+pub fn tool_rail_style(ui: &mut egui::Ui, current: ToolRailStyle) -> Option<ToolRailStyle> {
+    ui.add_space(22.0);
+    let labels: Vec<String> = ToolRailStyle::ALL
+        .iter()
+        .map(|style| style.label().to_owned())
+        .collect();
+    let selected = ToolRailStyle::ALL
+        .iter()
+        .position(|style| *style == current)
+        .unwrap_or(0);
+    let mut picked = None;
+    super::window::section(ui, tr!("Icon style"), None, |ui| {
+        super::card::card_reserving(
+            ui,
+            Icon::Sliders,
+            tr!("Icon style"),
+            Some(tr!("Size and spacing of the left drawing toolbar.")),
+            TOOL_RAIL_PICKER_WIDTH,
+            |ui| {
+                if let Some(index) =
+                    kit::menu_picker(ui, TOOL_RAIL_PICKER_WIDTH, &labels, selected, true)
+                {
+                    picked = Some(ToolRailStyle::ALL[index]);
                 }
             },
         );

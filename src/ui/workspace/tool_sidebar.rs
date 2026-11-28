@@ -4,6 +4,7 @@
 use super::cursor_menu::{self, CursorMenuAction};
 use crate::i18n::{tr, tr_n};
 use crate::model::drawings::favorites::Favorite;
+use crate::model::tool_rail::{ToolRailStyle, active_tool_rail_style};
 use crate::model::{ChartSyncSettings, CursorMode, MagnetMode, Tool, ToolGroup};
 use crate::ui::icons::{self, Icon};
 use crate::ui::{kit, shortcut, theme};
@@ -15,11 +16,45 @@ use std::sync::Arc;
 use std::time::Duration;
 
 pub const WIDTH: f32 = 44.0;
-const BUTTON: f32 = 32.0;
 const ICON: f32 = 18.0;
-const SPACING: f32 = 4.0;
 /// How long the pointer rests on a tile before its label appears beside the strip.
 const TOOLTIP_DELAY: Duration = Duration::from_millis(250);
+
+#[derive(Clone, Copy)]
+struct RailMetrics {
+    button: f32,
+    spacing: f32,
+    edge_pad: f32,
+    bottom_gap_half: f32,
+}
+
+impl RailMetrics {
+    const DEFAULT: Self = Self {
+        button: 34.0,
+        spacing: 6.0,
+        edge_pad: 10.0,
+        bottom_gap_half: 2.0,
+    };
+
+    const COMPACT: Self = Self {
+        button: 28.0,
+        spacing: 3.0,
+        edge_pad: 6.0,
+        bottom_gap_half: 1.0,
+    };
+
+    const fn for_style(style: ToolRailStyle) -> Self {
+        match style {
+            ToolRailStyle::Default => Self::DEFAULT,
+            ToolRailStyle::Compact => Self::COMPACT,
+        }
+    }
+}
+
+#[cfg(test)]
+const BUTTON: f32 = RailMetrics::DEFAULT.button;
+#[cfg(test)]
+const SPACING: f32 = RailMetrics::DEFAULT.spacing;
 
 pub struct ToolSidebarInput {
     pub active_tool: Tool,
@@ -358,15 +393,16 @@ pub fn tool_icon(tool: Tool) -> Icon {
 }
 
 pub fn show(ui: &mut Ui, input: &ToolSidebarInput) -> Vec<ToolSidebarAction> {
+    let m = RailMetrics::for_style(active_tool_rail_style());
     let mut actions = Vec::new();
     let strip = ui.max_rect();
     let painter = ui.painter();
     painter.rect_filled(strip, 0.0, theme::chrome());
 
-    let x = strip.center().x - BUTTON / 2.0;
-    let mut y = strip.top() + 6.0;
+    let x = strip.center().x - m.button / 2.0;
+    let mut y = strip.top() + m.edge_pad;
     for slot in slots() {
-        let rect = Rect::from_min_size(pos2(x, y), Vec2::splat(BUTTON));
+        let rect = Rect::from_min_size(pos2(x, y), Vec2::splat(m.button));
         match slot {
             Slot::Cursor => cursor_tile(ui, rect, input, strip.right(), &mut actions),
             Slot::Tool(tool, icon, label) => {
@@ -393,7 +429,7 @@ pub fn show(ui: &mut Ui, input: &ToolSidebarInput) -> Vec<ToolSidebarAction> {
             }
             Slot::Menu(menu) => menu_tile(ui, rect, input, strip.right(), &mut actions, menu),
         }
-        y += BUTTON + SPACING;
+        y += m.button + m.spacing;
     }
 
     // Zoom in sits under the ruler, as TradingView's does. It is a mode of the pointer rather
@@ -411,8 +447,10 @@ pub fn show(ui: &mut Ui, input: &ToolSidebarInput) -> Vec<ToolSidebarAction> {
         mark: None,
     };
     // Like the options below, they give way to the bottom group on a short window.
-    let limit = strip.bottom() - 135.0 - 10.0;
-    let rect = Rect::from_min_size(pos2(x, y), Vec2::splat(BUTTON));
+    let bottom_group_height =
+        m.edge_pad + m.button * 2.0 + m.spacing * 2.0 + m.bottom_gap_half * 2.0 + 1.0;
+    let limit = strip.bottom() - bottom_group_height - 10.0;
+    let rect = Rect::from_min_size(pos2(x, y), Vec2::splat(m.button));
     let lit = if input.zoom_armed {
         Active::Filled
     } else {
@@ -429,14 +467,14 @@ pub fn show(ui: &mut Ui, input: &ToolSidebarInput) -> Vec<ToolSidebarAction> {
     {
         actions.push(ToolSidebarAction::ArmZoomIn);
     }
-    y += BUTTON + SPACING;
-    if input.can_zoom_out && y + BUTTON <= limit {
-        let rect = Rect::from_min_size(pos2(x, y), Vec2::splat(BUTTON));
+    y += m.button + m.spacing;
+    if input.can_zoom_out && y + m.button <= limit {
+        let rect = Rect::from_min_size(pos2(x, y), Vec2::splat(m.button));
         let tile = zoom(Icon::ZoomOut, tr!("Zoom out"), Active::Off);
         if tile_button(ui, rect, &tile, strip.right()).clicked() {
             actions.push(ToolSidebarAction::ZoomOut);
         }
-        y += BUTTON + SPACING;
+        y += m.button + m.spacing;
     }
 
     // The drawing options: magnet, keep drawing, lock and hide. They take the room the bottom
@@ -444,11 +482,11 @@ pub fn show(ui: &mut Ui, input: &ToolSidebarInput) -> Vec<ToolSidebarAction> {
     // menu still reach them).
     y += 2.0;
     ui.painter().rect_filled(
-        Rect::from_center_size(pos2(strip.center().x, y - SPACING / 2.0), vec2(22.0, 1.0)),
+        Rect::from_center_size(pos2(strip.center().x, y - m.spacing / 2.0), vec2(22.0, 1.0)),
         0.5,
         theme::separator(),
     );
-    y += SPACING / 2.0 + 2.0;
+    y += m.spacing / 2.0 + 2.0;
     let toggle = |icon, label, tooltip, key, active_on: bool, enabled, mark| Tile {
         icon,
         label,
@@ -541,7 +579,7 @@ pub fn show(ui: &mut Ui, input: &ToolSidebarInput) -> Vec<ToolSidebarAction> {
             toggle(
                 Icon::Globe,
                 tr!("Sync drawings across charts"),
-                tr!("Mode: show all elements on all charts"),
+                tr!("Sync drawings across all charts"),
                 "sync_drawings",
                 input.sync_drawings,
                 true,
@@ -552,34 +590,34 @@ pub fn show(ui: &mut Ui, input: &ToolSidebarInput) -> Vec<ToolSidebarAction> {
     ];
     let mut all_options_fit = true;
     for (tile, action) in options {
-        if y + BUTTON > limit {
+        if y + m.button > limit {
             all_options_fit = false;
             break;
         }
-        let rect = Rect::from_min_size(pos2(x, y), Vec2::splat(BUTTON));
+        let rect = Rect::from_min_size(pos2(x, y), Vec2::splat(m.button));
         if tile_button(ui, rect, &tile, strip.right()).clicked() {
             actions.push(action);
         }
-        y += BUTTON + SPACING;
+        y += m.button + m.spacing;
     }
 
     // Link charts sits under the options behind its own rule, and only while there is more than
     // one chart to link. On a short window it is dropped with the options.
-    if input.can_link && all_options_fit && y + 2.0 + SPACING / 2.0 + 2.0 + BUTTON <= limit {
+    if input.can_link && all_options_fit && y + 2.0 + m.spacing / 2.0 + 2.0 + m.button <= limit {
         y += 2.0;
         ui.painter().rect_filled(
-            Rect::from_center_size(pos2(strip.center().x, y - SPACING / 2.0), vec2(22.0, 1.0)),
+            Rect::from_center_size(pos2(strip.center().x, y - m.spacing / 2.0), vec2(22.0, 1.0)),
             0.5,
             theme::separator(),
         );
-        y += SPACING / 2.0 + 2.0;
-        let rect = Rect::from_min_size(pos2(x, y), Vec2::splat(BUTTON));
+        y += m.spacing / 2.0 + 2.0;
+        let rect = Rect::from_min_size(pos2(x, y), Vec2::splat(m.button));
         link_tile(ui, rect, input, strip.right(), &mut actions);
     }
 
     // The bottom group, laid out upwards from the strip's foot.
-    let mut y = strip.bottom() - 6.0 - BUTTON;
-    let bell = Rect::from_min_size(pos2(x, y), Vec2::splat(BUTTON));
+    let mut y = strip.bottom() - m.edge_pad - m.button;
+    let bell = Rect::from_min_size(pos2(x, y), Vec2::splat(m.button));
     let bell_label = if input.unseen_alerts > 0 {
         tr_n!(
             input.unseen_alerts,
@@ -610,16 +648,16 @@ pub fn show(ui: &mut Ui, input: &ToolSidebarInput) -> Vec<ToolSidebarAction> {
         actions.push(ToolSidebarAction::OpenAlerts);
     }
 
-    // A short inset rule between the groups (3px + 1px rule + 3px = 7px total).
-    y -= 3.0 + 1.0;
+    // A short inset rule between the groups.
+    y -= m.spacing + m.bottom_gap_half + 1.0;
     ui.painter().rect_filled(
         Rect::from_center_size(pos2(strip.center().x, y + 0.5), vec2(22.0, 1.0)),
         0.5,
         theme::separator(),
     );
-    y -= 3.0 + BUTTON;
+    y -= m.spacing + m.bottom_gap_half + m.button;
 
-    let paper = Rect::from_min_size(pos2(x, y), Vec2::splat(BUTTON));
+    let paper = Rect::from_min_size(pos2(x, y), Vec2::splat(m.button));
     if tile_button(
         ui,
         paper,
@@ -1926,7 +1964,10 @@ mod tests {
     fn the_arrow_is_the_bottom_right_corner_and_the_rest_of_the_tile_arms() {
         let size = vec2(900.0, 900.0);
         let input = state();
-        let (left, top) = ((WIDTH - BUTTON) / 2.0, 6.0 + BUTTON + SPACING);
+        let (left, top) = (
+            (WIDTH - BUTTON) / 2.0,
+            RailMetrics::DEFAULT.edge_pad + BUTTON + SPACING,
+        );
         // Every point of the Lines tile on a 2 point grid: only the corner square opens the menu.
         for column in 0..(BUTTON as i32 / 2) {
             for row in 0..(BUTTON as i32 / 2) {
@@ -2260,14 +2301,14 @@ mod tests {
     #[test]
     fn on_a_short_window_zoom_out_gives_way_to_the_bottom_group() {
         let ctx = egui::Context::default();
-        let (mut time, size) = (0.0, vec2(900.0, 520.0));
+        let (mut time, size) = (0.0, vec2(900.0, 495.0));
         let mut input = state();
         input.has_market = true;
         input.can_zoom_out = true;
         for _ in 0..3 {
             frame(&ctx, &mut time, size, Vec::new(), &input);
         }
-        let zoom_out = 6.0 + (BUTTON + SPACING) * 9.0 + BUTTON / 2.0;
+        let zoom_out = RailMetrics::DEFAULT.edge_pad + (BUTTON + SPACING) * 9.0 + BUTTON / 2.0;
         let actions = click(&ctx, &mut time, size, pos2(22.0, zoom_out), &input);
         assert!(!actions.contains(&ToolSidebarAction::ZoomOut));
         // Zoom in itself still fits there.

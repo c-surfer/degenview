@@ -66,6 +66,66 @@ msgstr[1] ""
 msgid "(No reply.)"
 msgstr ""
 
+#: src/model/timezone.rs
+msgid "(UTC+0) London"
+msgstr ""
+
+#: src/model/timezone.rs
+msgid "(UTC+0) UTC"
+msgstr ""
+
+#: src/model/timezone.rs
+msgid "(UTC+1) Frankfurt"
+msgstr ""
+
+#: src/model/timezone.rs
+msgid "(UTC+10) Sydney"
+msgstr ""
+
+#: src/model/timezone.rs
+msgid "(UTC+2) Athens"
+msgstr ""
+
+#: src/model/timezone.rs
+msgid "(UTC+3) Moscow"
+msgstr ""
+
+#: src/model/timezone.rs
+msgid "(UTC+4) Dubai"
+msgstr ""
+
+#: src/model/timezone.rs
+msgid "(UTC+5:30) Mumbai"
+msgstr ""
+
+#: src/model/timezone.rs
+msgid "(UTC+7) Bangkok"
+msgstr ""
+
+#: src/model/timezone.rs
+msgid "(UTC+8) Singapore"
+msgstr ""
+
+#: src/model/timezone.rs
+msgid "(UTC+9) Tokyo"
+msgstr ""
+
+#: src/model/timezone.rs
+msgid "(UTC-3) São Paulo"
+msgstr ""
+
+#: src/model/timezone.rs
+msgid "(UTC-5) New York"
+msgstr ""
+
+#: src/model/timezone.rs
+msgid "(UTC-6) Chicago"
+msgstr ""
+
+#: src/model/timezone.rs
+msgid "(UTC-8) Los Angeles"
+msgstr ""
+
 #: src/ui/workspace/toolbar.rs
 msgid "(unsaved)"
 msgstr ""
@@ -190,14 +250,6 @@ msgstr ""
 msgid "5 charts"
 msgstr ""
 
-#: src/ui/workspace/toolbar.rs
-msgid "6 charts"
-msgstr ""
-
-#: src/ui/workspace/toolbar.rs
-msgid "Sync Symbol"
-msgstr ""
-
 #: src/ui/market_flow/flow.rs
 #: src/ui/market_flow/mod.rs
 msgid "5 minutes"
@@ -209,6 +261,10 @@ msgstr ""
 
 #: src/pine_studio/drawer/simulation.rs
 msgid "5th percentile"
+msgstr ""
+
+#: src/ui/workspace/toolbar.rs
+msgid "6 charts"
 msgstr ""
 
 #: src/model/portfolio/statistics.rs
@@ -3043,6 +3099,10 @@ msgstr ""
 msgid "Chart template"
 msgstr ""
 
+#: src/ui/settings/appearance.rs
+msgid "Chart time zone"
+msgstr ""
+
 #: src/ui/chart/settings/style.rs
 msgid "Chart type"
 msgstr ""
@@ -3718,6 +3778,7 @@ msgid "Community scripts"
 msgstr ""
 
 #: src/model/editor_theme/typography.rs
+#: src/model/tool_rail.rs
 #: src/ui/drawing/layer/menu.rs
 msgid "Compact"
 msgstr ""
@@ -4877,6 +4938,7 @@ msgid "Decrease"
 msgstr ""
 
 #: src/model/editor_theme/typography.rs
+#: src/model/tool_rail.rs
 msgid "Default"
 msgstr ""
 
@@ -7699,6 +7761,10 @@ msgid ""
 "bearish, inside is indecision. The lagging span is not drawn."
 msgstr ""
 
+#: src/ui/settings/appearance.rs
+msgid "Icon style"
+msgstr ""
+
 #: src/ui/settings/window.rs
 msgid ""
 "If the background item is disabled or unavailable, alerts keep evaluating "
@@ -9561,10 +9627,6 @@ msgstr ""
 
 #: src/ui/drawing/properties/forecast_pages.rs
 msgid "Mode"
-msgstr ""
-
-#: src/ui/workspace/tool_sidebar.rs
-msgid "Mode: show all elements on all charts"
 msgstr ""
 
 #: src/pine_studio/ai/panel.rs
@@ -13836,6 +13898,10 @@ msgstr ""
 msgid "SYMBOL"
 msgstr ""
 
+#: src/model/timezone.rs
+msgid "Same as system"
+msgstr ""
+
 #: src/ui/settings/appearance.rs
 msgid "Same as the system"
 msgstr ""
@@ -15018,6 +15084,10 @@ msgstr ""
 msgid "Size"
 msgstr ""
 
+#: src/ui/settings/appearance.rs
+msgid "Size and spacing of the left drawing toolbar."
+msgstr ""
+
 #: src/ui/snapshot_studio/window/toolbar.rs
 msgid "Size applies to the Styled look"
 msgstr ""
@@ -15706,6 +15776,14 @@ msgstr ""
 
 #: src/ui/settings/sync.rs
 msgid "Sync Now"
+msgstr ""
+
+#: src/ui/workspace/toolbar.rs
+msgid "Sync Symbol"
+msgstr ""
+
+#: src/ui/workspace/tool_sidebar.rs
+msgid "Sync drawings across all charts"
 msgstr ""
 
 #: src/ui/workspace/tool_sidebar.rs
@@ -17599,6 +17677,14 @@ msgstr ""
 
 #: src/ui/drawing/properties/style.rs
 msgid "Time range"
+msgstr ""
+
+#: src/ui/settings/appearance.rs
+msgid "Time zone"
+msgstr ""
+
+#: src/ui/settings/appearance.rs
+msgid "Time zone shown on chart scales and tooltips."
 msgstr ""
 
 #: src/ui/chart/table_view.rs

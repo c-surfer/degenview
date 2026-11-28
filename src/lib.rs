@@ -55,6 +55,7 @@ pub fn run_gui_with(
     // Register the system time-zone offset provider and load the saved chart time zone.
     model::timezone::set_system_offset_provider(service::system::timezone::local_utc_offset_secs);
     model::timezone::set_active_timezone(crate::lock::lock(&store).chart_timezone());
+    model::tool_rail::set_active_tool_rail_style(crate::lock::lock(&store).tool_rail_style());
     // A database copied from another Mac becomes this Mac's own before anything reads its ids.
     host::sync::adopt_this_mac(&store);
     // A finished update leaves the previous app in a hidden folder until the new one has started.

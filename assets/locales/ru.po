@@ -22844,8 +22844,6 @@ msgstr "Лицензия удалена. Включён базовый режи�
 msgid "License verification failed"
 msgstr "Ошибка проверки лицензии"
 
-msgid "Mode: show all elements on all charts"
-msgstr "Режим: отображать все элементы на всех графиках"
 
 msgid "Play a sound when this alert triggers."
 msgstr "Проигрывать звуковой сигнал при срабатывании оповещения."
@@ -22876,3 +22874,69 @@ msgstr "Без лицензии индикатор [Surfer] RSI работает
 
 msgid "[Surfer] RSI v1"
 msgstr "[Surfer] RSI v1"
+
+msgid "Icon style"
+msgstr "Стиль иконок"
+
+msgid "Size and spacing of the left drawing toolbar."
+msgstr "Размер и отступы левой панели инструментов рисования."
+
+msgid "Time zone"
+msgstr "Часовой пояс"
+
+msgid "Chart time zone"
+msgstr "Часовой пояс графика"
+
+msgid "Time zone shown on chart scales and tooltips."
+msgstr "Часовой пояс на шкалах и подсказках графика."
+
+msgid "Same as system"
+msgstr "Как в системе"
+
+msgid "(UTC+0) UTC"
+msgstr "(UTC+0) UTC"
+
+msgid "(UTC-8) Los Angeles"
+msgstr "(UTC-8) Лос-Анджелес"
+
+msgid "(UTC-6) Chicago"
+msgstr "(UTC-6) Чикаго"
+
+msgid "(UTC-5) New York"
+msgstr "(UTC-5) Нью-Йорк"
+
+msgid "(UTC-3) São Paulo"
+msgstr "(UTC-3) Сан-Паулу"
+
+msgid "(UTC+0) London"
+msgstr "(UTC+0) Лондон"
+
+msgid "(UTC+1) Frankfurt"
+msgstr "(UTC+1) Франкфурт"
+
+msgid "(UTC+2) Athens"
+msgstr "(UTC+2) Афины"
+
+msgid "(UTC+3) Moscow"
+msgstr "(UTC+3) Москва"
+
+msgid "(UTC+4) Dubai"
+msgstr "(UTC+4) Дубай"
+
+msgid "(UTC+5:30) Mumbai"
+msgstr "(UTC+5:30) Мумбаи"
+
+msgid "(UTC+7) Bangkok"
+msgstr "(UTC+7) Бангкок"
+
+msgid "(UTC+8) Singapore"
+msgstr "(UTC+8) Сингапур"
+
+msgid "(UTC+9) Tokyo"
+msgstr "(UTC+9) Токио"
+
+msgid "(UTC+10) Sydney"
+msgstr "(UTC+10) Сидней"
+
+msgid "Sync drawings across all charts"
+msgstr "Синхр. объекты рисования на всех графиках"

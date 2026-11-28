@@ -159,6 +159,8 @@ pub enum SettingsAction {
     SetLanguage(crate::i18n::Preference),
     /// A chart time zone on the Appearance page was picked.
     SetChartTimezone(crate::model::timezone::ChartTimezone),
+    /// A toolbar icon style on the Appearance page was picked.
+    SetToolRailStyle(crate::model::tool_rail::ToolRailStyle),
     /// The language prompt's Restart Now: quit and open the app again.
     Restart,
     /// A switch on the Notifications page changed: the whole new settings value.
@@ -468,6 +470,12 @@ pub fn show(
                         crate::model::timezone::active_timezone(),
                     ) {
                         actions.push(SettingsAction::SetChartTimezone(timezone));
+                    }
+                    if let Some(style) = crate::ui::settings::appearance::tool_rail_style(
+                        ui,
+                        crate::model::tool_rail::active_tool_rail_style(),
+                    ) {
+                        actions.push(SettingsAction::SetToolRailStyle(style));
                     }
                 },
             );

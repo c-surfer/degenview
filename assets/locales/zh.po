@@ -20903,8 +20903,6 @@ msgstr "许可证已移除。基础 RSI 模式已启用。"
 msgid "License verification failed"
 msgstr "许可证验证失败"
 
-msgid "Mode: show all elements on all charts"
-msgstr "模式：在所有图表上显示所有元素"
 
 msgid "Play a sound when this alert triggers."
 msgstr "此警报触发时播放提示音。"
@@ -20935,3 +20933,69 @@ msgstr "没有许可证时，[Surfer] RSI 指标以基础模式（RSI + 随机�
 
 msgid "[Surfer] RSI v1"
 msgstr "[Surfer] RSI v1"
+
+msgid "Icon style"
+msgstr "图标样式"
+
+msgid "Size and spacing of the left drawing toolbar."
+msgstr "左侧绘图工具栏的大小和间距。"
+
+msgid "Time zone"
+msgstr "时区"
+
+msgid "Chart time zone"
+msgstr "图表时区"
+
+msgid "Time zone shown on chart scales and tooltips."
+msgstr "图表刻度和提示中显示的时区。"
+
+msgid "Same as system"
+msgstr "与系统相同"
+
+msgid "(UTC+0) UTC"
+msgstr "(UTC+0) UTC"
+
+msgid "(UTC-8) Los Angeles"
+msgstr "(UTC-8) 洛杉矶"
+
+msgid "(UTC-6) Chicago"
+msgstr "(UTC-6) 芝加哥"
+
+msgid "(UTC-5) New York"
+msgstr "(UTC-5) 纽约"
+
+msgid "(UTC-3) São Paulo"
+msgstr "(UTC-3) 圣保罗"
+
+msgid "(UTC+0) London"
+msgstr "(UTC+0) 伦敦"
+
+msgid "(UTC+1) Frankfurt"
+msgstr "(UTC+1) 法兰克福"
+
+msgid "(UTC+2) Athens"
+msgstr "(UTC+2) 雅典"
+
+msgid "(UTC+3) Moscow"
+msgstr "(UTC+3) 莫斯科"
+
+msgid "(UTC+4) Dubai"
+msgstr "(UTC+4) 迪拜"
+
+msgid "(UTC+5:30) Mumbai"
+msgstr "(UTC+5:30) 孟买"
+
+msgid "(UTC+7) Bangkok"
+msgstr "(UTC+7) 曼谷"
+
+msgid "(UTC+8) Singapore"
+msgstr "(UTC+8) 新加坡"
+
+msgid "(UTC+9) Tokyo"
+msgstr "(UTC+9) 东京"
+
+msgid "(UTC+10) Sydney"
+msgstr "(UTC+10) 悉尼"
+
+msgid "Sync drawings across all charts"
+msgstr "在所有图表间同步绘图"

@@ -25,6 +25,7 @@ pub mod session_stats;
 pub mod tab;
 pub mod taker_flow;
 pub mod timezone;
+pub mod tool_rail;
 pub mod tradingview;
 pub mod watchlist;
 pub mod webhook;

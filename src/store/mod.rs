@@ -29,6 +29,7 @@ pub mod portfolio;
 pub mod scripts;
 pub mod sync;
 pub mod timezone;
+pub mod tool_rail;
 pub mod watchlist;
 pub mod webhook;
 
