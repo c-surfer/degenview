@@ -15,9 +15,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 pub const WIDTH: f32 = 44.0;
-const BUTTON: f32 = 34.0;
+const BUTTON: f32 = 28.0;
 const ICON: f32 = 18.0;
-const SPACING: f32 = 6.0;
+const SPACING: f32 = 3.0;
 /// How long the pointer rests on a tile before its label appears beside the strip.
 const TOOLTIP_DELAY: Duration = Duration::from_millis(250);
 
@@ -364,7 +364,7 @@ pub fn show(ui: &mut Ui, input: &ToolSidebarInput) -> Vec<ToolSidebarAction> {
     painter.rect_filled(strip, 0.0, theme::chrome());
 
     let x = strip.center().x - BUTTON / 2.0;
-    let mut y = strip.top() + 10.0;
+    let mut y = strip.top() + 6.0;
     for slot in slots() {
         let rect = Rect::from_min_size(pos2(x, y), Vec2::splat(BUTTON));
         match slot {
@@ -578,7 +578,7 @@ pub fn show(ui: &mut Ui, input: &ToolSidebarInput) -> Vec<ToolSidebarAction> {
     }
 
     // The bottom group, laid out upwards from the strip's foot.
-    let mut y = strip.bottom() - 10.0 - BUTTON;
+    let mut y = strip.bottom() - 6.0 - BUTTON;
     let bell = Rect::from_min_size(pos2(x, y), Vec2::splat(BUTTON));
     let bell_label = if input.unseen_alerts > 0 {
         tr_n!(
@@ -611,13 +611,13 @@ pub fn show(ui: &mut Ui, input: &ToolSidebarInput) -> Vec<ToolSidebarAction> {
     }
 
     // A short inset rule between the groups.
-    y -= SPACING + 1.0 + 2.0;
+    y -= SPACING + 1.0 + 1.0;
     ui.painter().rect_filled(
         Rect::from_center_size(pos2(strip.center().x, y + 0.5), vec2(22.0, 1.0)),
         0.5,
         theme::separator(),
     );
-    y -= 2.0 + SPACING + BUTTON;
+    y -= 1.0 + SPACING + BUTTON;
 
     let paper = Rect::from_min_size(pos2(x, y), Vec2::splat(BUTTON));
     if tile_button(
@@ -1488,7 +1488,7 @@ mod tests {
     /// popup opened (no tile opens one from a plain click except Link charts).
     fn popups_opened_by_plain_clicks(input: &ToolSidebarInput, height: f32) -> Vec<f32> {
         let size = vec2(900.0, height);
-        let below_cursor_tile = 10.0 + BUTTON + SPACING;
+        let below_cursor_tile = 6.0 + BUTTON + SPACING;
         (0..(height as i32 / 4))
             .map(|row| row as f32 * 4.0)
             .filter(|y| *y >= below_cursor_tile)
@@ -1644,10 +1644,10 @@ mod tests {
     }
 
     /// The cursor tile's centre.
-    const CURSOR_TILE: Pos2 = pos2(WIDTH / 2.0, 10.0 + BUTTON / 2.0);
+    const CURSOR_TILE: Pos2 = pos2(WIDTH / 2.0, 6.0 + BUTTON / 2.0);
 
     /// The cursor tile's arrow, where its menu opens from.
-    const CURSOR_ARROW: Pos2 = pos2(31.0, 36.0);
+    const CURSOR_ARROW: Pos2 = pos2(WIDTH / 2.0 + BUTTON / 2.0 - 5.0, 6.0 + BUTTON - 5.0);
 
     fn open_cursor_menu(input: &ToolSidebarInput) -> (egui::Context, f64, Rect) {
         let size = vec2(900.0, 700.0);
@@ -1926,7 +1926,7 @@ mod tests {
     fn the_arrow_is_the_bottom_right_corner_and_the_rest_of_the_tile_arms() {
         let size = vec2(900.0, 900.0);
         let input = state();
-        let (left, top) = ((WIDTH - BUTTON) / 2.0, 10.0 + BUTTON + SPACING);
+        let (left, top) = ((WIDTH - BUTTON) / 2.0, 6.0 + BUTTON + SPACING);
         // Every point of the Lines tile on a 2 point grid: only the corner square opens the menu.
         for column in 0..(BUTTON as i32 / 2) {
             for row in 0..(BUTTON as i32 / 2) {
@@ -2224,7 +2224,7 @@ mod tests {
             frame(&ctx, &mut time, size, Vec::new(), &input);
         }
         // The ruler is the ninth row's neighbour above: rows are 40 points apart from y = 10.
-        let ruler = 10.0 + 40.0 * 7.0 + BUTTON / 2.0;
+        let ruler = 6.0 + (BUTTON + SPACING) * 7.0 + BUTTON / 2.0;
         let zoom = ruler + 40.0;
         let actions = click(&ctx, &mut time, size, pos2(22.0, ruler), &input);
         assert_eq!(actions, vec![ToolSidebarAction::Arm(Tool::Ruler)]);
@@ -2242,7 +2242,7 @@ mod tests {
         let (mut time, size) = (0.0, vec2(900.0, 900.0));
         let mut input = state();
         input.has_market = true;
-        let zoom_out = 10.0 + 40.0 * 9.0 + BUTTON / 2.0;
+        let zoom_out = 6.0 + (BUTTON + SPACING) * 9.0 + BUTTON / 2.0;
         for _ in 0..3 {
             frame(&ctx, &mut time, size, Vec::new(), &input);
         }
@@ -2267,7 +2267,7 @@ mod tests {
         for _ in 0..3 {
             frame(&ctx, &mut time, size, Vec::new(), &input);
         }
-        let zoom_out = 10.0 + 40.0 * 9.0 + BUTTON / 2.0;
+        let zoom_out = 6.0 + (BUTTON + SPACING) * 9.0 + BUTTON / 2.0;
         let actions = click(&ctx, &mut time, size, pos2(22.0, zoom_out), &input);
         assert!(!actions.contains(&ToolSidebarAction::ZoomOut));
         // Zoom in itself still fits there.
@@ -2285,7 +2285,7 @@ mod tests {
         for _ in 0..3 {
             frame(&ctx, &mut time, size, Vec::new(), &input);
         }
-        let zoom = 10.0 + 40.0 * 8.0 + BUTTON / 2.0;
+        let zoom = 6.0 + (BUTTON + SPACING) * 8.0 + BUTTON / 2.0;
         assert!(click(&ctx, &mut time, size, pos2(22.0, zoom), &input).is_empty());
     }
 
@@ -2579,7 +2579,7 @@ mod tests {
         if gallery_dir().is_none() {
             return;
         }
-        let hover = pos2(22.0, 10.0 + 40.0 * 8.0 + BUTTON / 2.0);
+        let hover = pos2(22.0, 6.0 + (BUTTON + SPACING) * 8.0 + BUTTON / 2.0);
         for (theme_name, appearance) in [("dark", AppTheme::Dark), ("light", AppTheme::Light)] {
             for (name, armed, zoom_out, pointer) in [
                 ("rest", false, false, None),
