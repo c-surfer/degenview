@@ -528,7 +528,9 @@ impl ChartWorkspace {
     }
 
     pub fn timeframe(&self) -> Timeframe {
-        self.timeframe
+        self.focused_market_chart()
+            .map(|c| c.timeframe)
+            .unwrap_or(self.timeframe)
     }
 
     pub fn title(&self) -> String {

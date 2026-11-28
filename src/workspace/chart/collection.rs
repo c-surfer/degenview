@@ -514,8 +514,11 @@ impl ChartWorkspace {
         if self.focused == Some(chart_id) {
             return;
         }
-        if self.charts.iter().any(|chart| chart.id == chart_id) {
+        if let Some(chart) = self.charts.iter().find(|chart| chart.id == chart_id) {
             self.focused = Some(chart_id);
+            if chart.is_market() {
+                self.timeframe = chart.timeframe;
+            }
         }
     }
 
@@ -552,9 +555,7 @@ impl ChartWorkspace {
         for other_id in other_ids {
             self.switch_chart_without_sync(other_id, item, ctx);
         }
-        if let Some(first_id) = self.charts.iter().find(|c| c.is_market()).map(|c| c.id) {
-            self.focus_chart(first_id);
-        }
+        self.focus_chart(source_chart_id);
     }
 
     fn switch_chart_without_sync(
@@ -581,8 +582,8 @@ impl ChartWorkspace {
     /// The chart shows another market than its candles: loads them, and forgets what refers to
     /// the old ones (the views a zoom could go back to, the series Tab Linking compares).
     pub(in crate::workspace) fn market_changed(&mut self, chart_id: u64, ctx: &egui::Context) {
-        let timeframe = self.timeframe;
         if let Some(chart) = self.charts.iter_mut().find(|chart| chart.id == chart_id) {
+            let timeframe = chart.timeframe;
             chart.chart.reset_view();
             chart.chart.abort_drawing();
             chart.fetch(timeframe, ctx);

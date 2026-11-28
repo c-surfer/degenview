@@ -499,6 +499,52 @@ mod tests {
     }
 
     #[test]
+    fn switch_chart_syncs_other_market_charts_preserving_individual_timeframes_and_focus() {
+        let mut workspace = empty_workspace(1);
+        let c1 = chart_with_drawings(&mut workspace, "BTCUSDT", &[]);
+        let c2 = chart_with_drawings(&mut workspace, "ETHUSDT", &[]);
+        let _c3 = chart_with_drawings(&mut workspace, "SOLUSDT", &[]);
+        let ctx = egui::Context::default();
+        workspace.charts[0].timeframe = Timeframe::HOUR_1;
+        workspace.charts[1].timeframe = Timeframe::HOUR_4;
+        workspace.charts[2].timeframe = Timeframe::DAY_1;
+        workspace.focused = Some(c1);
+        workspace.sync_symbol = true;
+
+        let xrp = crate::model::watchlist::WatchlistInstrument::from_market(
+            crate::model::DataSource::Binance,
+            "XRPUSDT",
+            "XRPUSDT",
+        );
+        // Switch on Chart 1
+        assert!(workspace.switch_chart(c1, &xrp, &ctx));
+        assert_eq!(workspace.charts[0].symbol, "XRPUSDT");
+        assert_eq!(workspace.charts[1].symbol, "XRPUSDT");
+        assert_eq!(workspace.charts[2].symbol, "XRPUSDT");
+        assert_eq!(workspace.charts[0].timeframe, Timeframe::HOUR_1);
+        assert_eq!(workspace.charts[1].timeframe, Timeframe::HOUR_4);
+        assert_eq!(workspace.charts[2].timeframe, Timeframe::DAY_1);
+        assert_eq!(workspace.focused, Some(c1));
+        assert_eq!(workspace.timeframe(), Timeframe::HOUR_1);
+
+        let doge = crate::model::watchlist::WatchlistInstrument::from_market(
+            crate::model::DataSource::Binance,
+            "DOGEUSDT",
+            "DOGEUSDT",
+        );
+        // Switch on Chart 2
+        assert!(workspace.switch_chart(c2, &doge, &ctx));
+        assert_eq!(workspace.charts[0].symbol, "DOGEUSDT");
+        assert_eq!(workspace.charts[1].symbol, "DOGEUSDT");
+        assert_eq!(workspace.charts[2].symbol, "DOGEUSDT");
+        assert_eq!(workspace.charts[0].timeframe, Timeframe::HOUR_1);
+        assert_eq!(workspace.charts[1].timeframe, Timeframe::HOUR_4);
+        assert_eq!(workspace.charts[2].timeframe, Timeframe::DAY_1);
+        assert_eq!(workspace.focused, Some(c2));
+        assert_eq!(workspace.timeframe(), Timeframe::HOUR_4);
+    }
+
+    #[test]
     fn persisted_workspace_sync_symbol_defaults_false_and_roundtrips() {
         let workspace = empty_workspace(1);
         let mut value = serde_json::to_value(workspace.persisted()).expect("serialize");

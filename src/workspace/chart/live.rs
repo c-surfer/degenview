@@ -52,8 +52,15 @@ impl ChartWorkspace {
         // The stream is of the candle length the source serves the timeframe from (one-minute
         // klines for a 22-minute chart, monthly ones for a quarter); a timeframe it cannot reach
         // has none.
+        let stream_tf = self
+            .charts
+            .iter()
+            .filter(|chart| chart.is_market() && chart.source == source)
+            .map(|chart| chart.timeframe)
+            .min()
+            .unwrap_or(self.timeframe);
         let base = listing
-            .plan(self.timeframe)
+            .plan(stream_tf)
             .map(|plan| plan.base())
             .filter(|_| !symbols.is_empty());
         let wanted = base.map(|base| (symbols, base));
