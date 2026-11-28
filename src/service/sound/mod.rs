@@ -209,8 +209,8 @@ mod platform {
                 return;
             };
             for i in 0..count {
-                let played = run_player("pw-play", &[], &temp.0)
-                    || run_player("paplay", &[], &temp.0)
+                let played = run_player("pw-play", &["--volume", "1.0"], &temp.0)
+                    || run_player("paplay", &["--volume=65536"], &temp.0)
                     || run_player("aplay", &["-q"], &temp.0);
                 if !played {
                     break;
