@@ -2363,3 +2363,31 @@ fn a_failed_refresh_keeps_the_last_candles_and_adds_a_warning() {
     );
     assert!(pointer.rect.is_some());
 }
+
+#[test]
+fn double_clicking_empty_plot_toggles_all_panes_collapsed() {
+    let mut harness = with_panes(ChartCanvas::default());
+    assert_eq!(harness.card.pane_count(), 2);
+    assert!(!harness.card.pine_instances()[0].pane.collapsed);
+    assert!(!harness.card.pine_instances()[1].pane.collapsed);
+
+    let plot_point = Pos2::new(200.0, 120.0);
+    let double_click = |harness: &mut Harness| {
+        harness.pointer = Some(plot_point);
+        for _ in 0..2 {
+            harness.button = Some(true);
+            harness.draw();
+            harness.button = Some(false);
+            harness.draw();
+        }
+    };
+
+    double_click(&mut harness);
+    assert!(harness.card.pine_instances()[0].pane.collapsed);
+    assert!(harness.card.pine_instances()[1].pane.collapsed);
+
+    harness.clock += 1.0;
+    double_click(&mut harness);
+    assert!(!harness.card.pine_instances()[0].pane.collapsed);
+    assert!(!harness.card.pine_instances()[1].pane.collapsed);
+}

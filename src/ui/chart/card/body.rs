@@ -259,6 +259,18 @@ impl ChartCard {
         };
         drawing.escape_consumed |= self.handle_input(ui, &navigation);
         self.handle_axis_double_click(response, &regions);
+        if layout.main_visible
+            && !held
+            && !replay.selecting
+            && drawing.tool == crate::model::Tool::Cursor
+            && !navigation.drawing_claims
+            && response.double_clicked_by(egui::PointerButton::Primary)
+            && response
+                .interact_pointer_pos()
+                .is_some_and(|point| regions.of(point) == navigation::Region::Plot)
+        {
+            self.toggle_all_panes_collapsed();
+        }
         regions
     }
 

@@ -239,6 +239,23 @@ impl ChartCard {
             }
         }
     }
+
+    /// Collapses every visible pane if any is expanded, or expands them all if all are collapsed.
+    pub(super) fn toggle_all_panes_collapsed(&mut self) {
+        if self.pane_ids.is_empty() {
+            return;
+        }
+        let any_expanded = self
+            .instances
+            .iter()
+            .any(|i| self.pane_ids.contains(&i.id) && !i.pane.collapsed);
+        let target = any_expanded;
+        for instance in &mut self.instances {
+            if self.pane_ids.contains(&instance.id) {
+                instance.pane.collapsed = target;
+            }
+        }
+    }
 }
 
 /// The value labels a script pane writes on its axis, with the value each stands at. The painter
